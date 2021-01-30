@@ -3,19 +3,19 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
 from .layers import Encoder, Decoder 
-from .utils_deep import Optimisation_VAE
+from .utils_deep import Optimisation_AE
 import numpy as np
 
 #TO DO - device comes from config file
 
 DEVICE = torch.device("cuda")
 
-class VAE(nn.Module, Optimisation_VAE):
+class AE(nn.Module, Optimisation_AE):
     
     def __init__(self, input_dims, config):
 
         '''
-        Initialise Variational Autoencoder model.
+        Initialise Autoencoder model.
 
         input_dims: The input data dimension.
         config: Configuration dictionary.
@@ -25,66 +25,46 @@ class VAE(nn.Module, Optimisation_VAE):
 
         super().__init__()
         self._config = config
-        self.model_type = 'VAE'
+        self.model_type = 'AE'
         self.input_dims = input_dims
         self.hidden_layer_dims = config['hidden_layers']
         self.hidden_layer_dims.append(config['latent_size'])
         self.non_linear = config['non_linear']
         self.beta = config['beta']
         self.n_views = len(input_dims)
-        self.encoders = torch.nn.ModuleList([Encoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=True, non_linear=self.non_linear) for input_dim in self.input_dims])
+        self.encoders = torch.nn.ModuleList([Encoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=False, non_linear=self.non_linear) for input_dim in self.input_dims])
         self.decoders = torch.nn.ModuleList([Decoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, non_linear=self.non_linear) for input_dim in self.input_dims])
         self.optimizers = [torch.optim.Adam(list(self.encoders[i].parameters()) + list(self.decoders[i].parameters()),
                                       lr=0.001) for i in range(self.n_views)]
     def encode(self, x):
-        mu = []
-        logvar = []
-        for i in range(self.n_views):
-            mu_, logvar_ = self.encoders[i](x[i])
-            mu.append(mu_)
-            logvar.append(logvar_)
-
-        return mu, logvar
-    
-    def reparameterise(self, mu, logvar):
         z = []
         for i in range(self.n_views):
-            std = torch.exp(0.5*logvar[i])
-            eps = torch.randn_like(mu[i])
-            z.append(mu[i]+eps*std)
-            #z.append(mu[i]+ eps*logvar[i])
+            z_ = self.encoders[i](x[i])
+            z.append(z_)
+
         return z
+    
 
     def decode(self, z):
         x_same = []
         x_cross = []
         for i in range(self.n_views):
             for j in range(self.n_views):
-                mu_out = self.decoders[i](z[j])
+                z_out = self.decoders[i](z[j])
                 if i == j:
-                    x_same.append(mu_out)
+                    x_same.append(z_out)
                 else:
-                    x_cross.append(mu_out)
+                    x_cross.append(z_out)
         return x_same, x_cross
 
     def forward(self, x):
         self.zero_grad()
-        mu, logvar = self.encode(x)
-        z = self.reparameterise(mu, logvar)
+        z = self.encode(x)
         x_same, x_cross = self.decode(z)
         fwd_rtn = {'x_same': x_same,
                     'x_cross': x_cross,
-                    'mu': mu,
-                    'logvar': logvar}
+                    'z': z}
         return fwd_rtn
-
-    @staticmethod
-    def calc_kl(self, mu, logvar):
-        #TO DO - say where got implementation from
-        kl = 0
-        for i in range(self.n_views):
-            kl+= -0.5*torch.sum(1 + logvar[i] - mu[i].pow(2) - logvar[i].exp(), dim=-1).mean(0)
-        return self.beta*kl/self.n_views
 
     @staticmethod
     def recon_loss(self, x, x_same, x_cross):
@@ -97,20 +77,13 @@ class VAE(nn.Module, Optimisation_VAE):
     def loss_function(self, x, fwd_rtn):
         x_same = fwd_rtn['x_same']
         x_cross = fwd_rtn['x_cross']
-        mu = fwd_rtn['mu']
-        logvar = fwd_rtn['logvar']
-
-        kl = self.calc_kl(self, mu, logvar)
+        z = fwd_rtn['z']
         recon = self.recon_loss(self, x, x_same, x_cross)
 
-        total = kl + recon
-        
-        losses = {'total': total,
-                'kl': kl,
-                'reconstruction': recon}
+        losses = {'total': recon}
         return losses
 
 
 __all__ = [
-    'VAE'
+    'AE'
 ]
