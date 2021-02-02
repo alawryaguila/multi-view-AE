@@ -1,0 +1,6 @@
+language: python
+python:
+ - "3.6"  
+# Command to install dependencies
+install:
+ - pip install -r ./multiview_models/requirements.txt
