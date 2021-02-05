@@ -33,6 +33,7 @@ class Optimisation_VAE(Plotting):
         super().__init__()
 
     def generate_data(self, data):
+        
         generators = []
 
         for data_ in data:
@@ -41,12 +42,11 @@ class Optimisation_VAE(Plotting):
             else:
                 batch_sz = np.shape(data_)[0]
             data_ = MyDataset(data_)
-            kwargs_generator = {'num_workers': 4, 'pin_memory': True}
             generator = torch.utils.data.DataLoader(
                 data_,
                 batch_size=batch_sz,
                 shuffle=False,
-                **kwargs_generator
+                **self.kwargs_generator
             )
             generators.append(generator)
         return generators
@@ -54,7 +54,7 @@ class Optimisation_VAE(Plotting):
     def preprocess(self, generators):
 
         for batch_idx, (data) in enumerate(zip(*generators)):
-            data = [data_.to(self.DEVICE) for data_ in data]
+            data = [data_.to(self.device) for data_ in data]
 
         return data
 
@@ -71,7 +71,7 @@ class Optimisation_VAE(Plotting):
         for epoch in range(1, self.epochs + 1):
             if self.minibatch:
                 for batch_idx, (local_batch) in enumerate(zip(*generators)):
-                    local_batch = [local_batch_.to(self.DEVICE) for local_batch_ in local_batch]
+                    local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
                     loss = self.optimise_batch(local_batch)
                     if batch_idx  == 0:
                         to_print = 'Train Epoch: ' + str(epoch) + ' ' + 'Train batch: ' + str(batch_idx) + ' '+ ', '.join([k + ': ' + str(round(v.item(), 3)) for k, v in loss.items()])
@@ -101,7 +101,11 @@ class Optimisation_VAE(Plotting):
         self.minibatch = self._config['mini_batch']
         torch.manual_seed(42)  
         torch.cuda.manual_seed(42)
-        self.DEVICE = torch.device("cuda")
+        use_GPU = self._config['use_GPU']
+        use_cuda = use_GPU and torch.cuda.is_available()
+        self.kwargs_generator = {'num_workers': 4, 'pin_memory': True} if use_cuda else {}
+        self.device = torch.device("cuda" if use_cuda else "cpu")
+
         generators = self.generate_data(data)
         if self.minibatch:
             logger = self.optimise(generators)
@@ -151,7 +155,7 @@ class Optimisation_VAE(Plotting):
         batch_size = generator.batch_size
         dataset = torch.zeros(num_elements, prediction_size)
         for i, data in enumerate(generator):
-            data = data.to(DEVICE)
+            data = data.to(device)
             start = i * batch_size
             end = start + batch_size
             if i == num_batches - 1:
@@ -160,7 +164,7 @@ class Optimisation_VAE(Plotting):
         return dataset.detach().numpy()
     
     def predict_latents(self, *data):
-        self.DEVICE = torch.device("cuda")
+        self.device = torch.device("cuda")
         generators =  self.generate_data(data)
         if not self.minibatch:
             data = self.preprocess(generators)
@@ -171,7 +175,7 @@ class Optimisation_VAE(Plotting):
             if self.minibatch:
                 predictions = [torch.zeros(num_elements, int(self._config['latent_size'])) for i in range(len(generators))]
                 for batch_idx, local_batch in enumerate(zip(*generators)):
-                    local_batch = [local_batch_.to(self.DEVICE) for local_batch_ in local_batch]
+                    local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
                     mu, logvar = self.encode(local_batch)
                     pred = self.reparameterise(mu, logvar)
                     start = batch_idx * batch_size
@@ -187,7 +191,7 @@ class Optimisation_VAE(Plotting):
         return [predictions_.cpu().detach().numpy() for predictions_ in predictions]
 
     def predict_reconstruction(self, *data):
-        self.DEVICE = torch.device("cuda")
+        self.device = torch.device("cuda")
         generators =  self.generate_data(data)
         if not self.minibatch:
             data = self.preprocess(generators)
@@ -202,7 +206,7 @@ class Optimisation_VAE(Plotting):
                     x_same.append(torch.zeros(generators[i].dataset.shape[0], generators[i].dataset.shape[1]))
                     x_cross.append(torch.zeros(generators[i].dataset.shape[0], generators[i].dataset.shape[1]))
                 for batch_idx, (local_batch) in enumerate(zip(*generators)):
-                    local_batch = [local_batch_.to(self.DEVICE) for local_batch_ in local_batch]
+                    local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
                     mu, logvar = self.encode(local_batch)
                     z = self.reparameterise(mu, logvar)
                     x_same_, x_cross_ = self.decode(z)
@@ -225,10 +229,9 @@ class Optimisation_DVCCA(Optimisation_VAE):
         super().__init__()
 
     def predict_reconstruction(self, *data):
-        DEVICE = torch.device("cuda")
         generators =  self.generate_data(data)
         if not self.minibatch:
-            data = self.preprocess(generators, DEVICE)
+            data = self.preprocess(generators)
         num_elements = len(generators[0].dataset)
         batch_size = generators[0].batch_size
         num_batches = len(generators[0])
@@ -238,7 +241,7 @@ class Optimisation_DVCCA(Optimisation_VAE):
                 for i in range(len(generators)):
                     x_recon.append(torch.zeros(generators[i].dataset.shape[0], generators[i].dataset.shape[1]))
                 for batch_idx, local_batch in enumerate(zip(*generators)):
-                    local_batch = [local_batch_.to(self.DEVICE) for local_batch_ in local_batch]
+                    local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
                     mu, logvar = self.encode(local_batch)
                     z = self.reparameterise(mu, logvar)
                     x_recon_ = self.decode(z)
@@ -262,10 +265,9 @@ class Optimisation_AE(Optimisation_VAE):
         super().__init__()
 
     def predict_latents(self, *data):
-        DEVICE = torch.device("cuda")
         generators =  self.generate_data(data)
         if not self.minibatch:
-            data = self.preprocess(generators, DEVICE)
+            data = self.preprocess(generators)
         num_elements = len(generators[0].dataset)
         batch_size = generators[0].batch_size
         num_batches = len(generators[0])
@@ -273,7 +275,7 @@ class Optimisation_AE(Optimisation_VAE):
             if self.minibatch:
                 predictions = [torch.zeros(num_elements, int(self._config['latent_size'])) for i in range(len(generators))]
                 for batch_idx, local_batch in enumerate(zip(*generators)):
-                    local_batch = [local_batch_.to(self.DEVICE) for local_batch_ in local_batch]
+                    local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
                     pred = self.encode(local_batch)
                     start = batch_idx * batch_size
                     end = start + batch_size
@@ -287,10 +289,9 @@ class Optimisation_AE(Optimisation_VAE):
         return [predictions_.cpu().detach().numpy() for predictions_ in predictions]
 
     def predict_reconstruction(self, *data):
-        self.DEVICE = torch.device("cuda")
         generators =  self.generate_data(data)
         if not self.minibatch:
-            data = self.preprocess(generators, self.DEVICE)
+            data = self.preprocess(generators)
         num_elements = len(generators[0].dataset)
         batch_size = generators[0].batch_size
         num_batches = len(generators[0])
@@ -299,7 +300,7 @@ class Optimisation_AE(Optimisation_VAE):
                 x_same = []
                 x_cross = []
                 for batch_idx, local_batch in enumerate(zip(*generators)):
-                    local_batch = [local_batch_.to(self.DEVICE) for local_batch_ in local_batch]
+                    local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
                     z = self.encode(local_batch)
                     x_same_, x_cross_ = self.decode(z)
                     start = batch_idx * batch_size

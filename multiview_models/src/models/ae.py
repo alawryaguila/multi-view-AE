@@ -6,10 +6,6 @@ from .layers import Encoder, Decoder
 from .utils_deep import Optimisation_AE
 import numpy as np
 
-#TO DO - device comes from config file
-
-DEVICE = torch.device("cuda")
-
 class AE(nn.Module, Optimisation_AE):
     
     def __init__(self, input_dims, config):
@@ -31,11 +27,12 @@ class AE(nn.Module, Optimisation_AE):
         self.hidden_layer_dims.append(config['latent_size'])
         self.non_linear = config['non_linear']
         self.beta = config['beta']
+        self.learning_rate = config['learning_rate']
         self.n_views = len(input_dims)
         self.encoders = torch.nn.ModuleList([Encoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=False, non_linear=self.non_linear) for input_dim in self.input_dims])
         self.decoders = torch.nn.ModuleList([Decoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, non_linear=self.non_linear) for input_dim in self.input_dims])
         self.optimizers = [torch.optim.Adam(list(self.encoders[i].parameters()) + list(self.decoders[i].parameters()),
-                                      lr=0.001) for i in range(self.n_views)]
+                                      lr=self.learning_rate) for i in range(self.n_views)]
     def encode(self, x):
         z = []
         for i in range(self.n_views):
