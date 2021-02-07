@@ -11,11 +11,12 @@ class AE(nn.Module, Optimisation_AE):
     def __init__(self, input_dims, config):
 
         '''
+        
         Initialise Autoencoder model.
 
         input_dims: The input data dimension.
         config: Configuration dictionary.
-        beta: KL weight.
+
         
         '''
 

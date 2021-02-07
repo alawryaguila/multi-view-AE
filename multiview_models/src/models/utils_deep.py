@@ -1,24 +1,8 @@
 '''
-Class for fitting and observing models
-
-
-Optimisation_VAE: class for optimising VAE model
-
-    preprocess(): function for getting data from generators
-
-    generate_data(): function for creating generators from data
-
-    optimise(): run optimisation
-
-    optimise_batch(): function for passing data through model
-
-    fit(): train model using training data
-
-Optimisation_DVCCA: class for optimising DVCCA model which inherits methods from Optimisation_VAE
-
-Optimisation_AE: class for optimising AE model which inherits methods from Optimisation_VAE
+Wrapper classes for VAE, AE and DVCCA models
 
 '''
+
 from utils.datasets import MyDataset
 import numpy as np
 import torch
@@ -28,7 +12,6 @@ import datetime
 import os
 
 class Optimisation_VAE(Plotting):
-
     def __init__(self):
         super().__init__()
 
@@ -135,7 +118,7 @@ class Optimisation_VAE(Plotting):
         date = str(datetime.date.today())
         date = date.replace('-', '_')
         out_path = init_path + '/' + model_type + '/' + date
-        #check if path exists
+       
         while os.path.exists(os.path.join(os.getcwd(), out_path)):
             print("CAUTION! Path already exists!")
             option = str(input("To continue anyway type CONTINUE else type a suffix: "))

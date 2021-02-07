@@ -1,6 +1,4 @@
 '''
-File containing various reading and writing classes
-
 ConfigReader: class for loading a given configuration file
 
 Logger: class for logging dictionary items
@@ -33,11 +31,8 @@ class Logger():
             self.logs[k].append(v)
 
 class ResultsWriter():
-    def __init__(self, filepath = None, attach = True):
+    def __init__(self, filepath = None):
         self.filepath = filepath
-        if not attach:
-            with open(self.filepath, 'w') as txtfile:
-                pass
 
     def write(self, string):
         if self.filepath is None:

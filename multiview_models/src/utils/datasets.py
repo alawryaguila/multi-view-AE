@@ -1,3 +1,9 @@
+'''
+Class for loading data into Pytorch float tensor
+
+From: https://gitlab.com/acasamitjana/latentmodels_ad
+
+'''
 import torch
 from torch.utils.data import Dataset, DataLoader
 import numpy as np

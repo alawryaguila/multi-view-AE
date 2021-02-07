@@ -10,13 +10,12 @@ class VAE(nn.Module, Optimisation_VAE):
     
     def __init__(self, input_dims, config):
 
-        '''
+        ''' 
         Initialise Variational Autoencoder model.
 
         input_dims: The input data dimension.
         config: Configuration dictionary.
-        beta: KL weight.
-        
+
         '''
 
         super().__init__()
@@ -76,7 +75,10 @@ class VAE(nn.Module, Optimisation_VAE):
 
     @staticmethod
     def calc_kl(self, mu, logvar):
-        #TO DO - say where got implementation from
+        '''
+        Implementation from: https://arxiv.org/abs/1312.6114
+
+        '''
         kl = 0
         for i in range(self.n_views):
             kl+= -0.5*torch.sum(1 + logvar[i] - mu[i].pow(2) - logvar[i].exp(), dim=-1).mean(0)
