@@ -1,15 +1,18 @@
 from setuptools import setup, find_packages
 import os
 
-with open('multiview_models/requirements.txt') as f:
-    required = f.read().splitlines()
+src_dir = os.path.join(os.getcwd(), 'src')
+packages = {"" : "src"}
+for package in find_packages("src"):
+    packages[package] = "src"
+
 setup(
     name='multiview_models',
     version='1.0.0',   
-    packages=find_packages(exclude=['*tests']),
+    packages=packages.keys(),
+    package_dir={"":"src"},
     author='Ana Lawry Aguila',
-    author_email='ana.aguila.18@ucl.ac.uk',
+    author_email='ana.lawryaguila@outlook.com',
     url='https://github.com/alawryaguila/multiview_models',
-    install_requires=[required],
     description='A library for running multiview models on medical imaging data'
 )
