@@ -136,15 +136,6 @@ class VAE(nn.Module, Optimisation_VAE):
             ll+= torch.mean(x_cross[i].log_prob(x[i]).sum(dim=1))
         return ll/self.n_views/self.n_views
 
-    @staticmethod
-    def recon_loss(self, x, x_recon):
-        recon_loss = 0   
-        x_same, x_cross = x_recon[0], x_recon[1]
-        for i in range(self.n_views):
-            recon_loss+= torch.mean(((x_same[i] - x[i])**2).sum(dim=1))
-            recon_loss+= torch.mean(((x_cross[i] - x[i])**2).sum(dim=1))
-        return recon_loss/self.n_views/self.n_views
-
     def sample_from_normal(self, normal):
         return normal.loc
 
