@@ -11,6 +11,7 @@ from matplotlib import rc
 from sklearn.manifold import TSNE
 import umap
 from collections import OrderedDict
+from utils.io_utils import ResultsWriter
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
 plt.switch_backend('Agg')
@@ -91,3 +92,56 @@ class Plotting:
                 plt.title('UMAP {0}'.format(title[i]))
                 plt.savefig(join(self.out_path, 'UMAP_view_{0}.png'.format(title_short[i])))
                 plt.close()
+
+
+    def plot_dropout(self):  
+        do = np.sort(self.dropout().cpu().detach().numpy().reshape(-1))
+        plt.figure()
+        plt.bar(range(len(do)), do)
+        plt.title('Dropout probability of {0} latent dimensions'.format(self.z_dim))
+        plt.savefig(join(self.out_path, 'dropout.png'))    
+        
+    def print_reconstruction(self, *data, recon_type, save=True):
+        print("~~~~~~~printing reconstruction results~~~~~~~")
+        x_recon = self.predict_reconstruction(*data)
+        to_print = [] 
+        if save:
+            writer_legend = ResultsWriter(filepath = join(self.out_path, 'legend.txt'))
+        if self.joint_representation:
+            recon_loss = 0         
+            for i in range(self.n_views):
+                recon_loss_temp = np.mean((x_recon[i] - data[i])**2)
+                recon_loss+= recon_loss_temp
+                to_print.append("Same view reconstruction on {0} data for view {1}: {2}".format(recon_type, i, recon_loss_temp))
+            recon_loss = recon_loss/self.n_views
+            to_print.append("Average same view reconstruction on {0} data: {1}".format(recon_type, recon_loss))
+            recon_loss = 0 
+            for i in range(self.n_views):
+                data_input = data
+                data_input[i] = np.empty(np.shape(data[i]))
+                x_recon = self.predict_reconstruction(*data_input)
+                recon_loss_temp = np.mean((x_recon[i] - self.data[i])**2)
+                recon_loss+= recon_loss_temp
+                to_print.append("Cross view reconstruction on {0} data with for view {1} with view {1} missing: {2}".format(recon_type, i, recon_loss_temp))
+            recon_loss = recon_loss/self.n_views                
+            to_print.append("Average cross view reconstruction on {0} data: {1}".format(recon_type, recon_loss))
+        else:
+            same_view_recon = 0
+            cross_view_recon = 0
+            x_same, x_cross = x_recon[0], x_recon[1]
+            for i in range(self.n_views):
+                same_view_temp = np.mean((x_same[i] - data[i])**2)
+                same_view_recon+= same_view_temp
+                to_print.append("Same view reconstruction on {0} data for view {1}: {2}".format(recon_type, i, same_view_temp))
+
+                cross_view_temp = np.mean((x_cross[i] - data[i])**2)
+                cross_view_recon+= cross_view_temp
+                to_print.append("Cross view reconstruction on {0} data for view {1}: {2}".format(recon_type, i, same_view_temp))
+            same_view_recon, cross_view_recon = same_view_recon/self.n_views, cross_view_recon/self.n_views
+            to_print.append("Average same view reconstruction on {0} data: {1}".format(recon_type, same_view_recon))  
+            to_print.append("Average cross view reconstruction on {0} data: {1}".format(recon_type, cross_view_recon))            
+
+        for line in to_print:
+            print(line)
+            if save:
+                writer_legend.write('%s\n' %line)
