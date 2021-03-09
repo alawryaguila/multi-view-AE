@@ -11,6 +11,7 @@ from plot.plotting import Plotting
 import datetime
 import os
 
+
 class Optimisation_VAE(Plotting):
     def __init__(self):
         super().__init__()
@@ -49,12 +50,14 @@ class Optimisation_VAE(Plotting):
 
     def optimise(self, generators, data=[]):
         self.init_optimisation()
+        self.to(self.device)
         self.epochs = self._config['n_epochs']
 
         for epoch in range(1, self.epochs + 1):
             if self.minibatch:
                 for batch_idx, (local_batch) in enumerate(zip(*generators)):
                     local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
+
                     loss = self.optimise_batch(local_batch)
                     if batch_idx  == 0:
                         to_print = 'Train Epoch: ' + str(epoch) + ' ' + 'Train batch: ' + str(batch_idx) + ' '+ ', '.join([k + ': ' + str(round(v.item(), 3)) for k, v in loss.items()])
@@ -79,7 +82,8 @@ class Optimisation_VAE(Plotting):
         loss['total'].backward()
         [optimizer.step() for optimizer in self.optimizers]
         return loss
-    
+
+
     def fit(self, *data):
         self.minibatch = self._config['mini_batch']
         torch.manual_seed(42)  
@@ -96,7 +100,6 @@ class Optimisation_VAE(Plotting):
             data = self.preprocess(generators)
             logger = self.optimise(generators, data)
         if self._config['save_model']:
-            self.out_path = self.format_folder(self)
             model_path = os.path.join(self.out_path, 'model.pkl')
             while os.path.exists(model_path):
                 print("CAUTION! Model path already exists!")
@@ -111,43 +114,25 @@ class Optimisation_VAE(Plotting):
             
         return logger
 
-    @staticmethod
+    def specify_folder(self, path=None):
+        if path is None:
+            self.out_path = self.format_folder()
+        else:
+            self.out_path = path
+        return self.out_path
+
     def format_folder(self):
         init_path = self._config['output_dir']
         model_type = self.model_type
         date = str(datetime.date.today())
         date = date.replace('-', '_')
         out_path = init_path + '/' + model_type + '/' + date
-       
-        while os.path.exists(os.path.join(os.getcwd(), out_path)):
-            print("CAUTION! Path already exists!")
-            option = str(input("To continue anyway type CONTINUE else type a suffix: "))
-            if option == 'CONTINUE':
-                break
-            else:
-                out_path = out_path + option
         if not os.path.exists(out_path):
             os.makedirs(out_path)
         self.output_path = out_path    
         return out_path
 
-    #TEST - not used yet
-    def read_data(self, generator, prediction_size):
-        num_batches = len(generator)
-        num_elements = len(generator.dataset)
-        batch_size = generator.batch_size
-        dataset = torch.zeros(num_elements, prediction_size)
-        for i, data in enumerate(generator):
-            data = data.to(device)
-            start = i * batch_size
-            end = start + batch_size
-            if i == num_batches - 1:
-                end = num_elements
-            dataset[start:end] = data.cpu()
-        return dataset.detach().numpy()
-    
     def predict_latents(self, *data):
-        self.device = torch.device("cuda")
         generators =  self.generate_data(data)
         if not self.minibatch:
             data = self.preprocess(generators)
@@ -161,6 +146,8 @@ class Optimisation_VAE(Plotting):
                     local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
                     mu, logvar = self.encode(local_batch)
                     pred = self.reparameterise(mu, logvar)
+                    if self.sparse:
+                        pred = self.apply_threshold(pred)
                     start = batch_idx * batch_size
                     end = start + batch_size
                     if batch_idx == num_batches - 1:
@@ -170,11 +157,12 @@ class Optimisation_VAE(Plotting):
             else:
                 mu, logvar = self.encode(data)
                 predictions = self.reparameterise(mu, logvar)
+                if self.sparse:
+                    predictions = self.apply_threshold(predictions)
 
         return [predictions_.cpu().detach().numpy() for predictions_ in predictions]
 
     def predict_reconstruction(self, *data):
-        self.device = torch.device("cuda")
         generators =  self.generate_data(data)
         if not self.minibatch:
             data = self.preprocess(generators)
@@ -192,19 +180,38 @@ class Optimisation_VAE(Plotting):
                     local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
                     mu, logvar = self.encode(local_batch)
                     z = self.reparameterise(mu, logvar)
-                    x_same_, x_cross_ = self.decode(z)
+                    if self.sparse:
+                        z = self.apply_threshold(z)
+                        
                     start = batch_idx * batch_size
                     end = start + batch_size
                     if batch_idx == num_batches - 1:
                         end = num_elements
-                    for i in range(len(generators)):
-                        x_same[i][start:end, :] = x_same_[i]
-                        x_cross[i][start:end, :] = x_cross_[i]
+                    x_recon= self.decode(z)                  
+                    if self.joint_representation:
+                        x_recon= self.sample_from_normal(x_recon)
+                        for i in range(len(generators)):
+                            x_same[i][start:end, :] = x_recon[i] 
+                    else:
+                        x_same_ = self.sample_from_normal(x_recon[0])
+                        x_cross_ = self.sample_from_normal(x_recon[1])
+                        for i in range(len(generators)):
+                            x_same[i][start:end, :] = x_same_[i]
+                            x_cross[i][start:end, :] = x_cross_[i]
             else:
                 mu, logvar = self.encode(data)
                 z = self.reparameterise(mu, logvar)
-                x_same, x_cross = self.decode(z)
-        return [x_same_.cpu().detach().numpy() for x_same_ in x_same], [x_cross_.cpu().detach().numpy() for x_cross_ in x_cross]
+                if self.sparse:
+                    z = self.apply_threshold(z)
+                if self.joint_representation:
+                    x_same = self.decode(z)
+                else:
+                    x_recon = self.decode(z)
+                    x_same, x_cross = x_recon[0], x_recon[1]
+        if self.joint_representation:
+            return [(self.sample_from_normal(x_same_)).cpu().detach().numpy() for x_same_ in x_same]
+        else:
+            return [(self.sample_from_normal(x_same_)).cpu().detach().numpy() for x_same_ in x_same], [(self.sample_from_normal(x_cross_)).cpu().detach().numpy() for x_cross_ in x_cross]
 
 class Optimisation_DVCCA(Optimisation_VAE):
     
@@ -239,7 +246,6 @@ class Optimisation_DVCCA(Optimisation_VAE):
                 z = self.reparameterise(mu, logvar)
                 x_recon = self.decode(z)
         return [x_recon_.cpu().detach().numpy() for x_recon_ in x_recon]
-
 
 
 class Optimisation_AE(Optimisation_VAE):
@@ -298,4 +304,3 @@ class Optimisation_AE(Optimisation_VAE):
                 x_same, x_cross = self.decode(z)
         return [x_same_.cpu().detach().numpy() for x_same_ in x_same], [x_cross_.cpu().detach().numpy() for x_cross_ in x_cross]
 
-    
