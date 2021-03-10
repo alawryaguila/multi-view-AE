@@ -117,10 +117,10 @@ class Plotting:
             to_print.append("Average same view reconstruction on {0} data: {1}".format(recon_type, recon_loss))
             recon_loss = 0 
             for i in range(self.n_views):
-                data_input = data
+                data_input = list(data)
                 data_input[i] = np.empty(np.shape(data[i]))
                 x_recon = self.predict_reconstruction(*data_input)
-                recon_loss_temp = np.mean((x_recon[i] - self.data[i])**2)
+                recon_loss_temp = np.mean((x_recon[i] - data[i])**2)
                 recon_loss+= recon_loss_temp
                 to_print.append("Cross view reconstruction on {0} data with for view {1} with view {1} missing: {2}".format(recon_type, i, recon_loss_temp))
             recon_loss = recon_loss/self.n_views                
