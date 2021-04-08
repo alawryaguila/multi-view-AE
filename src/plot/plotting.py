@@ -12,6 +12,8 @@ from sklearn.manifold import TSNE
 import umap
 from collections import OrderedDict
 from utils.io_utils import ResultsWriter
+from utils.calc_utils import calc_corr
+import itertools
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
 plt.switch_backend('Agg')
@@ -19,7 +21,7 @@ plt.switch_backend('Agg')
 class Plotting:
     def __init__(self, *path):
         if path:
-            self.out_path = path
+            self.output_path = path
 
     def plot_losses(self, logger):
         plt.figure()
@@ -40,7 +42,7 @@ class Plotting:
         plt.legend()
         plt.xlabel(r'\textbf{epochs}', fontsize=10)
         plt.ylabel(r'\textbf{loss}', fontsize=10)
-        plt.savefig(join(self.out_path, "Losses.png"))
+        plt.savefig(join(self.output_path, "Losses.png"))
         plt.close()
 
     def plot_tsne(self, data, target, title, title_short):
@@ -57,7 +59,7 @@ class Plotting:
             by_label = OrderedDict(zip(labels, handles))
             plt.legend(by_label.values(), by_label.keys())
             plt.title('t-SNE {0}'.format(title[i]))
-            plt.savefig(join(self.out_path, 'tSNE_view_{0}.png'.format(title_short[i])))
+            plt.savefig(join(self.output_path, 'tSNE_view_{0}.png'.format(title_short[i])))
             plt.close()
 
     def plot_UMAP(self, data, target, title, title_short):
@@ -74,7 +76,7 @@ class Plotting:
             by_label = OrderedDict(zip(labels, handles))
             plt.legend(by_label.values(), by_label.keys())
             plt.title('UMAP {0}'.format(title))
-            plt.savefig(join(self.out_path, 'UMAP_view_{0}.png'.format(title_short)))
+            plt.savefig(join(self.output_path, 'UMAP_view_{0}.png'.format(title_short)))
             plt.close()  
         else:         
             for i, data_ in enumerate(data):   
@@ -90,23 +92,25 @@ class Plotting:
                 by_label = OrderedDict(zip(labels, handles))
                 plt.legend(by_label.values(), by_label.keys())
                 plt.title('UMAP {0}'.format(title[i]))
-                plt.savefig(join(self.out_path, 'UMAP_view_{0}.png'.format(title_short[i])))
+                plt.savefig(join(self.output_path, 'UMAP_view_{0}.png'.format(title_short[i])))
                 plt.close()
 
 
     def plot_dropout(self):  
-        do = np.sort(self.dropout().cpu().detach().numpy().reshape(-1))
-        plt.figure()
-        plt.bar(range(len(do)), do)
-        plt.title('Dropout probability of {0} latent dimensions'.format(self.z_dim))
-        plt.savefig(join(self.out_path, 'dropout.png'))    
+        if self.sparse:
+            do = np.sort(self.dropout().cpu().detach().numpy().reshape(-1))
+            print(do)
+            plt.figure()
+            plt.bar(range(len(do)), do)
+            plt.title('Dropout probability of {0} latent dimensions'.format(self.z_dim))
+            plt.savefig(join(self.output_path, 'dropout.png'))    
         
-    def print_reconstruction(self, *data, recon_type, save=True):
+    def print_reconstruction(self, *data, recon_type=None, save=True):
         print("~~~~~~~printing reconstruction results~~~~~~~")
         x_recon = self.predict_reconstruction(*data)
         to_print = [] 
         if save:
-            writer_legend = ResultsWriter(filepath = join(self.out_path, 'legend.txt'))
+            writer_legend = ResultsWriter(filepath = join(self.output_path, 'legend.txt'))
         if self.joint_representation:
             recon_loss = 0         
             for i in range(self.n_views):
@@ -118,7 +122,7 @@ class Plotting:
             recon_loss = 0 
             for i in range(self.n_views):
                 data_input = list(data)
-                data_input[i] = np.empty(np.shape(data[i]))
+                data_input[i] = np.zeros(np.shape(data[i]))
                 x_recon = self.predict_reconstruction(*data_input)
                 recon_loss_temp = np.mean((x_recon[i] - data[i])**2)
                 recon_loss+= recon_loss_temp
@@ -136,7 +140,7 @@ class Plotting:
 
                 cross_view_temp = np.mean((x_cross[i] - data[i])**2)
                 cross_view_recon+= cross_view_temp
-                to_print.append("Cross view reconstruction on {0} data for view {1}: {2}".format(recon_type, i, same_view_temp))
+                to_print.append("Cross view reconstruction on {0} data for view {1}: {2}".format(recon_type, i, cross_view_temp))
             same_view_recon, cross_view_recon = same_view_recon/self.n_views, cross_view_recon/self.n_views
             to_print.append("Average same view reconstruction on {0} data: {1}".format(recon_type, same_view_recon))  
             to_print.append("Average cross view reconstruction on {0} data: {1}".format(recon_type, cross_view_recon))            
@@ -145,3 +149,48 @@ class Plotting:
             print(line)
             if save:
                 writer_legend.write('%s\n' %line)
+    def plot_corr(self, *latents, corr_type='pearson'):
+        if self.joint_representation: 
+            print("Cannot create correlation plot from joint latent representation")
+            return
+        #TO DO: need to check if this works
+        combs = list(itertools.combinations(range(self.n_views), 2))
+        for comb in combs:
+            #print("corr combination: ", comb)
+            i, j = comb[0], comb[1]
+            data_1, data_2 = latents[i], latents[j]
+   
+            data_1_T = np.transpose(data_1)
+            data_2_T = np.transpose(data_2)
+            corr = calc_corr(data_1_T, data_2_T, corr_type='pearson')
+            #rows = x
+            rows = ['view 1 vec %d' % x for x in range(self.z_dim)]
+            #columns = y
+            columns = ['view 2 vec %d' % x for x in range(self.z_dim)]
+            fig, ax = plt.subplots()
+            data = np.round(corr[0:self.z_dim,self.z_dim:],4)
+            data = data/np.mean(data)
+            data = np.round(data,4)
+            im = ax.imshow(abs(data), cmap='Reds')
+            ax.set_xticks(np.arange(len(rows)))
+            ax.set_yticks(np.arange(len(columns)))
+            ax.set_xticklabels(rows)
+            ax.set_yticklabels(columns)
+            plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+            for i in range(data.shape[0]):
+                for j in range(data.shape[1]):
+                    text = ax.text(j, i, data[i, j], ha="center", va="center")
+            ax.set_title("Cross correlation")
+            fig.tight_layout()
+            plt.savefig(join(self.output_path, 'Cross_corr_plot_views{0}_{1}_training_relative.png'.format(i,j)))
+
+    def proj_latent_corr(self, latent, projection, title):
+        print("~~~~correlations between PLS projections and VAE latent space results~~~~")
+        print("Corr with {0} PLS projection 1".format(title))
+        for i in range(self.z_dim):
+            corr = calc_corr(latent[:,i], projection[:,0], corr_type='pearson')
+            print("corr for vec {0}: ".format(i), corr[0,1])
+        print("Corr with {0} PLS projection 2".format(title))
+        for i in range(self.z_dim):
+            corr = calc_corr(latent[:,i], projection[:,1],corr_type='pearson')
+            print("corr for vec {0}: ".format(i), corr[0,1])
