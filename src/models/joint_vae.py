@@ -25,7 +25,7 @@ class VAE(nn.Module, Optimisation_VAE):
 
         super().__init__()
         self._config = config
-        self.model_type = 'VAE'
+        self.model_type = 'joint_VAE'
         self.input_dims = input_dims
         self.hidden_layer_dims = config['hidden_layers']
         self.z_dim = config['latent_size']
@@ -35,7 +35,7 @@ class VAE(nn.Module, Optimisation_VAE):
         self.learning_rate = config['learning_rate']
         self.sparse = config['sparse']
         self.initial_weights = initial_weights
-        self.joint_representation = False
+        self.joint_representation = True
         if self.sparse:
             self.threshold = config['dropout_threshold']
             self.log_alpha = torch.nn.Parameter(torch.FloatTensor(1, self.z_dim).normal_(0,0.01))
@@ -50,35 +50,35 @@ class VAE(nn.Module, Optimisation_VAE):
         mu = []
         logvar = []
         for i in range(self.n_views): 
+            if torch.nonzero(x[i][0]).size()[0]==0:
+                print("view {0} set to zeros (aka missing)".format(i))
+                continue
             mu_, logvar_ = self.encoders[i](x[i])
             mu.append(mu_)
             logvar.append(logvar_)
         return mu, logvar
     
-    def reparameterise(self, mu, logvar): #REDO FOR SPARSE VAE? think this is exactly the same as rsample 
+    def reparameterise(self, mu, logvar):
         z = []
         for i in range(len(mu)):
             std = torch.exp(0.5*logvar[i])
             eps = torch.randn_like(mu[i])
             z.append(mu[i]+eps*std)
+        z = torch.mean(torch.stack(z), axis=0)
         return z
 
     def decode(self, z):
-        x_same = []
-        x_cross = []
+        x_recon = []
         for i in range(self.n_views):
-            for j in range(self.n_views):
-                mu_out = self.decoders[i](z[j])
-                if i == j:
-                    x_same.append(mu_out)
-                else:
-                    x_cross.append(mu_out)
-        return [x_same, x_cross]
+            mu_out = self.decoders[i](z)
+            x_recon.append(mu_out)
+        return x_recon
+
 
     def forward(self, x):
         self.zero_grad()
         mu, logvar = self.encode(x)
-        z = self.reparameterise(mu, logvar) #REDO THIS BIT - maybe this is not right for sparse-VAE??
+        z = self.reparameterise(mu, logvar)
         x_recon = self.decode(z)
         fwd_rtn = {'x_recon': x_recon,
                     'mu': mu,
@@ -88,7 +88,8 @@ class VAE(nn.Module, Optimisation_VAE):
     def dropout(self):
         '''
         Implementation from: https://github.com/ggbioing/mcvae
-        '''
+        '''      
+
         if self.sparse:
             alpha = torch.exp(self.log_alpha.detach())
             return alpha / (alpha + 1) 
@@ -130,11 +131,18 @@ class VAE(nn.Module, Optimisation_VAE):
     @staticmethod
     def calc_ll(self, x, x_recon):
         ll = 0
-        x_same, x_cross = x_recon[0], x_recon[1]
         for i in range(self.n_views):
-            ll+= torch.mean(x_same[i].log_prob(x[i]).sum(dim=1))
-            ll+= torch.mean(x_cross[i].log_prob(x[i]).sum(dim=1))
-        return ll/self.n_views/self.n_views
+            ll+= torch.mean(x_recon[i].log_prob(x[i]).sum(dim=1))
+        return ll/self.n_views
+
+
+    @staticmethod
+    def recon_loss(self, x, x_recon):
+        recon_loss = 0   
+        for i in range(self.n_views):
+            recon_loss+= torch.mean(((x_recon[i] - x[i])**2).sum(dim=1))
+        return recon_loss/self.n_views
+
 
     def sample_from_normal(self, normal):
         return normal.loc
@@ -155,5 +163,5 @@ class VAE(nn.Module, Optimisation_VAE):
 
 
 __all__ = [
-    'VAE'
+    'joint_VAE'
 ]

@@ -36,7 +36,7 @@ class DVCCA(nn.Module, Optimisation_DVCCA):
             self.private_encoders = torch.nn.ModuleList([Encoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=True) for input_dim in self.input_dims])
             self.hidden_layer_dims[-1] = config['latent_size'] + config['latent_size']
 
-        self.decoders = torch.nn.ModuleList([Decoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims) for input_dim in self.input_dims])
+        self.decoders = torch.nn.ModuleList([Decoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=True) for input_dim in self.input_dims])
         if private:
             self.optimizers = [torch.optim.Adam(self.encoder.parameters(),lr=0.001)] + [torch.optim.Adam(list(self.decoders[i].parameters()),
                                       lr=self.learning_rate) for i in range(self.n_views)]
@@ -99,14 +99,16 @@ class DVCCA(nn.Module, Optimisation_DVCCA):
         '''
         kl = 0
         for i in range(self.n_views):
-            kl+= -0.5*torch.sum(1 + logvar[i] - mu[i].pow(2) - logvar[i].exp(), dim=-1).mean(0)
+            kl+= -0.5*torch.sum(1 + logvar[i] - mu[i].pow(2) - logvar[i].exp(), dim=-1)
+            
         return self.beta*kl/self.n_views
 
     @staticmethod
     def recon_loss(self, x, x_recon):
         recon_loss = 0
+        x_recon = [F.sigmoid(x_recon_) for x_recon_ in x_recon]
         for i in range(self.n_views):
-            recon_loss+= torch.mean(((x_recon[i] - x[i])**2).sum(dim=-1))
+            recon_loss += F.binary_cross_entropy(x_recon[i], x[i], reduction='sum')
         return recon_loss/self.n_views
 
     def loss_function(self, x, fwd_rtn):
