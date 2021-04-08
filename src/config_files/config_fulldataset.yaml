@@ -10,17 +10,15 @@ save_model: True
 
 # SECTION 3: ARCHITECTURE
 
-latent_size: 20
-#hidden_layers: [100, 50, 10]
+latent_size: 5
 hidden_layers: []
 non_linear: False
 beta: 1
-sparse: True
+sparse: False
 dropout_threshold: 0.2
 
 # SECTION 4: TRAINING
-
 learning_rate: 0.001
-mini_batch: False
-batch_size: []
-n_epochs: 10000
+mini_batch: True
+batch_size: 100
+n_epochs: 10

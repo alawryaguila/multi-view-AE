@@ -1,25 +1,23 @@
 
 # SECTION 1: DATA MANAGEMENT
 
-output_dir: '../year_1/project_work/Autoencoders/Results'
+output_dir: '../year_1/project_work/Autoencoders/Results/cross_validation'
 
 # SECTION 2: GENERAL OPTIONS
 
 use_GPU: True
-save_model: True
+save_model: False
 
 # SECTION 3: ARCHITECTURE
 
-latent_size: 20
-#hidden_layers: [100, 50, 10]
+latent_size: 4
 hidden_layers: []
 non_linear: False
 beta: 1
-sparse: True
-dropout_threshold: 0.2
+sparse: False
+dropout_threshold: 0.3
 
 # SECTION 4: TRAINING
-
 learning_rate: 0.001
 mini_batch: False
 batch_size: []
