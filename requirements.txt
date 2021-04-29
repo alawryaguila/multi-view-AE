@@ -1,8 +1,10 @@
-python=3
+python==3.7
 numpy
 pytest
-matplotlib=2.*
+matplotlib==3.*
+pandas
+pytest
 scipy
-pandas 
 scikit-learn
-pytorch
+torch==1.7.0+cu101
+umap
