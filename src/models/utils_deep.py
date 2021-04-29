@@ -3,11 +3,11 @@ Wrapper classes for VAE, AE and DVCCA models
 
 '''
 
-from utils.datasets import MyDataset
+from ..utils.datasets import MyDataset
 import numpy as np
 import torch
-from utils.io_utils import Logger
-from plot.plotting import Plotting
+from ..utils.io_utils import Logger
+from ..plot.plotting import Plotting
 import datetime
 import os
 from sklearn.model_selection import KFold
