@@ -5,8 +5,7 @@ from torch.distributions import Normal
 from utils.kl_utils import compute_logvar
 from utils.datasets import MyDataset
 import numpy as np
-from torch_geometric.nn import GCNConv
-
+#from torch_geometric.nn import GCNConv
 class Encoder(nn.Module):
     def __init__(
                 self, 
@@ -16,8 +15,7 @@ class Encoder(nn.Module):
                 non_linear=False, 
                 bias=True, 
                 sparse=False, 
-                log_alpha=None,
-                initial_weights=None):
+                log_alpha=None):
         super().__init__()
 
         self.input_size = input_dim
@@ -27,7 +25,6 @@ class Encoder(nn.Module):
         self.non_linear = non_linear
         self.layer_sizes_encoder = [input_dim] + hidden_layer_dims
         self.sparse = sparse
-        self.initial_weights = initial_weights
         lin_layers = [nn.Linear(dim0, dim1, bias=bias) for dim0, dim1 in zip(self.layer_sizes_encoder[:-1], self.layer_sizes_encoder[1:])]
         
         self.encoder_layers = nn.Sequential(*lin_layers)
@@ -37,15 +34,6 @@ class Encoder(nn.Module):
                 self.enc_logvar_layer = nn.Linear(self.layer_sizes_encoder[-2], self.layer_sizes_encoder[-1], bias=bias)
             else:
                 self.log_alpha = log_alpha
-        if self.initial_weights is not None:
-            self.initial_weights = self.initial_weights.repeat(self.z_dim,1)
-            if len(self.layer_sizes_encoder)==1:
-                if self.variational:
-                    #self.enc_mean_layer.weight = self.enc_mean_layer.weight + self.initial_weights #maybe use mean value??
-                    self.enc_mean_layer.weight = torch.nn.Parameter(self.initial_weights)
-                    self.enc_logvar_layer.weight = self.enc_mean_layer.weight + self.initial_weights #This wont work! because should have single weight for each feature!
-            else:
-                self.encoder_layers[0].weight = torch.nn.Parameter(self.initial_weights)
 
     def forward(self, x):
         h1 = x
@@ -72,6 +60,7 @@ class Decoder(nn.Module):
                 hidden_layer_dims,
                 variational=True, 
                 non_linear=False, 
+                init_logvar=-3,
                 bias=True):
         super().__init__()
 
@@ -79,25 +68,23 @@ class Decoder(nn.Module):
         self.hidden_dims = hidden_layer_dims
         self.non_linear = non_linear
         self.variational = variational
-
+        self.init_logvar = init_logvar
         self.layer_sizes_decoder = hidden_layer_dims[::-1] + [input_dim]
         lin_layers = [nn.Linear(dim0, dim1, bias=bias) for dim0, dim1 in zip(self.layer_sizes_decoder[:-1], self.layer_sizes_decoder[1:])]
         self.decoder_layers = nn.Sequential(*lin_layers)
         if self.variational:
-            self.dec_mean_layer = nn.Linear(self.layer_sizes_decoder[-2], self.layer_sizes_decoder[-1], bias=bias)
-            self.dec_logvar_layer = nn.Linear(self.layer_sizes_decoder[-2], self.layer_sizes_decoder[-1], bias=bias)
+            tmp_noise_par = torch.FloatTensor(1, self.input_size).fill_(self.init_logvar)
+            self.dec_logvar = torch.nn.Parameter(data=tmp_noise_par, requires_grad=True)
+            del tmp_noise_par
 
     def forward(self, z):
         x_rec = z
-        for it_layer, layer in enumerate(self.decoder_layers[:-1]):
+        for it_layer, layer in enumerate(self.decoder_layers):
             x_rec = layer(x_rec)
             if self.non_linear:
                 x_rec = F.relu(x_rec)
         if self.variational:
-            mu = self.dec_mean_layer(x_rec)
-            logvar = self.dec_logvar_layer(x_rec)
-            x_rec = Normal(loc=mu, scale=logvar.exp().pow(0.5))
-            #returns pytorch Normal object
+            x_rec = Normal(loc=x_rec, scale=self.dec_logvar.exp().pow(0.5))
         else:
             x_rec = self.decoder_layers[-1](x_rec)
 
@@ -113,7 +100,6 @@ class GCN(nn.Module):
 
         self.input_size = input_dim
         self.classes = classes
-        #self.conv1 = GCNConv(2 * self.input_size, 16)
         self.conv1 = GCNConv(self.input_size, 16)
         self.conv2 = GCNConv(16, 16)
         self.classifier = nn.Linear(16, self.classes)
