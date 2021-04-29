@@ -5,5 +5,5 @@ pandas
 pytest
 scipy
 scikit-learn
-torch==1.7.0+cu101
+torch>=1.7.0
 umap
