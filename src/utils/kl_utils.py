@@ -13,4 +13,8 @@ def compute_kl(mu, logvar):
 def compute_kl_sparse(mu, logvar):
     log_alpha = compute_log_alpha(mu, logvar)
     k1, k2, k3 = 0.63576, 1.8732, 1.48695
-    return -torch.sum((k1 * torch.sigmoid(k2 + k3 * log_alpha) - 0.5 * torch.log1p(torch.exp(-log_alpha)) - k1), dim=1).mean(0)
+    neg_KL = k1 * torch.sigmoid(k2 + k3 * log_alpha) - 0.5 * torch.log1p(torch.exp(-log_alpha)) - k1
+    #-torch.sum((k1 * torch.sigmoid(k2 + k3 * log_alpha) - 0.5 * torch.log1p(torch.exp(-log_alpha)) - k1), dim=1).mean(0)
+    neg_KL = neg_KL.sum(1, keepdims=True).mean(0)
+   # neg_KL = neg_KL.mean(1, keepdims=True).mean(0)
+    return -neg_KL
