@@ -2,8 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
-from utils.kl_utils import compute_logvar
-from utils.datasets import MyDataset
+from ..utils.kl_utils import compute_logvar
+from ..utils.datasets import MyDataset
 import numpy as np
 #from torch_geometric.nn import GCNConv
 class Encoder(nn.Module):
