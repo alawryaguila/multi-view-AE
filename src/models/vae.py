@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
+#from utils.normal import Normal
 from .layers import Encoder, Decoder 
 from .utils_deep import Optimisation_VAE
 import numpy as np
@@ -34,6 +35,9 @@ class VAE(nn.Module, Optimisation_VAE):
         self.beta = config['beta']
         self.learning_rate = config['learning_rate']
         self.sparse = config['sparse']
+        if self.sparse == True:
+            self.model_type = 'sparse_VAE'
+
         self.initial_weights = initial_weights
         self.joint_representation = False
         if self.sparse:
@@ -55,7 +59,7 @@ class VAE(nn.Module, Optimisation_VAE):
             logvar.append(logvar_)
         return mu, logvar
     
-    def reparameterise(self, mu, logvar): #REDO FOR SPARSE VAE? think this is exactly the same as rsample 
+    def reparameterise(self, mu, logvar): 
         z = []
         for i in range(len(mu)):
             std = torch.exp(0.5*logvar[i])
@@ -63,22 +67,34 @@ class VAE(nn.Module, Optimisation_VAE):
             z.append(mu[i]+eps*std)
         return z
 
-    def decode(self, z):
+    def decode_old(self,z):
         x_same = []
         x_cross = []
         for i in range(self.n_views):
             for j in range(self.n_views):
-                mu_out = self.decoders[i](z[j])
+                mu_out = self.decoders[j](z[i]) #TO CHECK: why does the order of i and j matter here?
+                #maybe its a problem relating to not clearing the weights of the network or something
+                #ie problem using the same decoder twice in a row
+                #think the problem was actually that I didn't have the i and j lined up for the calc_ll
                 if i == j:
                     x_same.append(mu_out)
                 else:
-                    x_cross.append(mu_out)
+                    x_cross.append(mu_out) #now this x_cross is in the wrong order
+                del mu_out
         return [x_same, x_cross]
+
+    def decode(self, z):
+        x_recon = []
+        for i in range(self.n_views):
+            temp_recon = [self.decoders[i](z[j]) for j in range(self.n_views)]
+            x_recon.append(temp_recon)
+            del temp_recon 
+        return x_recon
 
     def forward(self, x):
         self.zero_grad()
         mu, logvar = self.encode(x)
-        z = self.reparameterise(mu, logvar) #REDO THIS BIT - maybe this is not right for sparse-VAE??
+        z = self.reparameterise(mu, logvar)
         x_recon = self.decode(z)
         fwd_rtn = {'x_recon': x_recon,
                     'mu': mu,
@@ -91,7 +107,7 @@ class VAE(nn.Module, Optimisation_VAE):
         '''
         if self.sparse:
             alpha = torch.exp(self.log_alpha.detach())
-            return alpha / (alpha + 1) 
+            return alpha / (alpha + 1)
         else:
             raise NotImplementedError
 
@@ -100,8 +116,8 @@ class VAE(nn.Module, Optimisation_VAE):
         Implementation from: https://github.com/ggbioing/mcvae
         '''
         assert self.threshold <= 1.0
-        dropout = self.dropout()
-        keep = (dropout < self.threshold).squeeze().cpu()
+        #dropout = self.dropout()
+        keep = (self.dropout < self.threshold).squeeze().cpu()
         z_keep = []
         if self.joint_representation:
             z[:,~keep] = 0
@@ -125,16 +141,16 @@ class VAE(nn.Module, Optimisation_VAE):
                 kl+= compute_kl_sparse(mu[i], logvar[i])
             else:
                 kl+= compute_kl(mu[i], logvar[i])
-        return self.beta*kl/self.n_views
+        return self.beta*kl
 
     @staticmethod
     def calc_ll(self, x, x_recon):
-        ll = 0
-        x_same, x_cross = x_recon[0], x_recon[1]
+        ll = 0    
         for i in range(self.n_views):
-            ll+= torch.mean(x_same[i].log_prob(x[i]).sum(dim=1))
-            ll+= torch.mean(x_cross[i].log_prob(x[i]).sum(dim=1))
-        return ll/self.n_views/self.n_views
+            for j in range(self.n_views):
+                    ll+= x_recon[i][j].log_prob(x[i]).sum(1, keepdims=True).mean(0) 
+                    #ll+= x_recon[i][j].log_prob(x[i]).mean(1, keepdims=True).mean(0) 
+        return ll
 
     def sample_from_normal(self, normal):
         return normal.loc

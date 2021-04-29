@@ -34,6 +34,8 @@ class VAE(nn.Module, Optimisation_VAE):
         self.beta = config['beta']
         self.learning_rate = config['learning_rate']
         self.sparse = config['sparse']
+        if self.sparse == True:
+            self.model_type = 'joint_sparse_VAE'
         self.initial_weights = initial_weights
         self.joint_representation = True
         if self.sparse:
@@ -126,14 +128,14 @@ class VAE(nn.Module, Optimisation_VAE):
                 kl+= compute_kl_sparse(mu[i], logvar[i])
             else:
                 kl+= compute_kl(mu[i], logvar[i])
-        return self.beta*kl/self.n_views
+        return self.beta*kl
 
     @staticmethod
     def calc_ll(self, x, x_recon):
         ll = 0
         for i in range(self.n_views):
             ll+= torch.mean(x_recon[i].log_prob(x[i]).sum(dim=1))
-        return ll/self.n_views
+        return ll
 
 
     @staticmethod
@@ -141,7 +143,7 @@ class VAE(nn.Module, Optimisation_VAE):
         recon_loss = 0   
         for i in range(self.n_views):
             recon_loss+= torch.mean(((x_recon[i] - x[i])**2).sum(dim=1))
-        return recon_loss/self.n_views
+        return recon_loss
 
 
     def sample_from_normal(self, normal):

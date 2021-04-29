@@ -132,15 +132,20 @@ class Plotting:
         else:
             same_view_recon = 0
             cross_view_recon = 0
-            x_same, x_cross = x_recon[0], x_recon[1]
+            counter = 0
             for i in range(self.n_views):
-                same_view_temp = np.mean((x_same[i] - data[i])**2)
-                same_view_recon+= same_view_temp
-                to_print.append("Same view reconstruction on {0} data for view {1}: {2}".format(recon_type, i, same_view_temp))
-
-                cross_view_temp = np.mean((x_cross[i] - data[i])**2)
-                cross_view_recon+= cross_view_temp
-                to_print.append("Cross view reconstruction on {0} data for view {1}: {2}".format(recon_type, i, cross_view_temp))
+                for j in range(self.n_views):
+                    if i==j:
+                        same_view_temp = np.mean((x_recon[i][j] - data[i])**2)
+                        same_view_recon+= same_view_temp
+                        counter+=1
+                        to_print.append("Same view reconstruction on {0} data for view {1}: {2}".format(recon_type, i, same_view_temp))
+                    else:
+                        cross_view_temp = np.mean((x_recon[i][j] - data[i])**2)
+                        cross_view_recon+= cross_view_temp
+                        counter+=1
+                        to_print.append("Cross view reconstruction on {0} data for view {1}: {2}".format(recon_type, i, cross_view_temp))
+            print("counter: ", counter)
             same_view_recon, cross_view_recon = same_view_recon/self.n_views, cross_view_recon/self.n_views
             to_print.append("Average same view reconstruction on {0} data: {1}".format(recon_type, same_view_recon))  
             to_print.append("Average cross view reconstruction on {0} data: {1}".format(recon_type, cross_view_recon))            
