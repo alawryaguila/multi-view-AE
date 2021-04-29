@@ -14,6 +14,7 @@ from sklearn.model_selection import KFold
 
 class Optimisation_VAE(Plotting):
     def __init__(self):
+
         super().__init__()
 
     def generate_data(self, data):
@@ -48,7 +49,7 @@ class Optimisation_VAE(Plotting):
     def end_optimisation(self):
         self.eval()
 
-    def optimise(self, generators, data=[]):
+    def optimise(self, generators, data=[], verbose=True):
         self.init_optimisation()
         self.to(self.device)
         self.epochs = self._config['n_epochs']
@@ -59,13 +60,14 @@ class Optimisation_VAE(Plotting):
                     local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
 
                     loss = self.optimise_batch(local_batch)
-                    if batch_idx  == 0:
+                    if batch_idx  == 0 and verbose:
                         to_print = 'Train Epoch: ' + str(epoch) + ' ' + 'Train batch: ' + str(batch_idx) + ' '+ ', '.join([k + ': ' + str(round(v.item(), 3)) for k, v in loss.items()])
                         print(to_print)
             else:
                 loss = self.optimise_batch(data)
-                to_print = 'Train Epoch: ' + str(epoch) + ' ' + ', '.join([k + ': ' + str(round(v.item(), 3)) for k, v in loss.items()])
-                print(to_print)
+                if verbose:
+                    to_print = 'Train Epoch: ' + str(epoch) + ' ' + ', '.join([k + ': ' + str(round(v.item(), 3)) for k, v in loss.items()])
+                    print(to_print)
             if epoch == 1:
                 log_keys = list(loss.keys())
                 logger = Logger()
@@ -83,7 +85,7 @@ class Optimisation_VAE(Plotting):
         [optimizer.step() for optimizer in self.optimizers]
         return loss
 
-    def MSE_results(self, *data): #CHECK THIS WORKS
+    def MSE_results(self, *data): 
         cross_recon = 0
         same_recon = 0
         with torch.no_grad():
@@ -100,14 +102,14 @@ class Optimisation_VAE(Plotting):
                     cross_temp = np.mean((pred_cross[i] - data[i])**2)
                     cross_recon+= cross_temp                       
             else:
-                x_same, x_cross = prediction[0], prediction[1]
                 for i in range(self.n_views):
-                    #same view prediction
-                    same_temp = np.mean((x_same[i] - data[i])**2)
-                    same_recon+= same_temp
-                    #cross view prediction
-                    cross_temp = np.mean((x_cross[i] - data[i])**2)
-                    cross_recon+= cross_temp
+                    for j in range(self.n_views):
+                        if i==j:
+                            same_temp = np.mean((prediction[i][j] - data[i])**2)
+                            same_recon+= same_temp
+                        else:
+                            cross_temp = np.mean((prediction[i][j] - data[i])**2)
+                            cross_recon+= cross_temp
             return same_recon/self.n_views, cross_recon/self.n_views
                 
 
@@ -185,7 +187,8 @@ class Optimisation_VAE(Plotting):
                 predictions = self.reparameterise(mu, logvar)
                 if self.sparse:
                     predictions = self.apply_threshold(predictions)
-
+        if self.joint_representation:
+            return predictions.cpu().detach().numpy()
         return [predictions_.cpu().detach().numpy() for predictions_ in predictions]
 
     def predict_reconstruction(self, *data):
@@ -197,11 +200,16 @@ class Optimisation_VAE(Plotting):
         num_batches = len(generators[0])     
         with torch.no_grad():
             if self.minibatch:
-                x_same = []
-                x_cross = []
-                for i in range(len(generators)):
-                    x_same.append(torch.zeros(generators[i].dataset.shape[0], generators[i].dataset.shape[1]))
-                    x_cross.append(torch.zeros(generators[i].dataset.shape[0], generators[i].dataset.shape[1]))
+                x_recon_out = []
+                if self.joint_representation:
+                    for i in range(self.n_views):
+                        x_recon_out.append(torch.zeros(generators[i].dataset.shape[0], generators[i].dataset.shape[1]))
+                        x_cross.append(torch.zeros(generators[i].dataset.shape[0], generators[i].dataset.shape[1]))
+                else:
+                    for i in range(self.n_views):
+                        x_recon_temp = [torch.zeros(generator.dataset.shape[0], generator.dataset.shape[1]) for generator in generators]
+                        x_recon_out.append(x_recon_temp)
+
                 for batch_idx, (local_batch) in enumerate(zip(*generators)):
                     local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
                     mu, logvar = self.encode(local_batch)
@@ -215,29 +223,27 @@ class Optimisation_VAE(Plotting):
                         end = num_elements
                     x_recon = self.decode(z)                  
                     if self.joint_representation:
-                        for i in range(len(generators)):
-                            x_same[i][start:end, :] = self.sample_from_normal(x_recon[i]).cpu().detach().numpy()
+                        for i in range(self.n_views):
+                            x_recon_out[i][start:end, :] = self.sample_from_normal(x_recon[i]).cpu().detach().numpy()
                     else:
-                        for i in range(len(generators)):
-                            x_same[i][start:end, :] = self.sample_from_normal(x_recon[0][i]).cpu().detach().numpy()
-                            x_cross[i][start:end, :] = self.sample_from_normal(x_recon[1][i]).cpu().detach().numpy()
+                        for i in range(self.n_views):
+                            for j in range(self.n_views):
+                                x_recon_out[i][j][start:end, :] = self.sample_from_normal(x_recon[i][j]).cpu().detach().numpy()
             else:
                 mu, logvar = self.encode(data)
                 z = self.reparameterise(mu, logvar)
                 if self.sparse:
                     z = self.apply_threshold(z)
                 if self.joint_representation:
-                    x_same = self.decode(z)
-                    x_same = [(self.sample_from_normal(x_same_)).cpu().detach().numpy() for x_same_ in x_same]
+                    x_recon = self.decode(z)
+                    x_recon_out = [(self.sample_from_normal(x_recon_)).cpu().detach().numpy() for x_recon_ in x_recon]
                 else:
                     x_recon = self.decode(z)
-                    x_same, x_cross = x_recon[0], x_recon[1]
-                    x_same = [(self.sample_from_normal(x_same_)).cpu().detach().numpy() for x_same_ in x_same]
-                    x_cross = [(self.sample_from_normal(x_cross_)).cpu().detach().numpy() for x_cross_ in x_cross]
-        if self.joint_representation:
-            return x_same
-        else:
-            return x_same, x_cross
+                    x_recon_out = []
+                    for i in range(self.n_views):
+                        x_recon_temp = [(self.sample_from_normal(x_recon_)).cpu().detach().numpy() for x_recon_ in x_recon[i]]
+                        x_recon_out.append(x_recon_temp)
+            return x_recon_out
             
 class Optimisation_DVCCA(Optimisation_VAE):
     
