@@ -11,4 +11,4 @@ def test_VAE():
     view_1 = np.random.rand(200, 20)
     view_2 = np.random.rand(200, 20)
     models = VAE(input_dims=[20, 20], config=config_file._conf).to(DEVICE)
-    models.fit()
+    models.fit(view_1, view_2)
