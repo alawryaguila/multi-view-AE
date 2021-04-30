@@ -13,7 +13,7 @@ class test_deepmodels:
         self.test_2 = np.random.rand(50, 20)
         self.config_file = ConfigReader('./tests/test_config.yaml')
         self.DEVICE = 'cpu'
-        self.parameters = {'sparse': [True, False], 'batch_size'=[None, 10]}
+        self.parameters = {'sparse': [True, False], 'batch_size': [None, 10]}
     def test_VAE():
         from src.models.vae import VAE
         param_combs = list(it.product(*(self.parameters[key] for key in self.parameters)))
