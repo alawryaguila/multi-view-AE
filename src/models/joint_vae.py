@@ -165,5 +165,5 @@ class VAE(nn.Module, Optimisation_VAE):
 
 
 __all__ = [
-    'joint_VAE'
+    'VAE'
 ]
