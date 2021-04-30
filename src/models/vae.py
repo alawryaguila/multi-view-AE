@@ -2,11 +2,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
-#from utils.normal import Normal
 from .layers import Encoder, Decoder 
 from .utils_deep import Optimisation_VAE
 import numpy as np
-from utils.kl_utils import compute_logvar, compute_kl, compute_kl_sparse
+from ..utils.kl_utils import compute_logvar, compute_kl, compute_kl_sparse
 
 class VAE(nn.Module, Optimisation_VAE):
     

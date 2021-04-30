@@ -11,8 +11,8 @@ from matplotlib import rc
 from sklearn.manifold import TSNE
 import umap
 from collections import OrderedDict
-from utils.io_utils import ResultsWriter
-from utils.calc_utils import calc_corr
+from ..utils.io_utils import ResultsWriter
+from ..utils.calc_utils import calc_corr
 import itertools
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
