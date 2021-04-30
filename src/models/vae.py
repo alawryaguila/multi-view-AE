@@ -116,7 +116,7 @@ class VAE(nn.Module, Optimisation_VAE):
         '''
         assert self.threshold <= 1.0
         #dropout = self.dropout()
-        keep = (self.dropout < self.threshold).squeeze().cpu()
+        keep = (self.dropout() < self.threshold).squeeze().cpu()
         z_keep = []
         if self.joint_representation:
             z[:,~keep] = 0

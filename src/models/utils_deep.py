@@ -22,7 +22,7 @@ class Optimisation_VAE(Plotting):
         generators = []
 
         for data_ in data:
-            if self._config['mini_batch']:
+            if self._config['batch_size']!=None:
                 batch_sz = self._config['batch_size']
             else:
                 batch_sz = np.shape(data_)[0]
@@ -55,7 +55,7 @@ class Optimisation_VAE(Plotting):
         self.epochs = self._config['n_epochs']
 
         for epoch in range(1, self.epochs + 1):
-            if self.minibatch:
+            if self.batch_size!=None:
                 for batch_idx, (local_batch) in enumerate(zip(*generators)):
                     local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
 
@@ -162,14 +162,18 @@ class Optimisation_VAE(Plotting):
 
     def predict_latents(self, *data):
         generators =  self.generate_data(data)
-        if not self.minibatch:
+        if self.batch_size==None:
             data = self.preprocess(generators)
         num_elements = len(generators[0].dataset)
         batch_size = generators[0].batch_size
+
         num_batches = len(generators[0])
         with torch.no_grad():
             if self.batch_size!=None:
-                predictions = [torch.zeros(num_elements, int(self._config['latent_size'])) for i in range(len(generators))]
+                if self.joint_representation:
+                    predictions = torch.zeros(num_elements, int(self._config['latent_size']))
+                else:
+                    predictions = [torch.zeros(num_elements, int(self._config['latent_size'])) for i in range(len(generators))]
                 for batch_idx, local_batch in enumerate(zip(*generators)):
                     local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
                     mu, logvar = self.encode(local_batch)
@@ -180,8 +184,11 @@ class Optimisation_VAE(Plotting):
                     end = start + batch_size
                     if batch_idx == num_batches - 1:
                         end = num_elements
-                    for i, pred_ in enumerate(pred):
-                        predictions[i][start:end, :] = pred_
+                    if self.joint_representation:
+                        predictions[start:end, :] = pred
+                    else:
+                        for i, pred_ in enumerate(pred):
+                            predictions[i][start:end, :] = pred_
             else:
                 mu, logvar = self.encode(data)
                 predictions = self.reparameterise(mu, logvar)
@@ -203,11 +210,10 @@ class Optimisation_VAE(Plotting):
                 x_recon_out = []
                 if self.joint_representation:
                     for i in range(self.n_views):
-                        x_recon_out.append(torch.zeros(generators[i].dataset.shape[0], generators[i].dataset.shape[1]))
-                        x_cross.append(torch.zeros(generators[i].dataset.shape[0], generators[i].dataset.shape[1]))
+                        x_recon_out.append(np.zeros((generators[i].dataset.shape[0], generators[i].dataset.shape[1])))
                 else:
                     for i in range(self.n_views):
-                        x_recon_temp = [torch.zeros(generator.dataset.shape[0], generator.dataset.shape[1]) for generator in generators]
+                        x_recon_temp = [np.zeros((generator.dataset.shape[0], generator.dataset.shape[1])) for generator in generators]
                         x_recon_out.append(x_recon_temp)
 
                 for batch_idx, (local_batch) in enumerate(zip(*generators)):
@@ -224,11 +230,11 @@ class Optimisation_VAE(Plotting):
                     x_recon = self.decode(z)                  
                     if self.joint_representation:
                         for i in range(self.n_views):
-                            x_recon_out[i][start:end, :] = self.sample_from_normal(x_recon[i]).cpu().detach().numpy()
+                            x_recon_out[i][start:end, :] = (self.sample_from_normal(x_recon[i])).cpu().detach().numpy()
                     else:
                         for i in range(self.n_views):
                             for j in range(self.n_views):
-                                x_recon_out[i][j][start:end, :] = self.sample_from_normal(x_recon[i][j]).cpu().detach().numpy()
+                                x_recon_out[i][j][start:end, :] = (self.sample_from_normal(x_recon[i][j])).cpu().detach().numpy()
             else:
                 mu, logvar = self.encode(data)
                 z = self.reparameterise(mu, logvar)
