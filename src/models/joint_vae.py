@@ -12,8 +12,7 @@ class VAE(nn.Module, Optimisation_VAE):
     def __init__(
                 self, 
                 input_dims, 
-                config,
-                initial_weights=None):
+                config):
 
         ''' 
         Initialise Variational Autoencoder model.
@@ -36,7 +35,6 @@ class VAE(nn.Module, Optimisation_VAE):
         self.sparse = config['sparse']
         if self.sparse == True:
             self.model_type = 'joint_sparse_VAE'
-        self.initial_weights = initial_weights
         self.joint_representation = True
         if self.sparse:
             self.threshold = config['dropout_threshold']
@@ -44,7 +42,7 @@ class VAE(nn.Module, Optimisation_VAE):
         else:
             self.log_alpha = None
         self.n_views = len(input_dims)
-        self.encoders = torch.nn.ModuleList([Encoder(input_dim=input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=True, non_linear=self.non_linear, sparse=self.sparse, log_alpha=self.log_alpha, initial_weights=self.initial_weights) for input_dim in self.input_dims])
+        self.encoders = torch.nn.ModuleList([Encoder(input_dim=input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=True, non_linear=self.non_linear, sparse=self.sparse, log_alpha=self.log_alpha) for input_dim in self.input_dims])
         self.decoders = torch.nn.ModuleList([Decoder(input_dim=input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=True, non_linear=self.non_linear) for input_dim in self.input_dims])
         self.optimizers = [torch.optim.Adam(list(self.encoders[i].parameters()) + list(self.decoders[i].parameters()),
                                       lr=self.learning_rate) for i in range(self.n_views)]
