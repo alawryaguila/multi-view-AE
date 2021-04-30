@@ -114,7 +114,7 @@ class Optimisation_VAE(Plotting):
                 
 
     def fit(self, *data):
-        self.minibatch = self._config['mini_batch']
+        self.batch_size = self._config['batch_size']
         torch.manual_seed(42)  
         torch.cuda.manual_seed(42)
         use_GPU = self._config['use_GPU']
@@ -123,7 +123,7 @@ class Optimisation_VAE(Plotting):
         self.device = torch.device("cuda" if use_cuda else "cpu")
 
         generators = self.generate_data(data)
-        if self.minibatch:
+        if self.batch_size!=None:
             logger = self.optimise(generators)
         else:
             data = self.preprocess(generators)
@@ -168,7 +168,7 @@ class Optimisation_VAE(Plotting):
         batch_size = generators[0].batch_size
         num_batches = len(generators[0])
         with torch.no_grad():
-            if self.minibatch:
+            if self.batch_size!=None:
                 predictions = [torch.zeros(num_elements, int(self._config['latent_size'])) for i in range(len(generators))]
                 for batch_idx, local_batch in enumerate(zip(*generators)):
                     local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
@@ -193,13 +193,13 @@ class Optimisation_VAE(Plotting):
 
     def predict_reconstruction(self, *data):
         generators =  self.generate_data(data)
-        if not self.minibatch:
+        if self.batch_size==None:
             data = self.preprocess(generators)
         batch_size = generators[0].batch_size
         num_elements = len(generators[0].dataset)
         num_batches = len(generators[0])     
         with torch.no_grad():
-            if self.minibatch:
+            if self.batch_size!=None:
                 x_recon_out = []
                 if self.joint_representation:
                     for i in range(self.n_views):
@@ -252,13 +252,13 @@ class Optimisation_DVCCA(Optimisation_VAE):
 
     def predict_reconstruction(self, *data):
         generators =  self.generate_data(data)
-        if not self.minibatch:
+        if self.batch_size==None:
             data = self.preprocess(generators)
         num_elements = len(generators[0].dataset)
         batch_size = generators[0].batch_size
         num_batches = len(generators[0])
         with torch.no_grad():
-            if self.minibatch:
+            if self.batch_size!=None:
                 x_recon = []
                 for i in range(len(generators)):
                     x_recon.append(torch.zeros(generators[i].dataset.shape[0], generators[i].dataset.shape[1]))
@@ -287,13 +287,13 @@ class Optimisation_AE(Optimisation_VAE):
 
     def predict_latents(self, *data):
         generators =  self.generate_data(data)
-        if not self.minibatch:
+        if self.batch_size==None:
             data = self.preprocess(generators)
         num_elements = len(generators[0].dataset)
         batch_size = generators[0].batch_size
         num_batches = len(generators[0])
         with torch.no_grad():
-            if self.minibatch:
+            if self.batch_size!=None:
                 predictions = [torch.zeros(num_elements, int(self._config['latent_size'])) for i in range(len(generators))]
                 for batch_idx, local_batch in enumerate(zip(*generators)):
                     local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
@@ -311,13 +311,13 @@ class Optimisation_AE(Optimisation_VAE):
 
     def predict_reconstruction(self, *data):
         generators =  self.generate_data(data)
-        if not self.minibatch:
+        if self.batch_size==None:
             data = self.preprocess(generators)
         num_elements = len(generators[0].dataset)
         batch_size = generators[0].batch_size
         num_batches = len(generators[0])
         with torch.no_grad():
-            if self.minibatch:
+            if self.batch_size!=None:
                 x_same = []
                 x_cross = []
                 for batch_idx, local_batch in enumerate(zip(*generators)):
@@ -342,7 +342,7 @@ class Optimisation_GVCCA(Optimisation_VAE):
         super().__init__()
 
     def fit(self, labels, *data):
-        self.minibatch = self._config['mini_batch']
+        self.batch_size = self._config['batch_size']
         torch.manual_seed(42)  
         torch.cuda.manual_seed(42)
         use_GPU = self._config['use_GPU']
@@ -351,7 +351,7 @@ class Optimisation_GVCCA(Optimisation_VAE):
         self.device = torch.device("cuda" if use_cuda else "cpu")
 
         generators = self.generate_data(data)
-        if self.minibatch:
+        if self.batch_size!=None:
             logger = self.optimise(generators, labels)
         else:
             data = self.preprocess(generators)
@@ -380,7 +380,7 @@ class Optimisation_GVCCA(Optimisation_VAE):
         batch_size = generators[0].batch_size
         num_batches = len(generators[0])
         for epoch in range(1, self.epochs + 1):
-            if self.minibatch:
+            if self.batch_size!=None:
                 for batch_idx, (local_batch) in enumerate(zip(*generators)):
                     local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
                     start = batch_idx * batch_size

@@ -20,6 +20,5 @@ dropout_threshold: 0.2
 # SECTION 4: TRAINING
 
 learning_rate: 0.002
-mini_batch: False
-batch_size: []
+batch_size: None
 n_epochs: 3
