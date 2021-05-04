@@ -1,5 +1,6 @@
 from src.models import utils_deep
 from src.utils.io_utils import ConfigReader
+from src.CV import CrossValidation
 import numpy as np
 import itertools as it
 
@@ -23,6 +24,7 @@ def test_VAE():
         models.fit(train_1, train_2)
         latent_1, latent_2 = models.predict_latents(test_1, test_2)
         recon = models.predict_reconstruction(test_1, test_2)
+
 def test_jointVAE(): 
     from src.models.joint_vae import VAE
     train_1 = np.random.rand(200, 20)
@@ -42,3 +44,11 @@ def test_jointVAE():
         models.fit(train_1, train_2)
         latent = models.predict_latents(test_1, test_2)
         recon = models.predict_reconstruction(test_1, test_2)
+
+def test_CV():    
+    train_1 = np.random.rand(200, 20)
+    train_2 = np.random.rand(200, 20)
+    config_file = ConfigReader('./tests/test_config.yaml')
+    param_dict = {'latent_size': [3, 4], 'beta': [1, 2]}
+    cv = CrossValidation(config_file._conf, param_dict, model_type='joint_VAE')
+    cv.gridsearch(train_1, train_2)
