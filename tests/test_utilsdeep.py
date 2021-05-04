@@ -1,6 +1,6 @@
 from src.models import utils_deep
 from src.utils.io_utils import ConfigReader
-from src.CV import CrossValidation
+from src.CV.cross_validation import CrossValidation
 import numpy as np
 import itertools as it
 
