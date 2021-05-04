@@ -58,7 +58,7 @@ class CrossValidation:
         
     def init_model(self, input_dims, parameters):
         self.input_dims = input_dims
-        use_GPU = self._config['use_GPU']
+        use_GPU = self.config['use_GPU']
         use_cuda = use_GPU and torch.cuda.is_available()
         self.kwargs_generator = {'num_workers': 4, 'pin_memory': True} if use_cuda else {}
         self.device = torch.device("cuda" if use_cuda else "cpu")
@@ -67,10 +67,10 @@ class CrossValidation:
         for key,val in parameters.items():
             config[key] = val
         if self.model_type=='joint_VAE':
-            from models.joint_vae import VAE
+            from ..models.joint_vae import VAE
             return VAE(self.input_dims, config).to(self.device)
         elif self.model_type=='VAE':
-            from models.vae import VAE
+            from ..models.vae import VAE
             return VAE(self.input_dims, config).to(self.device)
         #TO DO rest of models
         else:
