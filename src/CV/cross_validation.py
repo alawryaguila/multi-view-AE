@@ -39,9 +39,10 @@ class CrossValidation:
             
         if self.config['sparse']:
             self.model_type = 'sparse_' + self.model_type  
-        outpath = self.format_folder()
-        json.dump(param_labels_dict,open(join(outpath, 'parameter_labels.json'),'w'))
-        json.dump(cv_dict,open(join(outpath, 'cv_results.json'),'w'))
+        if self.config['save_model']:
+            outpath = self.format_folder()
+            json.dump(param_labels_dict,open(join(outpath, 'parameter_labels.json'),'w'))
+            json.dump(cv_dict,open(join(outpath, 'cv_results.json'),'w'))
         self.param_labels_dict = param_labels_dict 
         self.cv_dict = cv_dict
 

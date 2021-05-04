@@ -50,9 +50,6 @@ class VAE(nn.Module, Optimisation_VAE):
         mu = []
         logvar = []
         for i in range(self.n_views): 
-            if torch.nonzero(x[i][0]).size()[0]==0:
-                print("view {0} set to zeros (aka missing)".format(i))
-                continue
             mu_, logvar_ = self.encoders[i](x[i])
             mu.append(mu_)
             logvar.append(logvar_)
