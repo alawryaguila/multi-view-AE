@@ -96,14 +96,14 @@ class Plotting:
                 plt.close()
 
 
-    def plot_dropout(self):  
+    def plot_dropout(self, title=''):  
         if self.sparse:
             do = np.sort(self.dropout().cpu().detach().numpy().reshape(-1))
             print(do)
             plt.figure()
             plt.bar(range(len(do)), do)
             plt.title('Dropout probability of {0} latent dimensions'.format(self.z_dim))
-            plt.savefig(join(self.output_path, 'dropout.png'))    
+            plt.savefig(join(self.output_path, 'dropout{0}.png'.format(title)))    
         
     def print_reconstruction(self, *data, recon_type=None, save=True):
         print("~~~~~~~printing reconstruction results~~~~~~~")

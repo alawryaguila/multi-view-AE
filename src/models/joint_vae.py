@@ -26,24 +26,25 @@ class VAE(nn.Module, Optimisation_VAE):
         self._config = config
         self.model_type = 'joint_VAE'
         self.input_dims = input_dims
-        self.hidden_layer_dims = config['hidden_layers']
+        hidden_layer_dims = config['hidden_layers'].copy()
         self.z_dim = config['latent_size']
-        self.hidden_layer_dims.append(self.z_dim)
+        hidden_layer_dims.append(self.z_dim)
         self.non_linear = config['non_linear']
         self.beta = config['beta']
         self.learning_rate = config['learning_rate']
-        self.sparse = config['sparse']
-        if self.sparse == True:
-            self.model_type = 'joint_sparse_VAE'
         self.joint_representation = True
-        if self.sparse:
-            self.threshold = config['dropout_threshold']
+
+        self.threshold = config['dropout_threshold']
+        if self.threshold!=0:
+            self.sparse = True
+            self.model_type = 'joint_sparse_VAE'
             self.log_alpha = torch.nn.Parameter(torch.FloatTensor(1, self.z_dim).normal_(0,0.01))
         else:
             self.log_alpha = None
+            self.sparse = False
         self.n_views = len(input_dims)
-        self.encoders = torch.nn.ModuleList([Encoder(input_dim=input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=True, non_linear=self.non_linear, sparse=self.sparse, log_alpha=self.log_alpha) for input_dim in self.input_dims])
-        self.decoders = torch.nn.ModuleList([Decoder(input_dim=input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=True, non_linear=self.non_linear) for input_dim in self.input_dims])
+        self.encoders = torch.nn.ModuleList([Encoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear, sparse=self.sparse, log_alpha=self.log_alpha) for input_dim in self.input_dims])
+        self.decoders = torch.nn.ModuleList([Decoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear) for input_dim in self.input_dims])
         self.optimizers = [torch.optim.Adam(list(self.encoders[i].parameters()) + list(self.decoders[i].parameters()),
                                       lr=self.learning_rate) for i in range(self.n_views)]
     def encode(self, x):
