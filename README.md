@@ -9,7 +9,7 @@ Clone this repository and move to folder:
 git clone https://github.com/alawryaguila/multiview_models
 cd multiview_models
 ```
-
+TODO - change as now using requirements.txt file 
 Create the customised python environment:
 ```bash
 conda env create -f environment.yml
