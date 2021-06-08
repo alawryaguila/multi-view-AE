@@ -6,7 +6,7 @@ from .layers import Encoder, Decoder
 from .utils_deep import Optimisation_VAE
 import numpy as np
 from ..utils.kl_utils import compute_logvar, compute_kl, compute_kl_sparse
-
+from ..utils.calc_utils import ProductOfExperts, MeanRepresentation
 class VAE(nn.Module, Optimisation_VAE):
     
     def __init__(
@@ -33,7 +33,14 @@ class VAE(nn.Module, Optimisation_VAE):
         self.beta = config['beta']
         self.learning_rate = config['learning_rate']
         self.joint_representation = True
-
+        self.join_type = 'Mean'
+        if self.join_type == 'PoE':
+            self.join_z = ProductOfExperts()
+        elif self.join_type == 'Mean':
+            self.join_z = MeanRepresentation()
+        else:
+            print("Incorrect join method")
+            exit()
         self.threshold = config['dropout_threshold']
         if self.threshold!=0:
             self.sparse = True
@@ -54,16 +61,15 @@ class VAE(nn.Module, Optimisation_VAE):
             mu_, logvar_ = self.encoders[i](x[i])
             mu.append(mu_)
             logvar.append(logvar_)
+        mu = torch.stack(mu)
+        logvar = torch.stack(logvar)
+        mu, logvar = self.join_z(mu, logvar)
         return mu, logvar
     
     def reparameterise(self, mu, logvar):
-        z = []
-        for i in range(len(mu)):
-            std = torch.exp(0.5*logvar[i])
-            eps = torch.randn_like(mu[i])
-            z.append(mu[i]+eps*std)
-        z = torch.mean(torch.stack(z), axis=0)
-        return z
+        std = torch.exp(0.5*logvar)
+        eps = torch.randn_like(mu)
+        return mu + eps*std
 
     def decode(self, z):
         x_recon = []
@@ -119,11 +125,10 @@ class VAE(nn.Module, Optimisation_VAE):
 
         '''
         kl = 0
-        for i in range(self.n_views):
-            if self.sparse:
-                kl+= compute_kl_sparse(mu[i], logvar[i])
-            else:
-                kl+= compute_kl(mu[i], logvar[i])
+        if self.sparse:
+            kl+= compute_kl_sparse(mu, logvar)
+        else:
+            kl+= compute_kl(mu, logvar)
         return self.beta*kl
 
     @staticmethod

@@ -34,6 +34,7 @@ class VAE(nn.Module, Optimisation_VAE):
         self.beta = config['beta']
         self.learning_rate = config['learning_rate']
         self.threshold = config['dropout_threshold']
+        self.SNP_model = config['SNP_model']
         self.joint_representation = False
         if self.threshold!=0:
             self.sparse = True

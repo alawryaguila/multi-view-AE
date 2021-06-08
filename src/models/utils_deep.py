@@ -3,7 +3,7 @@ Wrapper classes for VAE, AE and DVCCA models
 
 '''
 
-from ..utils.datasets import MyDataset
+from ..utils.datasets import MyDataset, MyDataset_SNPs
 import numpy as np
 import torch
 from ..utils.io_utils import Logger
@@ -35,6 +35,19 @@ class Optimisation_VAE(Plotting):
             )
             generators.append(generator)
         return generators
+
+    def generate_data_SNPs(self, data):
+
+        batch_sz = self._config['batch_size']
+
+        data = MyDataset_SNPs(data)
+        generator = torch.utils.data.DataLoader(
+            data,
+            batch_size=batch_sz,
+            shuffle=False,
+            **self.kwargs_generator
+        )
+        return [generator]
 
     def preprocess(self, generators):
 
@@ -121,8 +134,10 @@ class Optimisation_VAE(Plotting):
         use_cuda = use_GPU and torch.cuda.is_available()
         self.kwargs_generator = {'num_workers': 4, 'pin_memory': True} if use_cuda else {}
         self.device = torch.device("cuda" if use_cuda else "cpu")
-
-        generators = self.generate_data(data)
+        if self.SNP_model:
+            generators = self.generate_data_SNPs(data)
+        else:
+            generators = self.generate_data(data)
         if self.batch_size!=None:
             logger = self.optimise(generators)
         else:

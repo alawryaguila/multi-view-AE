@@ -98,18 +98,20 @@ class DVCCA(nn.Module, Optimisation_DVCCA):
 
         '''
         kl = 0
-        for i in range(self.n_views):
-            kl+= -0.5*torch.sum(1 + logvar[i] - mu[i].pow(2) - logvar[i].exp(), dim=-1)
+        if self.private:
+            for i in range(self.n_views):
+                kl+= -0.5*torch.sum(1 + logvar[i] - mu[i].pow(2) - logvar[i].exp(), dim=-1)
+        else:
+            kl+= -0.5*torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=-1)
             
-        return self.beta*kl/self.n_views
+        return self.beta*kl
 
     @staticmethod
-    def recon_loss(self, x, x_recon):
-        recon_loss = 0
-        x_recon = [F.sigmoid(x_recon_) for x_recon_ in x_recon]
+    def calc_ll(self, x, x_recon):
+        ll = 0
         for i in range(self.n_views):
-            recon_loss += F.binary_cross_entropy(x_recon[i], x[i], reduction='sum')
-        return recon_loss/self.n_views
+            ll+= torch.mean(x_recon[i].log_prob(x[i]).sum(dim=1))
+        return ll
 
     def loss_function(self, x, fwd_rtn):
         x_recon = fwd_rtn['x_recon']
@@ -117,7 +119,7 @@ class DVCCA(nn.Module, Optimisation_DVCCA):
         logvar = fwd_rtn['logvar']
 
         kl = self.calc_kl(self, mu, logvar)
-        recon = self.recon_loss(self, x, x_recon)
+        recon = self.calc_ll(self, x, x_recon)
 
         total = kl + recon
         
