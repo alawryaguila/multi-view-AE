@@ -32,6 +32,7 @@ class VAE(nn.Module, Optimisation_VAE):
         self.non_linear = config['non_linear']
         self.beta = config['beta']
         self.learning_rate = config['learning_rate']
+        self.SNP_model = config['SNP_model']
         self.joint_representation = True
         self.join_type = 'Mean'
         if self.join_type == 'PoE':
