@@ -16,7 +16,7 @@ non_linear: False
 beta: 1
 sparse: True
 dropout_threshold: 0.2
-
+SNP_model: False
 # SECTION 4: TRAINING
 
 learning_rate: 0.002
