@@ -58,7 +58,7 @@ class VAE(nn.Module, Optimisation_VAE):
     def encode(self, x):
         mu = []
         logvar = []
-        for i in range(self.n_views): 
+        for i in range(self.n_views):
             mu_, logvar_ = self.encoders[i](x[i])
             mu.append(mu_)
             logvar.append(logvar_)

@@ -18,7 +18,6 @@ class Optimisation_VAE(Plotting):
         super().__init__()
 
     def generate_data(self, data, labels=None):
-        
         batch_sz = self._config['batch_size']
         if self.SNP_model:  
             data = MyDataset_SNPs(data)
@@ -32,7 +31,6 @@ class Optimisation_VAE(Plotting):
         elif labels is not None:
             generators = []
             for data_ in data:
-                print(np.shape(data_))
                 if self._config['batch_size']!=None:
                     batch_sz = self._config['batch_size']
                 else:
@@ -46,21 +44,23 @@ class Optimisation_VAE(Plotting):
                 )
                 generators.append(generator)
             return generators
-        else:   
+        else: 
             generators = []
+
             for data_ in data:
                 if batch_sz is not None:
-                    batch_sz = self._config['batch_size']
+                    batch_sz_tmp = self._config['batch_size']
                 else:
-                    batch_sz = np.shape(data_)[0]
+                    batch_sz_tmp = np.shape(data_)[0]
                 data_ = MyDataset(data_)
                 generator = torch.utils.data.DataLoader(
                     data_,
-                    batch_size=batch_sz,
+                    batch_size=batch_sz_tmp,
                     shuffle=False,
                     **self.kwargs_generator
                 )
                 generators.append(generator)
+                del generator
             return generators
 
 
@@ -72,9 +72,8 @@ class Optimisation_VAE(Plotting):
 
             return [data, labels[0]]
         else:
-            for batch_idx, (data) in enumerate(zip(*generators)):
+            for batch_idx, data in enumerate(zip(*generators)):
                 data = [data_.to(self.device) for data_ in data]
-
             return data
 
 
@@ -90,7 +89,7 @@ class Optimisation_VAE(Plotting):
         self.epochs = self._config['n_epochs']
 
         for epoch in range(1, self.epochs + 1):
-            if self.batch_size!=None and generators!=None:
+            if self.batch_size is not None and generators is not None:
                 for batch_idx, (local_batch) in enumerate(zip(*generators)):
                     if self.labels is not None:
                         labels = [local_batch_[1].to(self.device, dtype=torch.int64) for local_batch_ in local_batch]
@@ -156,6 +155,8 @@ class Optimisation_VAE(Plotting):
     def fit(self, *data, labels=None):
         self.batch_size = self._config['batch_size']
         self.data = data
+        print(data[0])
+        print(data[1])
         self.labels = labels
         torch.manual_seed(42)  
         torch.cuda.manual_seed(42)
@@ -165,7 +166,7 @@ class Optimisation_VAE(Plotting):
         self.device = torch.device("cuda" if use_cuda else "cpu")
 
         generators = self.generate_data(self.data, labels=self.labels)
-        if self.batch_size!=None:
+        if self.batch_size is not None:
             logger = self.optimise(generators=generators)
         else:
             if self.labels is not None:
