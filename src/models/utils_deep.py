@@ -3,7 +3,7 @@ Wrapper classes for VAE, AE and DVCCA models
 
 '''
 
-from ..utils.datasets import MyDataset, MyDataset_SNPs
+from ..utils.datasets import MyDataset, MyDataset_SNPs, MyDataset_labels
 import numpy as np
 import torch
 from ..utils.io_utils import Logger
@@ -17,44 +17,66 @@ class Optimisation_VAE(Plotting):
 
         super().__init__()
 
-    def generate_data(self, data):
+    def generate_data(self, data, labels=None):
         
-        generators = []
-
-        for data_ in data:
-            if self._config['batch_size']!=None:
-                batch_sz = self._config['batch_size']
-            else:
-                batch_sz = np.shape(data_)[0]
-            data_ = MyDataset(data_)
+        batch_sz = self._config['batch_size']
+        if self.SNP_model:  
+            data = MyDataset_SNPs(data)
             generator = torch.utils.data.DataLoader(
-                data_,
+                data,
                 batch_size=batch_sz,
                 shuffle=False,
                 **self.kwargs_generator
             )
-            generators.append(generator)
-        return generators
+            return [generator]
+        elif labels is not None:
+            generators = []
+            for data_ in data:
+                print(np.shape(data_))
+                if self._config['batch_size']!=None:
+                    batch_sz = self._config['batch_size']
+                else:
+                    batch_sz = np.shape(data_)[0]
+                data_ = MyDataset_labels(data_, labels)
+                generator = torch.utils.data.DataLoader(
+                    data_,
+                    batch_size=batch_sz,
+                    shuffle=False,
+                    **self.kwargs_generator
+                )
+                generators.append(generator)
+            return generators
+        else:   
+            generators = []
+            for data_ in data:
+                if batch_sz is not None:
+                    batch_sz = self._config['batch_size']
+                else:
+                    batch_sz = np.shape(data_)[0]
+                data_ = MyDataset(data_)
+                generator = torch.utils.data.DataLoader(
+                    data_,
+                    batch_size=batch_sz,
+                    shuffle=False,
+                    **self.kwargs_generator
+                )
+                generators.append(generator)
+            return generators
 
-    def generate_data_SNPs(self, data):
 
-        batch_sz = self._config['batch_size']
+    def preprocess(self, generators, labels=None):
+        if labels is not None:             
+            for batch_idx, batch in enumerate(zip(*generators)):
+                data = [data_[0].to(self.device) for data_ in batch]
+                labels = [data_[1].to(self.device, dtype=torch.int64) for data_ in batch]
 
-        data = MyDataset_SNPs(data)
-        generator = torch.utils.data.DataLoader(
-            data,
-            batch_size=batch_sz,
-            shuffle=False,
-            **self.kwargs_generator
-        )
-        return [generator]
+            return [data, labels[0]]
+        else:
+            for batch_idx, (data) in enumerate(zip(*generators)):
+                data = [data_.to(self.device) for data_ in data]
 
-    def preprocess(self, generators):
+            return data
 
-        for batch_idx, (data) in enumerate(zip(*generators)):
-            data = [data_.to(self.device) for data_ in data]
-
-        return data
 
     def init_optimisation(self):
         self.train()
@@ -62,15 +84,21 @@ class Optimisation_VAE(Plotting):
     def end_optimisation(self):
         self.eval()
 
-    def optimise(self, generators, data=[], verbose=True):
+    def optimise(self, generators=None, data=[], verbose=True):
         self.init_optimisation()
         self.to(self.device)
         self.epochs = self._config['n_epochs']
 
         for epoch in range(1, self.epochs + 1):
-            if self.batch_size!=None:
+            if self.batch_size!=None and generators!=None:
                 for batch_idx, (local_batch) in enumerate(zip(*generators)):
-                    local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
+                    if self.labels is not None:
+                        labels = [local_batch_[1].to(self.device, dtype=torch.int64) for local_batch_ in local_batch]
+                        local_batch = [local_batch_[0].to(self.device) for local_batch_ in local_batch] 
+                        labels = labels[0]
+                        local_batch = [local_batch, labels]
+                    else:
+                        local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
 
                     loss = self.optimise_batch(local_batch)
                     if batch_idx  == 0 and verbose:
@@ -123,26 +151,25 @@ class Optimisation_VAE(Plotting):
                         else:
                             cross_temp = np.mean((prediction[i][j] - data[i])**2)
                             cross_recon+= cross_temp
-            return same_recon/self.n_views, cross_recon/self.n_views
-                
+            return same_recon/self.n_views, cross_recon/self.n_views        
 
-    def fit(self, *data):
+    def fit(self, *data, labels=None):
         self.batch_size = self._config['batch_size']
+        self.data = data
+        self.labels = labels
         torch.manual_seed(42)  
         torch.cuda.manual_seed(42)
         use_GPU = self._config['use_GPU']
         use_cuda = use_GPU and torch.cuda.is_available()
         self.kwargs_generator = {'num_workers': 4, 'pin_memory': True} if use_cuda else {}
         self.device = torch.device("cuda" if use_cuda else "cpu")
-        if self.SNP_model:
-            generators = self.generate_data_SNPs(data)
-        else:
-            generators = self.generate_data(data)
+
+        generators = self.generate_data(self.data, labels=self.labels)
         if self.batch_size!=None:
-            logger = self.optimise(generators)
+            logger = self.optimise(generators=generators)
         else:
-            data = self.preprocess(generators)
-            logger = self.optimise(generators, data)
+            data = self.preprocess(generators, labels=True)
+            logger = self.optimise(data=data)
         if self._config['save_model']:
             model_path = os.path.join(self.output_path, 'model.pkl')
             while os.path.exists(model_path):
@@ -265,7 +292,7 @@ class Optimisation_VAE(Plotting):
                         x_recon_temp = [(self.sample_from_normal(x_recon_)).cpu().detach().numpy() for x_recon_ in x_recon[i]]
                         x_recon_out.append(x_recon_temp)
             return x_recon_out
-            
+
 class Optimisation_DVCCA(Optimisation_VAE):
     
     def __init__(self):
@@ -299,6 +326,7 @@ class Optimisation_DVCCA(Optimisation_VAE):
                 z = self.reparameterise(mu, logvar)
                 x_recon = self.decode(z)
         return [x_recon_.cpu().detach().numpy() for x_recon_ in x_recon]
+
 
 
 class Optimisation_AE(Optimisation_VAE):
