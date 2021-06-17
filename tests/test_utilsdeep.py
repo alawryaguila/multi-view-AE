@@ -20,7 +20,7 @@ def test_VAE():
         params = {key: comb[idx] for idx, key in enumerate(parameters)}
         for key,val in params.items():
             config[key] = val           
-        models = VAE(input_dims=[20, 20], config=config, n_labels=2).to(DEVICE)
+        models = VAE(input_dims=[20, 20], config=config).to(DEVICE)
         models.fit(train_1, train_2)
         latent_1, latent_2 = models.predict_latents(test_1, test_2)
         recon = models.predict_reconstruction(test_1, test_2)
@@ -59,7 +59,7 @@ def test_classiferVAE():
         params = {key: comb[idx] for idx, key in enumerate(parameters)}
         for key,val in params.items():
             config[key] = val  
-        models = VAE_classifier(input_dims=[20, 20], config=config).to(DEVICE)
+        models = VAE_classifier(input_dims=[20, 20], config=config, n_labels=2).to(DEVICE)
         models.fit(train, labels=train_labels)
         latent = models.predict_latents(test)
         recon = models.predict_reconstruction(test)
