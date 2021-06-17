@@ -168,7 +168,10 @@ class Optimisation_VAE(Plotting):
         if self.batch_size!=None:
             logger = self.optimise(generators=generators)
         else:
-            data = self.preprocess(generators, labels=True)
+            if self.labels is not None:
+                data = self.preprocess(generators, labels=True)
+            else:
+                data = self.preprocess(generators)
             logger = self.optimise(data=data)
         if self._config['save_model']:
             model_path = os.path.join(self.output_path, 'model.pkl')
