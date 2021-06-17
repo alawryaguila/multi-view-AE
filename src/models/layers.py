@@ -53,6 +53,37 @@ class Encoder(nn.Module):
             h1 = self.encoder_layers[-1](h1)
             return h1
 
+
+class Classifier(nn.Module):
+    def __init__(
+                self, 
+                input_dim, 
+                hidden_layer_dims,
+                output_dim, 
+                non_linear=False, 
+                bias=True):
+        super().__init__()
+
+        self.input_size = input_dim
+        hidden_layer_dims = hidden_layer_dims if type(hidden_layer_dims)==list else [hidden_layer_dims]
+        self.hidden_dims = hidden_layer_dims
+        self.output_size = output_dim
+        self.non_linear = non_linear
+        self.layer_sizes_encoder = [input_dim] + hidden_layer_dims + [output_dim]
+        lin_layers = [nn.Linear(dim0, dim1, bias=bias) for dim0, dim1 in zip(self.layer_sizes_encoder[:-1], self.layer_sizes_encoder[1:])] 
+        self.encoder_layers = nn.Sequential(*lin_layers)
+    def forward(self, x):
+        h1 = x
+        for it_layer, layer in enumerate(self.encoder_layers[:-1]):
+            h1 = layer(h1)
+            if self.non_linear:
+                h1 = F.relu(h1)
+
+        h1 = F.softmax(self.encoder_layers[-1](h1), dim=1)
+        return h1
+
+
+
 class Decoder(nn.Module):
     def __init__(
                 self, 
