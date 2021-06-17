@@ -155,8 +155,6 @@ class Optimisation_VAE(Plotting):
     def fit(self, *data, labels=None):
         self.batch_size = self._config['batch_size']
         self.data = data
-        print(data[0])
-        print(data[1])
         self.labels = labels
         torch.manual_seed(42)  
         torch.cuda.manual_seed(42)
