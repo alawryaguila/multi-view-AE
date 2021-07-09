@@ -7,3 +7,4 @@ scipy
 scikit-learn
 torch>=1.7.0
 umap
+torchvision
