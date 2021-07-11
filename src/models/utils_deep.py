@@ -101,7 +101,7 @@ class Optimisation_VAE(Plotting):
             if self.batch_size is not None and generators is not None:
                 for batch_idx, (local_batch) in enumerate(zip(*generators)):
                     #print(local_batch[0])
-                    if self.transform:
+                    if self.SNP_model and self.transform:
                         local_batch = [self.transform(local_batch_.unsqueeze(0)).squeeze(0) for local_batch_ in local_batch] #not working atm need to fix   
                         for local_batch_ in local_batch:
                             local_batch_[torch.isnan(local_batch_)] = 0   
