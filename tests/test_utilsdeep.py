@@ -69,5 +69,5 @@ def test_CV():
     train_2 = np.random.rand(200, 20)
     config_file = ConfigReader('./tests/test_config.yaml')
     param_dict = {'latent_size': [3, 4], 'beta': [1, 2]}
-    cv = CrossValidation(config_file._conf, param_dict, model_type='joint_VAE')
+    cv = CrossValidation(config_file._conf, param_dict, model_type='VAE')
     cv.gridsearch(train_1, train_2)
