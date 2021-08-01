@@ -8,33 +8,49 @@ import numpy as np
 from ..utils.kl_utils import compute_logvar, compute_kl, compute_kl_sparse
 from ..utils.calc_utils import ProductOfExperts, MeanRepresentation
 class VAE(nn.Module, Optimisation_VAE):
+    '''
+    Multi-view Variational Autoencoder model with a joint latent representation.
+
+    Latent representations are joined either using the Product of Experts (https://arxiv.org/pdf/1410.7827.pdf)
+    or the mean of the representations. 
     
+    '''
     def __init__(
                 self, 
-                input_dims, 
-                config):
+                input_dims,
+                z_dim=1,
+                hidden_layer_dims=[],
+                non_linear=False,
+                learning_rate=0.002,
+                beta=1,
+                threshold=0,
+                SNP_model=False,
+                join_type='Mean'):
 
         ''' 
-        Initialise joint Variational Autoencoder model.
-
-        input_dims: The input data dimension.
-        config: Configuration dictionary.
-
+        :param input_dims: columns of input data e.g. [M1 , M2] where M1 and M2 are number of the columns for views 1 and 2 respectively
+        :param z_dim: number of latent vectors
+        :param hidden_layer_dims: dimensions of hidden layers for encoder and decoder networks.
+        :param non_linear: non-linearity between hidden layers. If True ReLU is applied between hidden layers of encoder and decoder networks
+        :param learning_rate: learning rate of optimisers.
+        :param beta: weighting factor for Kullback-Leibler divergence term.
+        :param threshold: Dropout threshold for sparsity constraint on latent representation. If threshold is 0 then there is no sparsity.
+        :param SNP_model: Whether model will be used for SNP data - parameter will be removed soon.
+        :param join_type: How latent representations are combined. Either "Mean" or "PoE". 
         '''
 
         super().__init__()
-        self._config = config
         self.model_type = 'joint_VAE'
         self.input_dims = input_dims
-        hidden_layer_dims = config['hidden_layers'].copy()
-        self.z_dim = config['latent_size']
+        hidden_layer_dims = hidden_layer_dims.copy()
+        self.z_dim = z_dim
         hidden_layer_dims.append(self.z_dim)
-        self.non_linear = config['non_linear']
-        self.beta = config['beta']
-        self.learning_rate = config['learning_rate']
-        self.SNP_model = config['SNP_model']
+        self.non_linear = non_linear
+        self.beta = beta
+        self.learning_rate = learning_rate
+        self.SNP_model = SNP_model
         self.joint_representation = True
-        self.join_type = 'Mean'
+        self.join_type = join_type
         if self.join_type == 'PoE':
             self.join_z = ProductOfExperts()
         elif self.join_type == 'Mean':
@@ -42,7 +58,7 @@ class VAE(nn.Module, Optimisation_VAE):
         else:
             print("Incorrect join method")
             exit()
-        self.threshold = config['dropout_threshold']
+        self.threshold = threshold
         if self.threshold!=0:
             self.sparse = True
             self.model_type = 'joint_sparse_VAE'
@@ -164,8 +180,3 @@ class VAE(nn.Module, Optimisation_VAE):
                 'kl': kl,
                 'll': recon}
         return losses
-
-
-__all__ = [
-    'VAE'
-]
