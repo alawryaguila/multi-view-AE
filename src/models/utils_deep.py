@@ -1,8 +1,3 @@
-'''
-Wrapper classes for VAE, AE and DVCCA models
-
-'''
-
 from ..utils.datasets import MyDataset, MyDataset_SNPs, MyDataset_labels
 import numpy as np
 import torch
@@ -75,7 +70,6 @@ class Optimisation_VAE(Plotting):
 
     def preprocess(self, generators, labels=None):
         if labels is not None:   
-            #print(generators)      
             for batch_idx, batch in enumerate(zip(*generators)):
                 data = [data_[0].to(self.device) for data_ in batch]
                 labels = [data_[1].to(self.device, dtype=torch.int64) for data_ in batch]
@@ -92,23 +86,24 @@ class Optimisation_VAE(Plotting):
     def end_optimisation(self):
         self.eval()
 
+    def centre_SNPs(self, data, MAF):
+        MAF = torch.from_numpy(MAF).float()
+        data = data - 2*MAF
+        MAF = MAF.repeat(data.shape[0], 1)
+        data = data - 2*MAF
+        data[torch.isnan(data)] = 0 
+        return data
+
     def optimise(self, generators=None, data=[], verbose=True):
         self.init_optimisation()
         self.to(self.device)
         self.epochs = self._config['n_epochs']
-        self.transform = transform=transforms.Normalize([0], [1])
+        self.transform = transform=transforms.Normalize(0, 1)
         for epoch in range(1, self.epochs + 1):
             if self.batch_size is not None and generators is not None:
                 for batch_idx, (local_batch) in enumerate(zip(*generators)):
-                    #print(local_batch[0])
-                    if self.SNP_model and self.transform:
-                        local_batch = [self.transform(local_batch_.unsqueeze(0)).squeeze(0) for local_batch_ in local_batch] #not working atm need to fix   
-                        for local_batch_ in local_batch:
-                            local_batch_[torch.isnan(local_batch_)] = 0   
-                    #print(local_batch[0])
-                    #exit()  
-                    #x = torch.nan_to_num(x)
-               
+                    if self.SNP_model:
+                        local_batch = [self.centre_SNPs(local_batch_, self.MAF_file) for local_batch_ in local_batch]  
                     if self.labels is not None:
                         labels = [local_batch_[1].to(self.device, dtype=torch.int64) for local_batch_ in local_batch]
                         local_batch = [local_batch_[0].to(self.device) for local_batch_ in local_batch] 
@@ -149,12 +144,12 @@ class Optimisation_VAE(Plotting):
             prediction = self.predict_reconstruction(*data)
             if self.joint_representation:       
                 for i in range(self.n_views):
-                    #same view prediction
+                    
                     same_temp = np.mean((prediction[i] - data[i])**2)
                     same_recon+= same_temp
                     data_input = list(data)
                     data_input[i] = np.zeros(np.shape(data[i]))
-                    #cross view prediction
+                    
                     pred_cross = self.predict_reconstruction(*data_input)
                     cross_temp = np.mean((pred_cross[i] - data[i])**2)
                     cross_recon+= cross_temp                       
@@ -169,10 +164,11 @@ class Optimisation_VAE(Plotting):
                             cross_recon+= cross_temp
             return same_recon/self.n_views, cross_recon/self.n_views        
 
-    def fit(self, *data, labels=None):
+    def fit(self, *data, labels=None, MAF_file=None):
         self.batch_size = self._config['batch_size']
         self.data = data
         self.labels = labels
+        self.MAF_file = MAF_file
         torch.manual_seed(42)  
         torch.cuda.manual_seed(42)
         use_GPU = self._config['use_GPU']

@@ -118,7 +118,3 @@ class AAE(nn.Module, Optimisation_AAE):
         disc_loss= -torch.mean(torch.log(d_real+self.eps)+torch.log(1-d_fake+self.eps))
 
         return disc_loss
-
-__all__ = [
-    'AAE'
-]

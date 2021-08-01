@@ -15,7 +15,6 @@ class DVCCA(nn.Module, Optimisation_DVCCA):
         input_dims: The input data dimension.
         config: Configuration dictionary.
         private: Label to indicate VCCA or VCCA-private.
-        beta: KL weight.
 
         '''
 
@@ -127,8 +126,3 @@ class DVCCA(nn.Module, Optimisation_DVCCA):
                 'kl': kl,
                 'reconstruction': recon}
         return losses
-
-
-__all__ = [
-    'DVCCA'
-]

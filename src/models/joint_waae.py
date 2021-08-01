@@ -117,7 +117,3 @@ class wAAE(nn.Module, Optimisation_AAE):
         disc_loss= -torch.mean(d_real.sum(dim=-1))+torch.mean(d_fake.sum(dim=-1))
 
         return disc_loss
-
-__all__ = [
-    'AAE'
-]

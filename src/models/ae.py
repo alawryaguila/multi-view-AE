@@ -80,8 +80,3 @@ class AE(nn.Module, Optimisation_AE):
 
         losses = {'total': recon}
         return losses
-
-
-__all__ = [
-    'AE'
-]

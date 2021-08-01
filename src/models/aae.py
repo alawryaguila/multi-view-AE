@@ -6,6 +6,7 @@ from .layers import Encoder, Decoder, Discriminator
 from .utils_deep import Optimisation_AAE
 import numpy as np
 from torch.autograd import Variable 
+
 class AAE(nn.Module, Optimisation_AAE):
     
     def __init__(self, input_dims, config):
@@ -137,7 +138,3 @@ class AAE(nn.Module, Optimisation_AAE):
             disc_loss+= -torch.mean(label_fake*torch.log(d_fake[i]+self.eps))
 
         return disc_loss/(self.n_views+1)
-
-__all__ = [
-    'AAE'
-]

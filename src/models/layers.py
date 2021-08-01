@@ -5,7 +5,7 @@ from torch.distributions import Normal
 from ..utils.kl_utils import compute_logvar
 from ..utils.datasets import MyDataset
 import numpy as np
-#from torch_geometric.nn import GCNConv
+
 class Encoder(nn.Module):
     def __init__(
                 self, 
@@ -53,6 +53,39 @@ class Encoder(nn.Module):
             h1 = self.encoder_layers[-1](h1)
             return h1
 
+class Discriminator(nn.Module):
+    def __init__(
+                self, 
+                input_dim, 
+                hidden_layer_dims, 
+                output_dim,
+                dropout=0,
+                non_linear=True,
+                wasserstein=False):
+        super().__init__()
+        self.input_dim = input_dim
+        self.hidden_dims = hidden_layer_dims
+        self.dropout = dropout
+        self.layer_sizes = [input_dim] + hidden_layer_dims + [output_dim]    
+        self.non_linear = non_linear
+        self.wasserstein = wasserstein
+        lin_layers = [nn.Linear(dim0, dim1) for dim0, dim1 in zip(self.layer_sizes[:-1], self.layer_sizes[1:])]
+        self.linear_layers =  nn.Sequential(*lin_layers)
+
+    def forward(self, x):
+        for it_layer, layer in enumerate(self.linear_layers):
+            x = F.dropout(layer(x), self.dropout, training=self.training) 
+            if it_layer < len(self.linear_layers) -1:
+                if self.non_linear:
+                    x = F.relu(x)
+            else:
+                if self.wasserstein:
+                    return x
+                elif self.layer_sizes[-1]>1:
+                    x = nn.Softmax(dim=-1)(x)
+                else:
+                    x = torch.sigmoid(x)
+        return x
 
 class Classifier(nn.Module):
     def __init__(
@@ -112,34 +145,12 @@ class Decoder(nn.Module):
         x_rec = z
         for it_layer, layer in enumerate(self.decoder_layers):
             x_rec = layer(x_rec)
-            if self.non_linear:
+            if it_layer < len(self.decoder_layers) -1 and self.non_linear:
                 x_rec = F.relu(x_rec)
         if self.variational:
             x_rec = Normal(loc=x_rec, scale=self.dec_logvar.exp().pow(0.5))
-        else:
-            x_rec = self.decoder_layers[-1](x_rec)
 
         return x_rec
 
 
-class GCN(nn.Module):
-    def __init__(
-                self, 
-                input_dim,
-                classes):
-        super().__init__()
-
-        self.input_size = input_dim
-        self.classes = classes
-        self.conv1 = GCNConv(self.input_size, 16)
-        self.conv2 = GCNConv(16, 16)
-        self.classifier = nn.Linear(16, self.classes)
-
-    def forward(self, z, edge_index, edge_attr):
-        x = self.conv1(z, edge_index, edge_attr)
-        x = F.relu(x)
-        x = F.dropout(x, training=self.training)
-        x = self.conv2(x, edge_index, edge_attr)
-        x = self.classifier(x)
-        return F.log_softmax(x, dim=1)
 

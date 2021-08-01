@@ -6,16 +6,18 @@ from .layers import Encoder, Decoder
 from .utils_deep import Optimisation_VAE
 import numpy as np
 from ..utils.kl_utils import compute_logvar, compute_kl, compute_kl_sparse
-from ..utils.calc_utils import ProductOfExperts, MeanRepresentation
-class VAE(nn.Module, Optimisation_VAE):
+
+class cVAE(nn.Module, Optimisation_VAE):
     
     def __init__(
                 self, 
                 input_dims, 
-                config):
+                c_size,
+                config,
+                initial_weights=None):
 
         ''' 
-        Initialise joint Variational Autoencoder model.
+        Initialise Conditional Variational Autoencoder model.
 
         input_dims: The input data dimension.
         config: Configuration dictionary.
@@ -24,25 +26,21 @@ class VAE(nn.Module, Optimisation_VAE):
 
         super().__init__()
         self._config = config
-        self.model_type = 'joint_VAE'
-        self.input_dims = input_dims
-        hidden_layer_dims = config['hidden_layers'].copy()
+        self.model_type = 'cVAE'
+        self.c_size = c_size
+        self.input_dims_encoder = [dims + self.c_size for dims in input_dims]
+        self.input_dims_decoder = input_dims
+        hidden_layer_dims_encoder = config['hidden_layers'].copy()
+        hidden_layer_dims_decoder = config['hidden_layers'].copy()
         self.z_dim = config['latent_size']
-        hidden_layer_dims.append(self.z_dim)
+        hidden_layer_dims_encoder.append(self.z_dim)
+        hidden_layer_dims_decoder.append(self.z_dim+ self.c_size)
         self.non_linear = config['non_linear']
         self.beta = config['beta']
         self.learning_rate = config['learning_rate']
-        self.SNP_model = config['SNP_model']
-        self.joint_representation = True
-        self.join_type = 'Mean'
-        if self.join_type == 'PoE':
-            self.join_z = ProductOfExperts()
-        elif self.join_type == 'Mean':
-            self.join_z = MeanRepresentation()
-        else:
-            print("Incorrect join method")
-            exit()
         self.threshold = config['dropout_threshold']
+        self.SNP_model = config['SNP_model']
+        self.joint_representation = False
         if self.threshold!=0:
             self.sparse = True
             self.model_type = 'joint_sparse_VAE'
@@ -51,40 +49,47 @@ class VAE(nn.Module, Optimisation_VAE):
             self.log_alpha = None
             self.sparse = False
         self.n_views = len(input_dims)
-        self.encoders = torch.nn.ModuleList([Encoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear, sparse=self.sparse, log_alpha=self.log_alpha) for input_dim in self.input_dims])
-        self.decoders = torch.nn.ModuleList([Decoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear) for input_dim in self.input_dims])
+        self.encoders = torch.nn.ModuleList([Encoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims_encoder, variational=True, non_linear=self.non_linear, sparse=self.sparse, log_alpha=self.log_alpha) for input_dim in self.input_dims_encoder])
+        self.decoders = torch.nn.ModuleList([Decoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims_decoder, variational=True, non_linear=self.non_linear) for input_dim in self.input_dims_decoder])
         self.optimizers = [torch.optim.Adam(list(self.encoders[i].parameters()) + list(self.decoders[i].parameters()),
                                       lr=self.learning_rate) for i in range(self.n_views)]
-    def encode(self, x):
+    def encode(self, data):
+        x, c = data[0], data[1]
         mu = []
         logvar = []
-        for i in range(self.n_views):
-            mu_, logvar_ = self.encoders[i](x[i])
+        if c.shape[1] == 1:
+            c = c.resize_((c.shape[0],1))
+        for i in range(self.n_views): 
+            x_in = torch.cat((x[i], c), dim=1)
+            mu_, logvar_ = self.encoders[i](x_in)
             mu.append(mu_)
             logvar.append(logvar_)
-        mu = torch.stack(mu)
-        logvar = torch.stack(logvar)
-        mu, logvar = self.join_z(mu, logvar)
         return mu, logvar
     
-    def reparameterise(self, mu, logvar):
-        std = torch.exp(0.5*logvar)
-        eps = torch.randn_like(mu)
-        return mu + eps*std
+    def reparameterise(self, mu, logvar): 
+        z = []
+        for i in range(len(mu)):
+            std = torch.exp(0.5*logvar[i])
+            eps = torch.randn_like(mu[i])
+            z.append(mu[i]+eps*std)
+        return z
 
-    def decode(self, z):
+    def decode(self, z_c):
+        z, c = z_c[0], z_c[1]
         x_recon = []
         for i in range(self.n_views):
-            mu_out = self.decoders[i](z)
-            x_recon.append(mu_out)
+            temp_recon = [self.decoders[i](torch.cat((z[j],c),dim=1)) for j in range(self.n_views)]
+            x_recon.append(temp_recon)
+            del temp_recon 
         return x_recon
 
-
-    def forward(self, x):
+    def forward(self, data):
+        x, c = data[0], data[1]
         self.zero_grad()
-        mu, logvar = self.encode(x)
+        mu, logvar = self.encode(data)
         z = self.reparameterise(mu, logvar)
-        x_recon = self.decode(z)
+        z_c = [z , c]
+        x_recon = self.decode(z_c)
         fwd_rtn = {'x_recon': x_recon,
                     'mu': mu,
                     'logvar': logvar}
@@ -93,11 +98,10 @@ class VAE(nn.Module, Optimisation_VAE):
     def dropout(self):
         '''
         Implementation from: https://github.com/ggbioing/mcvae
-        '''      
-
+        '''
         if self.sparse:
             alpha = torch.exp(self.log_alpha.detach())
-            return alpha / (alpha + 1) 
+            return alpha / (alpha + 1)
         else:
             raise NotImplementedError
 
@@ -106,8 +110,7 @@ class VAE(nn.Module, Optimisation_VAE):
         Implementation from: https://github.com/ggbioing/mcvae
         '''
         assert self.threshold <= 1.0
-        dropout = self.dropout()
-        keep = (dropout < self.threshold).squeeze().cpu()
+        keep = (self.dropout() < self.threshold).squeeze().cpu()
         z_keep = []
         if self.joint_representation:
             z[:,~keep] = 0
@@ -126,32 +129,26 @@ class VAE(nn.Module, Optimisation_VAE):
 
         '''
         kl = 0
-        if self.sparse:
-            kl+= compute_kl_sparse(mu, logvar)
-        else:
-            kl+= compute_kl(mu, logvar)
+        for i in range(self.n_views):
+            if self.sparse:
+                kl+= compute_kl_sparse(mu[i], logvar[i])
+            else:
+                kl+= compute_kl(mu[i], logvar[i])
         return self.beta*kl
 
     @staticmethod
     def calc_ll(self, x, x_recon):
-        ll = 0
+        ll = 0    
         for i in range(self.n_views):
-            ll+= torch.mean(x_recon[i].log_prob(x[i]).sum(dim=1))
+            for j in range(self.n_views):
+                ll+= x_recon[i][j].log_prob(x[i]).sum(1, keepdims=True).mean(0) 
         return ll
-
-
-    @staticmethod
-    def recon_loss(self, x, x_recon):
-        recon_loss = 0   
-        for i in range(self.n_views):
-            recon_loss+= torch.mean(((x_recon[i] - x[i])**2).sum(dim=1))
-        return recon_loss
-
 
     def sample_from_normal(self, normal):
         return normal.loc
 
     def loss_function(self, x, fwd_rtn):
+        x = x[0]
         x_recon = fwd_rtn['x_recon']
         mu = fwd_rtn['mu']
         logvar = fwd_rtn['logvar']
@@ -164,8 +161,3 @@ class VAE(nn.Module, Optimisation_VAE):
                 'kl': kl,
                 'll': recon}
         return losses
-
-
-__all__ = [
-    'VAE'
-]
