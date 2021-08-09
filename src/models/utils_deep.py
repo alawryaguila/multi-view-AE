@@ -9,12 +9,12 @@ import os
 from sklearn.model_selection import KFold
 
 class Optimisation_VAE(Plotting):
+    
     def __init__(self):
-
         super().__init__()
 
     def generate_data(self, data, labels=None):
-        batch_sz = self._config['batch_size']
+        batch_sz = self.batch_size
         if self.SNP_model: 
             generators = [] 
             for data_ in data:
@@ -31,8 +31,8 @@ class Optimisation_VAE(Plotting):
         elif labels is not None:
             generators = []
             for data_ in data:
-                if self._config['batch_size'] is not None:
-                    batch_sz = self._config['batch_size']
+                if self.batch_size is not None:
+                    batch_sz = self.batch_size
                 else:
                     batch_sz = np.shape(data_)[0]
                 data_ = MyDataset_labels(data_, labels)
@@ -51,7 +51,7 @@ class Optimisation_VAE(Plotting):
 
             for data_ in data:
                 if batch_sz is not None:
-                    batch_sz_tmp = self._config['batch_size']
+                    batch_sz_tmp = self.batch_size
                 else:
                     batch_sz_tmp = np.shape(data_)[0]
     
@@ -97,9 +97,8 @@ class Optimisation_VAE(Plotting):
     def optimise(self, generators=None, data=[], verbose=True):
         self.init_optimisation()
         self.to(self.device)
-        self.epochs = self._config['n_epochs']
         self.transform = transform=transforms.Normalize(0, 1)
-        for epoch in range(1, self.epochs + 1):
+        for epoch in range(1, self.n_epochs + 1):
             if self.batch_size is not None and generators is not None:
                 for batch_idx, (local_batch) in enumerate(zip(*generators)):
                     if self.SNP_model:
@@ -164,15 +163,17 @@ class Optimisation_VAE(Plotting):
                             cross_recon+= cross_temp
             return same_recon/self.n_views, cross_recon/self.n_views        
 
-    def fit(self, *data, labels=None, MAF_file=None):
-        self.batch_size = self._config['batch_size']
+    def fit(self, *data, labels=None, MAF_file=None, use_GPU=True, save_model=False, n_epochs=200, batch_size=None, **kwargs):
+        self.use_GPU = use_GPU
+        self.save_model = save_model
+        self.n_epochs = n_epochs
+        self.batch_size = self.batch_size
         self.data = data
         self.labels = labels
         self.MAF_file = MAF_file
         torch.manual_seed(42)  
         torch.cuda.manual_seed(42)
-        use_GPU = self._config['use_GPU']
-        use_cuda = use_GPU and torch.cuda.is_available()
+        use_cuda = self.use_GPU and torch.cuda.is_available()
         self.kwargs_generator = {'num_workers': 4, 'pin_memory': True} if use_cuda else {}
         self.device = torch.device("cuda" if use_cuda else "cpu")
         self.eps = 1e-15 
@@ -187,7 +188,7 @@ class Optimisation_VAE(Plotting):
                 data = self.preprocess(generators)
             logger = self.optimise(data=data)
         self.end_optimisation()
-        if self._config['save_model']:
+        if self.save_model:
             model_path = os.path.join(self.output_path, 'model.pkl')
             while os.path.exists(model_path):
                 print("CAUTION! Model path already exists!")
@@ -208,8 +209,8 @@ class Optimisation_VAE(Plotting):
             self.output_path = path
         return self.output_path
 
-    def format_folder(self):
-        init_path = self._config['output_dir']
+    def format_folder(self, output_dir='./'):
+        init_path = self.output_dir
         model_type = self.model_type
         date = str(datetime.date.today())
         date = date.replace('-', '_')
@@ -234,9 +235,9 @@ class Optimisation_VAE(Plotting):
         with torch.no_grad():
             if self.batch_size is not None:
                 if self.joint_representation:
-                    predictions = torch.zeros(num_elements, int(self._config['latent_size']))
+                    predictions = torch.zeros(num_elements, int(self.z_dim))
                 else:
-                    predictions = [torch.zeros(num_elements, int(self._config['latent_size'])) for i in range(len(generators))]
+                    predictions = [torch.zeros(num_elements, int(self.z_dim)) for i in range(len(generators))]
                 for batch_idx, local_batch in enumerate(zip(*generators)):
                     if self.labels is not None:
                         labels = [local_batch_[1].to(self.device, dtype=torch.int64) for local_batch_ in local_batch]
@@ -428,7 +429,7 @@ class Optimisation_AAE(Optimisation_VAE):
         num_batches = len(generators[0])
         with torch.no_grad():
             if self.batch_size!=None:
-                predictions = [torch.zeros(num_elements, int(self._config['latent_size'])) for i in range(len(generators))]
+                predictions = [torch.zeros(num_elements, int(self.z_dim)) for i in range(len(generators))]
                 for batch_idx, local_batch in enumerate(zip(*generators)):
                     local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
                     pred = self.encode(local_batch)
@@ -445,7 +446,7 @@ class Optimisation_AAE(Optimisation_VAE):
 
 
 class Optimisation_DVCCA(Optimisation_VAE):
-    
+       
     def __init__(self):
         super().__init__()
 
@@ -481,7 +482,8 @@ class Optimisation_DVCCA(Optimisation_VAE):
 
 
 class Optimisation_AE(Optimisation_VAE):
-    
+     
+       
     def __init__(self):
         super().__init__()
 
@@ -494,7 +496,7 @@ class Optimisation_AE(Optimisation_VAE):
         num_batches = len(generators[0])
         with torch.no_grad():
             if self.batch_size!=None:
-                predictions = [torch.zeros(num_elements, int(self._config['latent_size'])) for i in range(len(generators))]
+                predictions = [torch.zeros(num_elements, int(self.z_dim)) for i in range(len(generators))]
                 for batch_idx, local_batch in enumerate(zip(*generators)):
                     local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
                     pred = self.encode(local_batch)
@@ -538,15 +540,17 @@ class Optimisation_AE(Optimisation_VAE):
 
 class Optimisation_GVCCA(Optimisation_VAE):
     
+       
     def __init__(self):
         super().__init__()
 
-    def fit(self, labels, *data):
-        self.batch_size = self._config['batch_size']
+    def fit(self, labels, *data, use_GPU=True, save_model=False, n_epochs=200, batch_size=None, **kwargs):
+        self.use_GPU = use_GPU
+        self.save_model = save_model
+        self.n_epochs = n_epochs
         torch.manual_seed(42)  
         torch.cuda.manual_seed(42)
-        use_GPU = self._config['use_GPU']
-        use_cuda = use_GPU and torch.cuda.is_available()
+        use_cuda = self.use_GPU and torch.cuda.is_available()
         self.kwargs_generator = {'num_workers': 4, 'pin_memory': True} if use_cuda else {}
         self.device = torch.device("cuda" if use_cuda else "cpu")
 
@@ -556,7 +560,7 @@ class Optimisation_GVCCA(Optimisation_VAE):
         else:
             data = self.preprocess(generators)
             logger = self.optimise(generators, labels, data)
-        if self._config['save_model']:
+        if self.save_model:
             self.output_path = self.format_folder()
             model_path = os.path.join(self.output_path, 'model.pkl')
             while os.path.exists(model_path):
@@ -575,11 +579,10 @@ class Optimisation_GVCCA(Optimisation_VAE):
     def optimise(self, generators, labels, *data):
         self.init_optimisation()
         self.to(self.device)
-        self.epochs = self._config['n_epochs']
         num_elements = len(generators[0].dataset)
         batch_size = generators[0].batch_size
         num_batches = len(generators[0])
-        for epoch in range(1, self.epochs + 1):
+        for epoch in range(1, self.n_epochs + 1):
             if self.batch_size!=None:
                 for batch_idx, (local_batch) in enumerate(zip(*generators)):
                     local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]

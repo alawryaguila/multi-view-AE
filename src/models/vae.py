@@ -8,42 +8,56 @@ import numpy as np
 from ..utils.kl_utils import compute_logvar, compute_kl, compute_kl_sparse
 
 class VAE(nn.Module, Optimisation_VAE):
+    '''
+    Multi-view Variational Autoencoder model with a separate latent representation for each view.
+
+    Option to impose sparsity on the latent representations using a Sparse Multi-Channel Variational Autoencoder (http://proceedings.mlr.press/v97/antelmi19a.html)
     
+    '''
     def __init__(
                 self, 
-                input_dims, 
-                config,
-                initial_weights=None):
+                input_dims,
+                z_dim=1,
+                hidden_layer_dims=[],
+                non_linear=False,
+                learning_rate=0.002,
+                beta=1,
+                threshold=0,
+                SNP_model=False,
+                **kwargs):
 
         ''' 
-        Initialise Variational Autoencoder model.
-
-        input_dims: The input data dimension.
-        config: Configuration dictionary.
-
+        :param input_dims: columns of input data e.g. [M1 , M2] where M1 and M2 are number of the columns for views 1 and 2 respectively
+        :param z_dim: number of latent vectors
+        :param hidden_layer_dims: dimensions of hidden layers for encoder and decoder networks.
+        :param non_linear: non-linearity between hidden layers. If True ReLU is applied between hidden layers of encoder and decoder networks
+        :param learning_rate: learning rate of optimisers.
+        :param beta: weighting factor for Kullback-Leibler divergence term.
+        :param threshold: Dropout threshold for sparsity constraint on latent representation. If threshold is 0 then there is no sparsity.
+        :param SNP_model: Whether model will be used for SNP data - parameter will be removed soon.
         '''
 
         super().__init__()
-        self._config = config
         self.model_type = 'VAE'
         self.input_dims = input_dims
-        hidden_layer_dims = config['hidden_layers'].copy()
-        self.z_dim = config['latent_size']
+        hidden_layer_dims = hidden_layer_dims.copy()
+        self.z_dim = z_dim
         hidden_layer_dims.append(self.z_dim)
-        self.non_linear = config['non_linear']
-        self.beta = config['beta']
-        self.learning_rate = config['learning_rate']
-        self.threshold = config['dropout_threshold']
-        self.SNP_model = config['SNP_model']
+        self.non_linear = non_linear
+        self.beta = beta
+        self.learning_rate = learning_rate
+        self.SNP_model = SNP_model
         self.joint_representation = False
+        self.threshold = threshold
         if self.threshold!=0:
             self.sparse = True
-            self.model_type = 'joint_sparse_VAE'
+            self.model_type = 'sparse_VAE'
             self.log_alpha = torch.nn.Parameter(torch.FloatTensor(1, self.z_dim).normal_(0,0.01))
         else:
             self.log_alpha = None
             self.sparse = False
         self.n_views = len(input_dims)
+        self.__dict__.update(kwargs)
         self.encoders = torch.nn.ModuleList([Encoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear, sparse=self.sparse, log_alpha=self.log_alpha) for input_dim in self.input_dims])
         self.decoders = torch.nn.ModuleList([Decoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear) for input_dim in self.input_dims])
         self.optimizers = [torch.optim.Adam(list(self.encoders[i].parameters()) + list(self.decoders[i].parameters()),
@@ -64,22 +78,6 @@ class VAE(nn.Module, Optimisation_VAE):
             eps = torch.randn_like(mu[i])
             z.append(mu[i]+eps*std)
         return z
-
-    def decode_old(self,z):
-        x_same = []
-        x_cross = []
-        for i in range(self.n_views):
-            for j in range(self.n_views):
-                mu_out = self.decoders[j](z[i]) #TO CHECK: why does the order of i and j matter here?
-                #maybe its a problem relating to not clearing the weights of the network or something
-                #ie problem using the same decoder twice in a row
-                #think the problem was actually that I didn't have the i and j lined up for the calc_ll
-                if i == j:
-                    x_same.append(mu_out)
-                else:
-                    x_cross.append(mu_out) 
-                del mu_out
-        return [x_same, x_cross]
 
     def decode(self, z):
         x_recon = []

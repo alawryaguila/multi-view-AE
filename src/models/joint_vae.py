@@ -14,6 +14,8 @@ class VAE(nn.Module, Optimisation_VAE):
     Latent representations are joined either using the Product of Experts (https://arxiv.org/pdf/1410.7827.pdf)
     or the mean of the representations. 
     
+    Option to impose sparsity on the latent representations using a Sparse Multi-Channel Variational Autoencoder (http://proceedings.mlr.press/v97/antelmi19a.html)
+ 
     '''
     def __init__(
                 self, 
@@ -25,7 +27,8 @@ class VAE(nn.Module, Optimisation_VAE):
                 beta=1,
                 threshold=0,
                 SNP_model=False,
-                join_type='Mean'):
+                join_type='Mean',
+                **kwargs):
 
         ''' 
         :param input_dims: columns of input data e.g. [M1 , M2] where M1 and M2 are number of the columns for views 1 and 2 respectively
@@ -66,6 +69,7 @@ class VAE(nn.Module, Optimisation_VAE):
         else:
             self.log_alpha = None
             self.sparse = False
+        self.__dict__.update(kwargs)
         self.n_views = len(input_dims)
         self.encoders = torch.nn.ModuleList([Encoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear, sparse=self.sparse, log_alpha=self.log_alpha) for input_dim in self.input_dims])
         self.decoders = torch.nn.ModuleList([Decoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear) for input_dim in self.input_dims])
