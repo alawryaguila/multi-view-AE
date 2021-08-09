@@ -1,12 +1,12 @@
-#from src.models import utils_deep
-#from src.utils.io_utils import ConfigReader
-from ..src.CV.cross_validation import CrossValidation
+from src.models import utils_deep
+from src.utils.io_utils import ConfigReader
+from src.CV.cross_validation import CrossValidation
 import numpy as np
 import itertools as it
 
 
 def test_VAE():
-    from ..src.models.vae import VAE
+    from src.models.vae import VAE
     train_1 = np.random.rand(200, 20)
     train_2 = np.random.rand(200, 20)
     test_1 = np.random.rand(50, 20)
@@ -22,7 +22,7 @@ def test_VAE():
         recon = models.predict_reconstruction(test_1, test_2)
 
 def test_jointVAE(): 
-    from ..src.models.joint_vae import VAE
+    from src.models.joint_vae import VAE
     train_1 = np.random.rand(200, 20)
     train_2 = np.random.rand(200, 20)
     test_1 = np.random.rand(50, 20)
@@ -38,7 +38,7 @@ def test_jointVAE():
         recon = models.predict_reconstruction(test_1, test_2)
 
 def test_classiferVAE(): 
-    from ..src.models.vae_classifier import VAE_classifier
+    from src.models.vae_classifier import VAE_classifier
     train = np.random.rand(200, 20)
     train_labels = np.random.randint(2, size=200)
     test = np.random.rand(50, 20)
