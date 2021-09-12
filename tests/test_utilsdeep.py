@@ -37,21 +37,49 @@ def test_jointVAE():
         latent = models.predict_latents(test_1, test_2)
         recon = models.predict_reconstruction(test_1, test_2)
 
+def test_jointAAE(): 
+    from src.models.joint_aae import AAE
+    train_1 = np.random.rand(200, 20)
+    train_2 = np.random.rand(200, 20)
+    test_1 = np.random.rand(50, 20)
+    test_2 = np.random.rand(50, 20)
+    DEVICE = 'cpu'
+    parameters = {'z_dim': [5, 10], 'batch_size': [None, 10]}   
+    param_combs = list(it.product(*(parameters[key] for key in parameters)))
+    for comb in param_combs:
+        params = {key: comb[idx] for idx, key in enumerate(parameters)}
+        models = AAE(input_dims=[20, 20], **params).to(DEVICE)
+        models.fit(train_1, train_2)
+        latent = models.predict_latents(test_1, test_2)
+        recon = models.predict_reconstruction(test_1, test_2)
+
+def test_AAE(): 
+    from src.models.aae import AAE
+    train_1 = np.random.rand(200, 20)
+    train_2 = np.random.rand(200, 20)
+    test_1 = np.random.rand(50, 20)
+    test_2 = np.random.rand(50, 20)
+    DEVICE = 'cpu'
+    parameters = {'z_dim': [5, 10], 'batch_size': [None, 10]}   
+    param_combs = list(it.product(*(parameters[key] for key in parameters)))
+    for comb in param_combs:
+        params = {key: comb[idx] for idx, key in enumerate(parameters)}
+        models = AAE(input_dims=[20, 20], **params).to(DEVICE)
+        models.fit(train_1, train_2)
+        latent = models.predict_latents(test_1, test_2)
+        recon = models.predict_reconstruction(test_1, test_2)
+
 def test_classiferVAE(): 
     from src.models.vae_classifier import VAE_classifier
     train = np.random.rand(200, 20)
     train_labels = np.random.randint(2, size=200)
     test = np.random.rand(50, 20)
-    config_file = ConfigReader('./tests/test_config.yaml')
     DEVICE = 'cpu'
     parameters = {'hidden_layers': [[], [100,50,10]], 'batch_size': [None, 10]}   
     param_combs = list(it.product(*(parameters[key] for key in parameters)))
-    config = config_file._conf
     for comb in param_combs:
         params = {key: comb[idx] for idx, key in enumerate(parameters)}
-        for key,val in params.items():
-            config[key] = val  
-        models = VAE_classifier(input_dims=[20], config=config, n_labels=2).to(DEVICE)
+        models = VAE_classifier(input_dims=[20], n_labels=2, **params).to(DEVICE)
         models.fit(train, labels=train_labels)
         latent = models.predict_latents(test)
         recon = models.predict_reconstruction(test)

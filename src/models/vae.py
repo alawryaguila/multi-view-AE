@@ -112,7 +112,6 @@ class VAE(nn.Module, Optimisation_VAE):
         Implementation from: https://github.com/ggbioing/mcvae
         '''
         assert self.threshold <= 1.0
-        #dropout = self.dropout()
         keep = (self.dropout() < self.threshold).squeeze().cpu()
         z_keep = []
         if self.joint_representation:
@@ -145,7 +144,6 @@ class VAE(nn.Module, Optimisation_VAE):
         for i in range(self.n_views):
             for j in range(self.n_views):
                     ll+= x_recon[i][j].log_prob(x[i]).sum(1, keepdims=True).mean(0) 
-                    #ll+= x_recon[i][j].log_prob(x[i]).mean(1, keepdims=True).mean(0) 
         return ll
 
     def sample_from_normal(self, normal):
@@ -165,7 +163,3 @@ class VAE(nn.Module, Optimisation_VAE):
                 'll': recon}
         return losses
 
-
-__all__ = [
-    'VAE'
-]

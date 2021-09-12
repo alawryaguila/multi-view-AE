@@ -8,33 +8,44 @@ import numpy as np
 from torch.autograd import Variable 
 
 class AAE(nn.Module, Optimisation_AAE):
+    '''
+    Multi-view Adversarial Autoencoder model with a separate latent representation for each view.
     
-    def __init__(self, input_dims, config):
+    '''   
+    def __init__(
+                self, 
+                input_dims,
+                z_dim=1,
+                hidden_layer_dims=[],
+                discriminator_layer_dims=[],
+                non_linear=False,
+                learning_rate=0.002,
+                **kwargs):
+
+        ''' 
+        :param input_dims: columns of input data e.g. [M1 , M2] where M1 and M2 are number of the columns for views 1 and 2 respectively
+        :param z_dim: number of latent vectors
+        :param hidden_layer_dims: dimensions of hidden layers for encoder and decoder networks.
+        :param discriminator_layer_dims: dimensions of hidden layers for encoder and decoder networks.
+        :param non_linear: non-linearity between hidden layers. If True ReLU is applied between hidden layers of encoder and decoder networks
+        :param learning_rate: learning rate of optimisers.
 
         '''
-        
-        Initialise Adversarial Autoencoder model.
-
-        input_dims: The input data dimension.
-        config: Configuration dictionary.
-
-        
-        '''
-
         super().__init__()
-        self._config = config
+
         self.model_type = 'AAE'
         self.input_dims = input_dims
-        self.hidden_layer_dims = config['hidden_layers'].copy()
-        self.z_dim = config['latent_size']
+        self.hidden_layer_dims = hidden_layer_dims.copy()
+        self.z_dim = z_dim
         self.hidden_layer_dims.append(self.z_dim)
-        self.non_linear = config['non_linear']
-        self.SNP_model = config['SNP_model']
-        self.learning_rate = config['learning_rate']
+        self.non_linear = non_linear
+        self.learning_rate = learning_rate
         self.n_views = len(input_dims)
+        self.joint_representation = False
+
         self.encoders = torch.nn.ModuleList([Encoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=False, non_linear=self.non_linear) for input_dim in self.input_dims])
         self.decoders = torch.nn.ModuleList([Decoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=False, non_linear=self.non_linear) for input_dim in self.input_dims])
-        self.discriminator = Discriminator(input_dim = self.z_dim, hidden_layer_dims=[3], output_dim=(self.n_views+1))
+        self.discriminator = Discriminator(input_dim = self.z_dim, hidden_layer_dims=discriminator_layer_dims, output_dim=(self.n_views+1))
         
         self.encoder_optimizers = [torch.optim.Adam(list(self.encoders[i].parameters()), lr=self.learning_rate) for i in range(self.n_views)]
         self.generator_optimizers = [torch.optim.Adam(list(self.encoders[i].parameters()), lr=self.learning_rate) for i in range(self.n_views)]

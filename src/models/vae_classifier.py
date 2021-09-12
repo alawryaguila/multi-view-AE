@@ -8,35 +8,46 @@ import numpy as np
 from ..utils.kl_utils import compute_logvar, compute_kl, compute_kl_sparse
 
 class VAE_classifier(nn.Module, Optimisation_VAE):
+    '''
+    Variational Autoencoder model with a classifier trained model trained on the latent representation to classify provided labels.
+
+    Option to impose sparsity on the latent representations using a Sparse Multi-Channel Variational Autoencoder (http://proceedings.mlr.press/v97/antelmi19a.html)
     
+    '''  
     def __init__(
                 self, 
-                input_dims, 
-                config,
-                n_labels,
-                initial_weights=None):
+                input_dims,
+                z_dim=1,
+                hidden_layer_dims=[],
+                classifier_layer_dims=[],
+                non_linear=False,
+                learning_rate=0.002,
+                beta=1,
+                threshold=0,
+                **kwargs):
 
         ''' 
-        Initialise Variational Autoencoder model with classifier for classifying labels from latent space.
-
-        input_dims: The input data dimension.
-        config: Configuration dictionary.
-
+        :param input_dims: columns of input data e.g. [M1 , M2] where M1 and M2 are number of the columns for views 1 and 2 respectively
+        :param z_dim: number of latent vectors
+        :param hidden_layer_dims: dimensions of hidden layers for encoder and decoder networks.
+        :param classifier_layer_dims: dimensions of hidden layers for classifier network.
+        :param non_linear: non-linearity between hidden layers. If True ReLU is applied between hidden layers of encoder and decoder networks
+        :param learning_rate: learning rate of optimisers.
+        :param beta: weighting factor for Kullback-Leibler divergence term.
+        :param threshold: Dropout threshold for sparsity constraint on latent representation. If threshold is 0 then there is no sparsity.
         '''
 
         super().__init__()
-        self._config = config
         self.model_type = 'VAE_classifier'
         self.input_dims = input_dims
-        hidden_layer_dims = config['hidden_layers'].copy()
-        self.z_dim = config['latent_size']
-        self.n_labels = n_labels
+        hidden_layer_dims = hidden_layer_dims.copy()
+        self.z_dim = z_dim
         hidden_layer_dims.append(self.z_dim)
-        self.non_linear = config['non_linear']
-        self.beta = config['beta']
-        self.learning_rate = config['learning_rate']
-        self.threshold = config['dropout_threshold']
-        self.SNP_model = config['SNP_model']
+        self.non_linear = non_linear
+        self.beta = beta
+        self.learning_rate = learning_rate
+        self.joint_representation = False
+        self.threshold = threshold
         self.joint_representation = False
         if self.threshold!=0:
             self.sparse = True
@@ -48,7 +59,7 @@ class VAE_classifier(nn.Module, Optimisation_VAE):
         self.n_views = len(input_dims)
         self.encoders = torch.nn.ModuleList([Encoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear, sparse=self.sparse, log_alpha=self.log_alpha) for input_dim in self.input_dims])
         self.decoders = torch.nn.ModuleList([Decoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear) for input_dim in self.input_dims])
-        self.classifiers = torch.nn.ModuleList([Classifier(input_dim=self.z_dim, hidden_layer_dims = self.z_dim, output_dim=self.n_labels, non_linear=False) for view in range(self.n_views)])
+        self.classifiers = torch.nn.ModuleList([Classifier(input_dim=self.z_dim, hidden_layer_dims=classifier_layer_dims, output_dim=self.n_labels, non_linear=False) for view in range(self.n_views)])
         
         self.optimizers = [torch.optim.Adam(list(self.encoders[i].parameters()) + list(self.decoders[i].parameters())+list(self.classifiers[i].parameters()),
                                       lr=self.learning_rate) for i in range(self.n_views)]
@@ -114,7 +125,6 @@ class VAE_classifier(nn.Module, Optimisation_VAE):
         Implementation from: https://github.com/ggbioing/mcvae
         '''
         assert self.threshold <= 1.0
-        #dropout = self.dropout()
         keep = (self.dropout() < self.threshold).squeeze().cpu()
         z_keep = []
         if self.joint_representation:
@@ -150,7 +160,6 @@ class VAE_classifier(nn.Module, Optimisation_VAE):
                     ll+= x_recon[i][j].log_prob(x[i]).mean(1, keepdims=True).mean(0) 
         return ll
 
-
     @staticmethod
     def calc_ce(self, y, pred):
         ce = 0    
@@ -177,8 +186,3 @@ class VAE_classifier(nn.Module, Optimisation_VAE):
                 'll': recon,
                 'ce': ce}
         return losses
-
-
-__all__ = [
-    'VAE'
-]
