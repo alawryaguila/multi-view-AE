@@ -44,6 +44,7 @@ class AAE(nn.Module, Optimisation_AAE):
         self.n_views = len(input_dims)
         self.joint_representation = False
         self.SNP_model = SNP_model
+        self.wasserstein = False
         self.__dict__.update(kwargs)
 
         self.encoders = torch.nn.ModuleList([Encoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=False, non_linear=self.non_linear) for input_dim in self.input_dims])
