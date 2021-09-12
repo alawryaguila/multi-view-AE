@@ -24,6 +24,7 @@ class VAE_classifier(nn.Module, Optimisation_VAE):
                 learning_rate=0.002,
                 beta=1,
                 threshold=0,
+                n_labels=None,
                 **kwargs):
 
         ''' 
@@ -35,6 +36,7 @@ class VAE_classifier(nn.Module, Optimisation_VAE):
         :param learning_rate: learning rate of optimisers.
         :param beta: weighting factor for Kullback-Leibler divergence term.
         :param threshold: Dropout threshold for sparsity constraint on latent representation. If threshold is 0 then there is no sparsity.
+        :param n_labels: Dropout threshold for sparsity constraint on latent representation. If threshold is 0 then there is no sparsity.
         '''
 
         super().__init__()
@@ -48,7 +50,6 @@ class VAE_classifier(nn.Module, Optimisation_VAE):
         self.learning_rate = learning_rate
         self.joint_representation = False
         self.threshold = threshold
-        self.joint_representation = False
         if self.threshold!=0:
             self.sparse = True
             self.model_type = 'sparse_VAE_classifier'
