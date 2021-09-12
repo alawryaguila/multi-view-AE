@@ -20,6 +20,7 @@ class AAE(nn.Module, Optimisation_AAE):
                 discriminator_layer_dims=[],
                 non_linear=False,
                 learning_rate=0.002,
+                SNP_model=False,
                 **kwargs):
 
         ''' 
@@ -29,7 +30,7 @@ class AAE(nn.Module, Optimisation_AAE):
         :param discriminator_layer_dims: dimensions of hidden layers for encoder and decoder networks.
         :param non_linear: non-linearity between hidden layers. If True ReLU is applied between hidden layers of encoder and decoder networks
         :param learning_rate: learning rate of optimisers.
-
+        :param SNP_model: Whether model will be used for SNP data - parameter will be removed soon.
         '''
         super().__init__()
 
@@ -42,8 +43,9 @@ class AAE(nn.Module, Optimisation_AAE):
         self.learning_rate = learning_rate
         self.n_views = len(input_dims)
         self.joint_representation = False
+        self.SNP_model = SNP_model
         self.__dict__.update(kwargs)
-        
+
         self.encoders = torch.nn.ModuleList([Encoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=False, non_linear=self.non_linear) for input_dim in self.input_dims])
         self.decoders = torch.nn.ModuleList([Decoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=False, non_linear=self.non_linear) for input_dim in self.input_dims])
         self.discriminator = Discriminator(input_dim = self.z_dim, hidden_layer_dims=discriminator_layer_dims, output_dim=(self.n_views+1))

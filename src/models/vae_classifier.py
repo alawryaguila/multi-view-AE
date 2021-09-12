@@ -25,6 +25,7 @@ class VAE_classifier(nn.Module, Optimisation_VAE):
                 beta=1,
                 threshold=0,
                 n_labels=None,
+                SNP_model=False,
                 **kwargs):
 
         ''' 
@@ -36,9 +37,9 @@ class VAE_classifier(nn.Module, Optimisation_VAE):
         :param learning_rate: learning rate of optimisers.
         :param beta: weighting factor for Kullback-Leibler divergence term.
         :param threshold: Dropout threshold for sparsity constraint on latent representation. If threshold is 0 then there is no sparsity.
-        :param n_labels: Dropout threshold for sparsity constraint on latent representation. If threshold is 0 then there is no sparsity.
+        :param n_labels: Number of labels for classifier to predict.
+        :param SNP_model: Whether model will be used for SNP data - parameter will be removed soon.
         '''
-
         super().__init__()
         self.model_type = 'VAE_classifier'
         self.input_dims = input_dims
@@ -50,6 +51,7 @@ class VAE_classifier(nn.Module, Optimisation_VAE):
         self.learning_rate = learning_rate
         self.joint_representation = False
         self.threshold = threshold
+        self.SNP_model = SNP_model
         if self.threshold!=0:
             self.sparse = True
             self.model_type = 'sparse_VAE_classifier'
@@ -58,6 +60,8 @@ class VAE_classifier(nn.Module, Optimisation_VAE):
             self.log_alpha = None
             self.sparse = False
         self.n_views = len(input_dims)
+        self.n_labels = n_labels
+        self.__dict__.update(kwargs)
         self.encoders = torch.nn.ModuleList([Encoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear, sparse=self.sparse, log_alpha=self.log_alpha) for input_dim in self.input_dims])
         self.decoders = torch.nn.ModuleList([Decoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear) for input_dim in self.input_dims])
         self.classifiers = torch.nn.ModuleList([Classifier(input_dim=self.z_dim, hidden_layer_dims=classifier_layer_dims, output_dim=self.n_labels, non_linear=False) for view in range(self.n_views)])
