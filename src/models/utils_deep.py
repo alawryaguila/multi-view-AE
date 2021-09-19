@@ -392,6 +392,20 @@ class Optimisation_AAE(Optimisation_VAE):
     def __init__(self):
         super().__init__()
 
+    def validate_batch(self, local_batch):
+        with torch.no_grad():
+            self.eval()
+            fwd_return = self.forward_recon(local_batch)
+            loss_recon = self.recon_loss(self, local_batch, fwd_return)
+            fwd_return = self.forward_discrim(local_batch)
+            loss_disc = self.discriminator_loss(self, fwd_return)
+            fwd_return = self.forward_gen(local_batch)
+            loss_gen = self.generator_loss(self, fwd_return) 
+            loss = {'recon': loss_recon,
+                'disc': loss_disc,
+                'gen': loss_gen}
+        return loss
+
     def optimise_batch(self, local_batch):
         self.init_optimisation()
         fwd_return = self.forward_recon(local_batch)
