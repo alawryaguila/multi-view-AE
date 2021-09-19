@@ -217,9 +217,10 @@ class Optimisation_VAE(Plotting):
                             cross_recon+= cross_temp
             return same_recon/self.n_views, cross_recon/self.n_views        
 
-    def fit(self, *data, labels=None, MAF_file=None, use_GPU=True, save_model=True, n_epochs=2000, batch_size=None, val_set=True, **kwargs):
+    def fit(self, *data, labels=None, MAF_file=None, use_GPU=True, save_model=False, output_path=[], n_epochs=200, batch_size=None, val_set=True, **kwargs):
         self.use_GPU = use_GPU
         self.save_model = save_model
+        self.output_path = output_path
         self.n_epochs = n_epochs
         self.batch_size = self.batch_size
         self.data = data
@@ -438,7 +439,7 @@ class Optimisation_AAE(Optimisation_VAE):
                     for i in range(self.n_views):
                         x_same.append(np.zeros((generators[i].dataset.shape[0], generators[i].dataset.shape[1])))
                         x_cross.append(np.zeros((generators[i].dataset.shape[0], generators[i].dataset.shape[1])))
-                        
+
                 for batch_idx, local_batch in enumerate(zip(*generators)):
                     local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
                     z = self.encode(local_batch)
