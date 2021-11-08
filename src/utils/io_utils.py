@@ -28,7 +28,7 @@ class Logger():
 
     def on_step_fi(self,logs_dict):
         for k,v in logs_dict.items():
-            self.logs[k].append(v)
+            self.logs[k].append(v.detach().cpu().numpy())
 
 class ResultsWriter():
     def __init__(self, filepath = None):

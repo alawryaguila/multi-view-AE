@@ -129,7 +129,7 @@ class Optimisation_VAE(Plotting):
         for epoch in range(1, self.n_epochs + 1):
             self.init_optimisation()
             if self.batch_size is not None and generators is not None:
-                loss = self.iterate_batch(generators, epoch, verbose=True)
+                loss = self.iterate_batch(generators, epoch, val=False, verbose=True)
             else:
                 loss = self.optimise_batch(data)
                 if verbose:
@@ -144,7 +144,7 @@ class Optimisation_VAE(Plotting):
 
             if self.val_set:
                 if self.batch_size is not None and val_generators is not None:
-                    val_loss = self.iterate_batch(val_generators, epoch, verbose=True)
+                    val_loss = self.iterate_batch(val_generators, epoch, val=True, verbose=True)
                 else:
                     val_loss = self.validate_batch(val_data)
                     to_print = 'val Epoch: ' + str(epoch) + ' ' + ', '.join([k + ': ' + str(round(v.item(), 3)) for k, v in val_loss.items()])
@@ -157,7 +157,7 @@ class Optimisation_VAE(Plotting):
                     self.val_logger.on_step_fi(val_loss)
         return logger
 
-    def iterate_batch(self, generators, epoch, verbose):
+    def iterate_batch(self, generators, epoch, val, verbose):
         for batch_idx, (local_batch) in enumerate(zip(*generators)):
             if self.SNP_model:
                 local_batch = [self.centre_SNPs(local_batch_, self.MAF_file) for local_batch_ in local_batch]  
@@ -169,7 +169,7 @@ class Optimisation_VAE(Plotting):
             else:
                 local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
 
-            loss = self.validate_batch(local_batch) if self.val_set else self.optimise_batch(local_batch)
+            loss = self.validate_batch(local_batch) if val else self.optimise_batch(local_batch)
             if batch_idx  == 0 and verbose:
                 to_print = 'Train Epoch: ' + str(epoch) + ' ' + 'Train batch: ' + str(batch_idx) + ' '+ ', '.join([k + ': ' + str(round(v.item(), 3)) for k, v in loss.items()])
                 print(to_print)

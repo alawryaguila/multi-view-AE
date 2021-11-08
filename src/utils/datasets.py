@@ -5,17 +5,23 @@ From: https://gitlab.com/acasamitjana/latentmodels_ad
 
 '''
 import torch
+from torchvision import transforms
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
-
+import pandas as pd
 class MyDataset_SNPs(Dataset):
     def __init__(self, data):
-        self.data
+        self.data = data
     def __getitem__(self, index):
-        x = self.data.values[index]
-        return x
 
+        if isinstance(self.data,list):
+            x = [d.values[index] for d in self.data[0]] #fix this - not sure why have to use data[0]
+        else:
+            x = self.data[0].values[index]
+
+        return x
     def __len__(self):
+        self.N = len(self.data[0])
         return self.N
 
 class MyDataset(Dataset):
@@ -40,14 +46,12 @@ class MyDataset(Dataset):
             x = [d[index] for d in self.data]
         else:
             x = self.data[index]
-
         if self.transform:
             x = self.transform(x)
 
         if self.indices:
             return x, index
-        else:
-            return x
+        return x
 
     def __len__(self):
         return self.N
@@ -67,7 +71,11 @@ class MyDataset_labels(Dataset):
                 self.data = torch.from_numpy(self.data).float()
             self.N = len(self.data)
             self.shape = np.shape(self.data)
-        self.labels = torch.from_numpy(self.labels).float()
+        if isinstance(labels, pd.core.series.Series):
+            self.labels = torch.tensor(self.labels.values).float()
+        elif isinstance(labels,np.ndarray):
+            self.labels = torch.from_numpy(self.labels).float()
+        
         self.transform = transform
         self.indices = indices
 

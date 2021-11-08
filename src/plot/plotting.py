@@ -23,7 +23,7 @@ class Plotting:
         if path:
             self.output_path = path
 
-    def plot_losses(self, logger):
+    def plot_losses(self, logger, title=''):
         plt.figure()
         plt.rc('text', usetex=True)
         plt.rc('font', family='serif')
@@ -37,12 +37,13 @@ class Plotting:
         plt.subplot(1, 2, 2)
         plt.title('Loss relative values')
         for k, v in logger.logs.items(): 
-            max_loss = 1e-8 + np.max(np.abs(v)).cpu().detach().numpy()
+            max_loss = 1e-8 + np.max(np.abs(v))
+            print(max_loss)
             plt.plot(v/max_loss, label=str(k))
         plt.legend()
         plt.xlabel(r'\textbf{epochs}', fontsize=10)
         plt.ylabel(r'\textbf{loss}', fontsize=10)
-        plt.savefig(join(self.output_path, "Losses.png"))
+        plt.savefig(join(self.output_path, "Losses{0}.png".format(title)))
         plt.close()
 
     def plot_tsne(self, data, target, title, title_short):
@@ -66,7 +67,7 @@ class Plotting:
         if len(data) != self.n_views:
             reducer = umap.UMAP()
             projections = reducer.fit_transform(data)
-            color_code = ['b','r','c','m','y','g','k','orange', 'pink', 'gray']
+            color_code = ['b','r','c','m','y','g','k','orange', 'pink', 'gray','b','r','c','m','y','g','k','orange', 'pink', 'gray','b','r','c','m','y','g','k','orange', 'pink', 'gray']
             plt.figure()
             plt.rc('text', usetex=True)
             plt.rc('font', family='serif')
@@ -82,7 +83,7 @@ class Plotting:
             for i, data_ in enumerate(data):   
                 reducer = umap.UMAP()
                 projections = reducer.fit_transform(data_)
-                color_code = ['b','r','c','m','y','g','k','orange', 'pink', 'gray']
+                color_code = ['b','r','c','m','y','g','k','orange', 'pink', 'gray','b','r','c','m','y','g','k','orange', 'pink', 'gray','b','r','c','m','y','g','k','orange', 'pink', 'gray']
                 plt.figure()
                 plt.rc('text', usetex=True)
                 plt.rc('font', family='serif')

@@ -43,7 +43,7 @@ class cVAE(nn.Module, Optimisation_VAE):
         self.joint_representation = False
         if self.threshold!=0:
             self.sparse = True
-            self.model_type = 'joint_sparse_VAE'
+            self.model_type = 'joint_sparse_cVAE'
             self.log_alpha = torch.nn.Parameter(torch.FloatTensor(1, self.z_dim).normal_(0,0.01))
         else:
             self.log_alpha = None
