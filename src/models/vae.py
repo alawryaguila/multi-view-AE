@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+#import pytorch_lightning as pl 
 from torch.distributions import Normal
 from .layers import Encoder, Decoder 
 from .utils_deep import Optimisation_VAE
@@ -38,6 +39,7 @@ class VAE(nn.Module, Optimisation_VAE):
         '''
 
         super().__init__()
+        self.save_hyperparameters()
         self.model_type = 'VAE'
         self.input_dims = input_dims
         hidden_layer_dims = hidden_layer_dims.copy()
@@ -60,8 +62,12 @@ class VAE(nn.Module, Optimisation_VAE):
         self.__dict__.update(kwargs)
         self.encoders = torch.nn.ModuleList([Encoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear, sparse=self.sparse, log_alpha=self.log_alpha) for input_dim in self.input_dims])
         self.decoders = torch.nn.ModuleList([Decoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear) for input_dim in self.input_dims])
-        self.optimizers = [torch.optim.Adam(list(self.encoders[i].parameters()) + list(self.decoders[i].parameters()),
+
+    def configure_optimizers(self):
+        optimizers = [torch.optim.Adam(list(self.encoders[i].parameters()) + list(self.decoders[i].parameters()),
                                       lr=self.learning_rate) for i in range(self.n_views)]
+        return optimizers
+
     def encode(self, x):
         mu = []
         logvar = []
@@ -153,7 +159,6 @@ class VAE(nn.Module, Optimisation_VAE):
         x_recon = fwd_rtn['x_recon']
         mu = fwd_rtn['mu']
         logvar = fwd_rtn['logvar']
-
         kl = self.calc_kl(self, mu, logvar)
         recon = self.calc_ll(self, x, x_recon)
 
@@ -163,3 +168,18 @@ class VAE(nn.Module, Optimisation_VAE):
                 'll': recon}
         return losses
 
+    def training_step(self, batch, batch_idx):
+        fwd_return = self.forward(batch)
+        loss = self.loss_function(batch, fwd_return)
+        self.log(f'train_loss', loss['total'], on_epoch=True, prog_bar=True, logger=True)
+        self.log(f'train_kl_loss', loss['kl'], on_epoch=True, prog_bar=True, logger=True)
+        self.log(f'train_ll_loss', loss['ll'], on_epoch=True, prog_bar=True, logger=True)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        fwd_return = self.forward(batch)
+        loss = self.loss_function(batch, fwd_return)
+        self.log(f'val_loss', loss['total'], on_epoch=True, prog_bar=True, logger=True)
+        self.log(f'val_kl_loss', loss['kl'], on_epoch=True, prog_bar=True, logger=True)
+        self.log(f'val_ll_loss', loss['ll'], on_epoch=True, prog_bar=True, logger=True)
+        return loss     

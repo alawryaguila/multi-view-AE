@@ -67,10 +67,10 @@ class Optimisation_VAE(Plotting):
                 del generator
         
             return generators
-     
+
     def data_split(self, data, split=0.9):
         random.seed(42)
-        idx_1 = list(random.sample(range(0, data[0].shape[0]), int(data[0].shape[0]*0.8)))
+        idx_1 = list(random.sample(range(0, data[0].shape[0]), int(data[0].shape[0]*split)))
         idx_2 = np.setdiff1d(list(range(data[0].shape[0])),idx_1)
         data_1 = []
         data_2 = []
@@ -82,33 +82,6 @@ class Optimisation_VAE(Plotting):
 
         return [data_1, data_2]
 
-    def preprocess(self, generators, labels=None):
-        if self.val_set:
-            data = []
-            for generators_ in generators:
-                data_ = self.preprocess_run(generators_, labels)
-                data.append(data_)
-        else:
-            data = self.preprocess_run(generators, labels)
-        return data
-
-    def preprocess_run(self, generators, labels=None):
-        if labels is not None:   
-            for batch_idx, batch in enumerate(zip(*generators)):
-                data = [data_[0].to(self.device) for data_ in batch]
-                labels = [data_[1].to(self.device, dtype=torch.int64) for data_ in batch]
-
-            return [data, labels[0]]
-        else:
-            for batch_idx, data in enumerate(zip(*generators)):
-                data = [data_.to(self.device) for data_ in data]
-            return data
-    def init_optimisation(self):
-        self.train()
-    
-    def end_optimisation(self):
-        self.eval()
-
     def centre_SNPs(self, data, MAF):
         MAF = torch.from_numpy(MAF).float()
         data = data - 2*MAF
@@ -117,78 +90,6 @@ class Optimisation_VAE(Plotting):
         data[torch.isnan(data)] = 0 
         return data
 
-    def optimise(self, generators=None, data=[], verbose=True):
-        self.to(self.device)
-        self.transform = transform=transforms.Normalize(0, 1)
-        if self.val_set:
-            if generators is not None:
-                generators, val_generators = generators[0], generators[1]
-            else:
-                data, val_data = data[0], data[1]
-
-        for epoch in range(1, self.n_epochs + 1):
-            self.init_optimisation()
-            if self.batch_size is not None and generators is not None:
-                loss = self.iterate_batch(generators, epoch, val=False, verbose=True)
-            else:
-                loss = self.optimise_batch(data)
-                if verbose:
-                    to_print = 'Train Epoch: ' + str(epoch) + ' ' + ', '.join([k + ': ' + str(round(v.item(), 3)) for k, v in loss.items()])
-                    print(to_print)
-            if epoch == 1:
-                log_keys = list(loss.keys())
-                logger = Logger()
-                logger.on_train_init(log_keys)
-            else:
-                logger.on_step_fi(loss)
-
-            if self.val_set:
-                if self.batch_size is not None and val_generators is not None:
-                    val_loss = self.iterate_batch(val_generators, epoch, val=True, verbose=True)
-                else:
-                    val_loss = self.validate_batch(val_data)
-                    to_print = 'val Epoch: ' + str(epoch) + ' ' + ', '.join([k + ': ' + str(round(v.item(), 3)) for k, v in val_loss.items()])
-                    print(to_print)
-                if epoch == 1:
-                    log_keys = list(val_loss.keys())
-                    self.val_logger = Logger()
-                    self.val_logger.on_train_init(log_keys)
-                else:
-                    self.val_logger.on_step_fi(val_loss)
-        return logger
-
-    def iterate_batch(self, generators, epoch, val, verbose):
-        for batch_idx, (local_batch) in enumerate(zip(*generators)):
-            if self.SNP_model:
-                local_batch = [self.centre_SNPs(local_batch_, self.MAF_file) for local_batch_ in local_batch]  
-            if self.labels is not None:
-                labels = [local_batch_[1].to(self.device, dtype=torch.int64) for local_batch_ in local_batch] #check this - is int64 right?
-                local_batch = [local_batch_[0].to(self.device) for local_batch_ in local_batch] 
-                labels = labels[0]
-                local_batch = [local_batch, labels]
-            else:
-                local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
-
-            loss = self.validate_batch(local_batch) if val else self.optimise_batch(local_batch)
-            if batch_idx  == 0 and verbose:
-                to_print = 'Train Epoch: ' + str(epoch) + ' ' + 'Train batch: ' + str(batch_idx) + ' '+ ', '.join([k + ': ' + str(round(v.item(), 3)) for k, v in loss.items()])
-                print(to_print)
-        return loss
-
-    def optimise_batch(self, local_batch):
-        fwd_return = self.forward(local_batch)
-        loss = self.loss_function(local_batch, fwd_return)
-        [optimizer.zero_grad() for optimizer in self.optimizers]
-        loss['total'].backward()
-        [optimizer.step() for optimizer in self.optimizers]
-        return loss
-
-    def validate_batch(self, local_batch):
-        with torch.no_grad():
-            self.eval()
-            fwd_rtn = self.forward(local_batch)
-            loss = self.loss_function(local_batch, fwd_rtn)
-        return loss
 
     def MSE_results(self, *data): 
         cross_recon = 0
@@ -228,12 +129,10 @@ class Optimisation_VAE(Plotting):
         self.MAF_file = MAF_file
         torch.manual_seed(42)  
         torch.cuda.manual_seed(42)
-        use_cuda = self.use_GPU and torch.cuda.is_available()
-        self.kwargs_generator = {'num_workers': 4, 'pin_memory': True} if use_cuda else {}
-        self.device = torch.device("cuda" if use_cuda else "cpu")
         self.eps = 1e-15 
         self.val_set = val_set
         self.__dict__.update(kwargs)
+
 
         if self.val_set:
             data = self.data_split(data)
@@ -241,17 +140,18 @@ class Optimisation_VAE(Plotting):
             for data_ in data:
                 generators_ = self.generate_data(data_, labels=self.labels)
                 generators.append(generators_)
+            train_generators, val_generators = generators[0], generators[1]
         else:
-            generators = self.generate_data(data, labels=self.labels)
-        if self.batch_size is not None:
-            logger = self.optimise(generators=generators)
-        else:
-            if self.labels is not None:
-                data = self.preprocess(generators, labels=True)
-            else:
-                data = self.preprocess(generators)
-            logger = self.optimise(data=data)
-        self.end_optimisation()
+            train_generators = self.generate_data(data, labels=self.labels)
+
+        #TO DO 
+        #create trainer function
+        #trainer = create_trainer(**trainer_args, profiler=profiler)
+        #if self.val_set:
+        #    trainer.fit(self, train_generators, val_generators)
+        #else:
+        #    trainer.fit(self, train_generators)
+
         if self.save_model:
             model_path = os.path.join(self.output_path, 'model.pkl')
             while os.path.exists(model_path):
@@ -262,10 +162,7 @@ class Optimisation_VAE(Plotting):
                 else:
                     model_path = os.path.join(self.output_path, option + '.pkl')
             torch.save(self, model_path)
-            self.plot_losses(logger)
-            if self.val_set:
-                self.plot_losses(self.val_logger, title='_validation')
-        return logger
+
 
     def specify_folder(self, path=None):
         if path is None:
