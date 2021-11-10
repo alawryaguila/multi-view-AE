@@ -8,6 +8,8 @@ import datetime
 import os
 from sklearn.model_selection import KFold
 import random 
+from torchvision import datasets, transforms
+
 class Optimisation_VAE(Plotting):
     
     def __init__(self):
@@ -46,6 +48,19 @@ class Optimisation_VAE(Plotting):
                 )
                 generators.append(generator)
 
+            return generators
+        elif self.MNIST:
+            generators = []
+            for view in range(self.n_views):
+                batch_sz = self.batch_size
+                generator = torch.utils.data.DataLoader(
+                            datasets.MNIST('../MNIST/data', train=True, download=True, transform=transforms.Compose([
+                                transforms.ToTensor(),
+                                transforms.Normalize((0.1307,), (0.3081,))
+                            ])),
+                            batch_size=batch_sz, shuffle=False, **self.kwargs_generator
+                        )
+                generators.append(generator)
             return generators
         else: 
             generators = []
@@ -119,7 +134,7 @@ class Optimisation_VAE(Plotting):
 
     def optimise(self, generators=None, data=[], verbose=True):
         self.to(self.device)
-        self.transform = transform=transforms.Normalize(0, 1)
+        #self.transform = transform=transforms.Normalize(0, 1)
         if self.val_set:
             if generators is not None:
                 generators, val_generators = generators[0], generators[1]
@@ -166,6 +181,8 @@ class Optimisation_VAE(Plotting):
                 local_batch = [local_batch_[0].to(self.device) for local_batch_ in local_batch] 
                 labels = labels[0]
                 local_batch = [local_batch, labels]
+            elif self.MNIST:
+                local_batch = [local_batch_[0].reshape(-1,784).to(self.device) for local_batch_ in local_batch] #because the second entry is the target
             else:
                 local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
 
@@ -217,12 +234,9 @@ class Optimisation_VAE(Plotting):
                             cross_recon+= cross_temp
             return same_recon/self.n_views, cross_recon/self.n_views        
 
-    def fit(self, *data, labels=None, MAF_file=None, use_GPU=True, save_model=False, output_path=[], n_epochs=200, batch_size=None, val_set=True, **kwargs):
+    def fit(self, *data, labels=None, MAF_file=None, use_GPU=True, save_model=True,  **kwargs):
         self.use_GPU = use_GPU
         self.save_model = save_model
-        self.output_path = output_path
-        self.n_epochs = n_epochs
-        self.batch_size = self.batch_size
         self.data = data
         self.labels = labels
         self.MAF_file = MAF_file
@@ -232,7 +246,6 @@ class Optimisation_VAE(Plotting):
         self.kwargs_generator = {'num_workers': 4, 'pin_memory': True} if use_cuda else {}
         self.device = torch.device("cuda" if use_cuda else "cpu")
         self.eps = 1e-15 
-        self.val_set = val_set
         self.__dict__.update(kwargs)
 
         if self.val_set:
@@ -310,8 +323,11 @@ class Optimisation_VAE(Plotting):
                         local_batch = [local_batch_[0].to(self.device) for local_batch_ in local_batch] 
                         labels = labels[0]
                         local_batch = [local_batch, labels]
+                    elif self.MNIST:
+                        local_batch = [local_batch_[0].reshape(-1,784).to(self.device) for local_batch_ in local_batch] #because the second entry is the target
                     else:
                         local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
+
                     mu, logvar = self.encode(local_batch)
                     pred = self.reparameterise(mu, logvar)
                     if self.sparse:

@@ -94,7 +94,7 @@ class MyDataset_labels(Dataset):
 
     def __len__(self):
         return self.N
-
+        
 class GeneratorUniform(torch.nn.Module):
     
 	def __init__(
