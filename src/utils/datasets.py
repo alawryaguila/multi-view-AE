@@ -5,15 +5,17 @@ From: https://gitlab.com/acasamitjana/latentmodels_ad
 
 '''
 import torch
+from torch.functional import Tensor
 from torchvision import transforms
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 import numpy as np
 import pandas as pd
+
 class MyDataset_SNPs(Dataset):
     def __init__(self, data):
         self.data = data
-    def __getitem__(self, index):
 
+    def __getitem__(self, index):
         if isinstance(self.data,list):
             x = [d.values[index] for d in self.data[0]] #fix this - not sure why have to use data[0]
         else:
@@ -27,9 +29,8 @@ class MyDataset_SNPs(Dataset):
 class MyDataset(Dataset):
     def __init__(self, data, indices = False, transform=None):
         self.data = data
-        if isinstance(data,list):
-            if isinstance(data,np.ndarray):
-                self.data = [torch.from_numpy(d).float() for d in self.data]
+        if isinstance(data,list) or isinstance(data,tuple):
+            self.data = [torch.from_numpy(d).float() if isinstance(d,np.ndarray) else d for d in self.data]
             self.N = len(self.data[0])
             self.shape = np.shape(self.data[0])
         else:

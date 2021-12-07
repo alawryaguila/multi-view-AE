@@ -6,9 +6,10 @@ from torch.distributions import Normal
 from .layers import Encoder, Decoder 
 from .utils_deep import Optimisation_VAE
 import numpy as np
-from ..utils.kl_utils import compute_logvar, compute_kl, compute_kl_sparse
-
-class VAE(nn.Module, Optimisation_VAE):
+from ..utils.kl_utils import compute_logvar, compute_kl, compute_kl_sparse, compute_ll
+from os.path import join
+import pytorch_lightning as pl
+class VAE(pl.LightningModule, Optimisation_VAE):
     '''
     Multi-view Variational Autoencoder model with a separate latent representation for each view.
 
@@ -21,10 +22,12 @@ class VAE(nn.Module, Optimisation_VAE):
                 z_dim=1,
                 hidden_layer_dims=[],
                 non_linear=False,
-                learning_rate=0.002,
+                learning_rate=0.001,
                 beta=1,
                 threshold=0,
                 SNP_model=False,
+                trainer_dict=None,
+                dist='gaussian',
                 **kwargs):
 
         ''' 
@@ -36,6 +39,7 @@ class VAE(nn.Module, Optimisation_VAE):
         :param beta: weighting factor for Kullback-Leibler divergence term.
         :param threshold: Dropout threshold for sparsity constraint on latent representation. If threshold is 0 then there is no sparsity.
         :param SNP_model: Whether model will be used for SNP data - parameter will be removed soon.
+        :param dist: Approximate distribution of data for log likelihood calculation. Either 'gaussian' or 'bernoulli'.
         '''
 
         super().__init__()
@@ -51,6 +55,8 @@ class VAE(nn.Module, Optimisation_VAE):
         self.SNP_model = SNP_model
         self.joint_representation = False
         self.threshold = threshold
+        self.trainer_dict = trainer_dict
+        self.dist = dist
         if self.threshold!=0:
             self.sparse = True
             self.model_type = 'sparse_VAE'
@@ -61,7 +67,7 @@ class VAE(nn.Module, Optimisation_VAE):
         self.n_views = len(input_dims)
         self.__dict__.update(kwargs)
         self.encoders = torch.nn.ModuleList([Encoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear, sparse=self.sparse, log_alpha=self.log_alpha) for input_dim in self.input_dims])
-        self.decoders = torch.nn.ModuleList([Decoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear) for input_dim in self.input_dims])
+        self.decoders = torch.nn.ModuleList([Decoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, dist=self.dist, non_linear=self.non_linear) for input_dim in self.input_dims])
 
     def configure_optimizers(self):
         optimizers = [torch.optim.Adam(list(self.encoders[i].parameters()) + list(self.decoders[i].parameters()),
@@ -149,7 +155,7 @@ class VAE(nn.Module, Optimisation_VAE):
         ll = 0    
         for i in range(self.n_views):
             for j in range(self.n_views):
-                    ll+= x_recon[i][j].log_prob(x[i]).sum(1, keepdims=True).mean(0) 
+                    ll+= compute_ll(x[i], x_recon[i][j], dist=self.dist)
         return ll
 
     def sample_from_normal(self, normal):
@@ -161,20 +167,20 @@ class VAE(nn.Module, Optimisation_VAE):
         logvar = fwd_rtn['logvar']
         kl = self.calc_kl(self, mu, logvar)
         recon = self.calc_ll(self, x, x_recon)
-
-        total = kl - recon
+        total = kl + recon
         losses = {'total': total,
                 'kl': kl,
                 'll': recon}
         return losses
 
     def training_step(self, batch, batch_idx):
+
         fwd_return = self.forward(batch)
         loss = self.loss_function(batch, fwd_return)
         self.log(f'train_loss', loss['total'], on_epoch=True, prog_bar=True, logger=True)
         self.log(f'train_kl_loss', loss['kl'], on_epoch=True, prog_bar=True, logger=True)
         self.log(f'train_ll_loss', loss['ll'], on_epoch=True, prog_bar=True, logger=True)
-        return loss
+        return loss['total']
 
     def validation_step(self, batch, batch_idx):
         fwd_return = self.forward(batch)
@@ -182,4 +188,7 @@ class VAE(nn.Module, Optimisation_VAE):
         self.log(f'val_loss', loss['total'], on_epoch=True, prog_bar=True, logger=True)
         self.log(f'val_kl_loss', loss['kl'], on_epoch=True, prog_bar=True, logger=True)
         self.log(f'val_ll_loss', loss['ll'], on_epoch=True, prog_bar=True, logger=True)
-        return loss     
+        return loss['total']
+    
+    def on_train_end(self):
+        self.trainer.save_checkpoint(join(self.output_path, 'model.ckpt'))

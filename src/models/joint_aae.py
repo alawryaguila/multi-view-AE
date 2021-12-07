@@ -6,7 +6,8 @@ from .layers import Encoder, Decoder, Discriminator
 from .utils_deep import Optimisation_AAE
 import numpy as np
 from torch.autograd import Variable 
-class AAE(nn.Module, Optimisation_AAE):
+import pytorch_lightning as pl
+class AAE(pl.LightningModule, Optimisation_AAE):
     '''
     Multi-view Adversarial Autoencoder model with a joint latent representation.
     
@@ -32,7 +33,7 @@ class AAE(nn.Module, Optimisation_AAE):
         :param SNP_model: Whether model will be used for SNP data - parameter will be removed soon.
         '''
         super().__init__()
-
+        self.save_hyperparameters()
         self.model_type = 'joint_AAE'
         self.input_dims = input_dims
         self.hidden_layer_dims = hidden_layer_dims.copy()
@@ -54,6 +55,8 @@ class AAE(nn.Module, Optimisation_AAE):
         self.decoder_optimizers = [torch.optim.Adam(list(self.decoders[i].parameters()), lr=self.learning_rate) for i in range(self.n_views)]
         self.discriminator_optimizer = torch.optim.Adam(list(self.discriminator.parameters()), lr=self.learning_rate)
     
+    #TO DO - add optimizers for manual updates 
+
     def encode(self, x):
         z = []
         for i in range(self.n_views):
@@ -95,7 +98,6 @@ class AAE(nn.Module, Optimisation_AAE):
                     'z': z}
         return fwd_rtn
 
-    
     def forward_gen(self, x):
         [encoder.train() for encoder in self.encoders]
         self.discriminator.eval()
@@ -129,3 +131,46 @@ class AAE(nn.Module, Optimisation_AAE):
         disc_loss= -torch.mean(torch.log(d_real+self.eps)+torch.log(1-d_fake+self.eps))
 
         return disc_loss
+
+    def execute_step(self, batch):
+        #TO DO - change pytorch lightning to manual update of optimizers
+        fwd_return = self.forward_recon(batch)
+        loss_recon = self.recon_loss(self, batch, fwd_return)
+        [optimizer.zero_grad() for optimizer in self.encoder_optimizers]
+        [optimizer.zero_grad() for optimizer in self.decoder_optimizers]
+        loss_recon.backward()
+        [optimizer.step() for optimizer in self.encoder_optimizers]
+        [optimizer.step() for optimizer in self.decoder_optimizers]
+
+        fwd_return = self.forward_discrim(batch)
+        loss_disc = self.discriminator_loss(self, fwd_return)
+        self.discriminator_optimizer.zero_grad() 
+        loss_disc.backward()
+        self.discriminator_optimizer.step() 
+        if self.wasserstein:
+            for p in self.discriminator.parameters():
+                p.data.clamp_(-0.01, 0.01)
+        fwd_return = self.forward_gen(batch)
+        loss_gen = self.generator_loss(self, fwd_return) 
+        [optimizer.zero_grad() for optimizer in self.generator_optimizers]
+        loss_gen.backward()
+        [optimizer.step() for optimizer in self.generator_optimizers]
+
+        loss = {'recon': loss_recon,
+                'disc': loss_disc,
+                'gen': loss_gen}
+        return loss
+
+    def training_step(self, batch, batch_idx):
+        loss = self.execute_step(batch)
+        self.log(f'train_loss', loss['total'], on_epoch=True, prog_bar=True, logger=True)
+        self.log(f'train_discriminator_loss', loss['disc'], on_epoch=True, prog_bar=True, logger=True)
+        self.log(f'train_generator_loss', loss['gen'], on_epoch=True, prog_bar=True, logger=True)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        loss = self.execute_step(batch)
+        self.log(f'val_loss', loss['total'], on_epoch=True, prog_bar=True, logger=True)
+        self.log(f'val_discriminator_loss', loss['disc'], on_epoch=True, prog_bar=True, logger=True)
+        self.log(f'val_generator_loss', loss['gen'], on_epoch=True, prog_bar=True, logger=True)
+        return loss 

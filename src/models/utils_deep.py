@@ -1,8 +1,9 @@
-from ..utils.datasets import MyDataset, MyDataset_SNPs, MyDataset_labels
+from ..utils.dataloaders import MultiviewDataModule
 import numpy as np
 import torch
 from torchvision import transforms
 from ..utils.io_utils import Logger
+from ..utils.trainer import trainer
 from ..plot.plotting import Plotting
 import datetime
 import os
@@ -12,75 +13,6 @@ class Optimisation_VAE(Plotting):
     
     def __init__(self):
         super().__init__()
-
-    def generate_data(self, data, labels=None):
-        batch_sz = self.batch_size
-        if self.SNP_model: 
-            generators = [] 
-            for data_ in data:
-                data = MyDataset_SNPs(data)
-                generator = torch.utils.data.DataLoader(
-                    data,
-                    batch_size=batch_sz,
-                    shuffle=False,
-                    **self.kwargs_generator
-                )
-                generators.append(generator)
-
-            return generators
-        elif labels is not None:
-            generators = []
-            for data_ in data:
-                if self.batch_size is not None:
-                    batch_sz = self.batch_size
-                else:
-                    batch_sz = np.shape(data_)[0]
-                data_ = MyDataset_labels(data_, labels)
-                
-                generator = torch.utils.data.DataLoader(
-                    data_,
-                    batch_size=batch_sz,
-              
-                    shuffle=False,
-                    **self.kwargs_generator
-                )
-                generators.append(generator)
-
-            return generators
-        else: 
-            generators = []
-
-            for data_ in data:
-                if batch_sz is not None:
-                    batch_sz_tmp = self.batch_size
-                else:
-                    batch_sz_tmp = np.shape(data_)[0]
-    
-                data_ = MyDataset(data_)
-                generator = torch.utils.data.DataLoader(
-                    data_,
-                    batch_size=batch_sz_tmp,
-                    shuffle=False,
-                    **self.kwargs_generator
-                )
-                generators.append(generator)
-                del generator
-        
-            return generators
-
-    def data_split(self, data, split=0.9):
-        random.seed(42)
-        idx_1 = list(random.sample(range(0, data[0].shape[0]), int(data[0].shape[0]*split)))
-        idx_2 = np.setdiff1d(list(range(data[0].shape[0])),idx_1)
-        data_1 = []
-        data_2 = []
-        for data_ in data:
-            data_1_ = data_[idx_1,:]
-            data_2_ = data_[idx_2,:]
-            data_1.append(data_1_)
-            data_2.append(data_2_)
-
-        return [data_1, data_2]
 
     def centre_SNPs(self, data, MAF):
         MAF = torch.from_numpy(MAF).float()
@@ -116,53 +48,26 @@ class Optimisation_VAE(Plotting):
                         else:
                             cross_temp = np.mean((prediction[i][j] - data[i])**2)
                             cross_recon+= cross_temp
-            return same_recon/self.n_views, cross_recon/self.n_views        
+            return same_recon/self.n_views, cross_recon/self.n_views      
 
-    def fit(self, *data, labels=None, MAF_file=None, use_GPU=True, save_model=False, output_path=[], n_epochs=200, batch_size=None, val_set=True, **kwargs):
-        self.use_GPU = use_GPU
-        self.save_model = save_model
-        self.output_path = output_path
-        self.n_epochs = n_epochs
-        self.batch_size = self.batch_size
+    def fit(self, *data, labels=None, MAF_file=None, **kwargs):
+
         self.data = data
         self.labels = labels
         self.MAF_file = MAF_file
         torch.manual_seed(42)  
         torch.cuda.manual_seed(42)
         self.eps = 1e-15 
-        self.val_set = val_set
         self.__dict__.update(kwargs)
-
-
-        if self.val_set:
-            data = self.data_split(data)
-            generators = []
-            for data_ in data:
-                generators_ = self.generate_data(data_, labels=self.labels)
-                generators.append(generators_)
-            train_generators, val_generators = generators[0], generators[1]
-        else:
-            train_generators = self.generate_data(data, labels=self.labels)
-
         #TO DO 
+        trainer_args = dict(output_path=self.output_path,
+                        n_epochs=self.n_epochs,
+                        **self.trainer_dict)
+
         #create trainer function
-        #trainer = create_trainer(**trainer_args, profiler=profiler)
-        #if self.val_set:
-        #    trainer.fit(self, train_generators, val_generators)
-        #else:
-        #    trainer.fit(self, train_generators)
-
-        if self.save_model:
-            model_path = os.path.join(self.output_path, 'model.pkl')
-            while os.path.exists(model_path):
-                print("CAUTION! Model path already exists!")
-                option = str(input("To overwrite type CONTINUE else type a suffix: "))
-                if option == 'CONTINUE':
-                    break
-                else:
-                    model_path = os.path.join(self.output_path, option + '.pkl')
-            torch.save(self, model_path)
-
+        py_trainer = trainer(**trainer_args)
+        datamodule = MultiviewDataModule(data, batch_size=self.batch_size, val=self.val_set)
+        py_trainer.fit(self, datamodule)
 
     def specify_folder(self, path=None):
         if path is None:
@@ -529,7 +434,7 @@ class Optimisation_GVCCA(Optimisation_VAE):
     def __init__(self):
         super().__init__()
 
-    def fit(self, labels, *data, use_GPU=True, save_model=False, n_epochs=200, batch_size=None, **kwargs):
+    def fit(self, labels, *data, use_GPU=True, save_model=False, n_epochs=200, **kwargs):
         self.use_GPU = use_GPU
         self.save_model = save_model
         self.n_epochs = n_epochs
