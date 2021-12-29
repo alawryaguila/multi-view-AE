@@ -5,6 +5,7 @@ from torch.distributions import Normal
 from ..utils.kl_utils import compute_logvar
 from ..utils.datasets import MyDataset
 import numpy as np
+from torch.nn import Parameter
 
 class Encoder(nn.Module):
     def __init__(
@@ -133,7 +134,7 @@ class Decoder(nn.Module):
                 hidden_layer_dims,
                 variational=True, 
                 non_linear=False, 
-                init_logvar=-2,
+                init_logvar=-3,
                 dist=None,
                 bias=True):
         super().__init__()
@@ -152,10 +153,11 @@ class Decoder(nn.Module):
             self.decoder_mean_layer = nn.Linear(self.layer_sizes_decoder[-2],self.layer_sizes_decoder[-1], bias=bias)
             tmp_noise_par = torch.FloatTensor(1, self.input_size).fill_(self.init_logvar)
             if self.dist == 'gaussian':
-                self.decoder_logvar_layer = nn.Linear(self.layer_sizes_decoder[-2],self.layer_sizes_decoder[-1], bias=bias)
-                self.decoder_logvar_layer.weight = self.decoder_logvar_layer.weight.fill_(init_logvar)
+                tmp_noise_par = torch.FloatTensor(1, input_dim).fill_(init_logvar)
+                self.logvar_out = Parameter(data=tmp_noise_par, requires_grad=True)
         else:
             self.decoder_layers = nn.Sequential(*lin_layers)
+            
     def forward(self, z):
         x_rec = z
         for it_layer, layer in enumerate(self.decoder_layers):
@@ -165,8 +167,7 @@ class Decoder(nn.Module):
         if self.variational:
             x_rec = self.decoder_mean_layer(x_rec)
             if self.dist == 'gaussian':
-                logvar_out = self.decoder_logvar_layer(x_rec)
-                x_rec = Normal(loc=x_rec, scale=torch.exp(0.5 * logvar_out))
+                return Normal(loc=x_rec, scale=torch.exp(0.5 * self.logvar_out))
             elif self.dist == 'bernoulli':
                 return torch.sigmoid(x_rec)
         return x_rec

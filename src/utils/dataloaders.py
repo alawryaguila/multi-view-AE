@@ -29,12 +29,16 @@ class MultiviewDataModule(pl.LightningDataModule):
     def setup(self, stage):
         if self.val:
             train_data, val_data = self.data_split()
-            self.train_dataset = MyDataset(train_data)
-            self.val_dataset = MyDataset(val_data)
+            self.train_dataset = self.dataset(train_data) 
+            self.val_dataset = self.dataset(val_data)
         else:
-            self.train_dataset = MyDataset(self.data)
-            self.val_dataset = None           
+            self.train_dataset = self.dataset(self.data)
+            self.val_dataset = None      
 
+    @staticmethod
+    def dataset(data):
+        return MyDataset(data)
+        
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=False)
 

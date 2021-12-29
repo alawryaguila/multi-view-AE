@@ -1,3 +1,4 @@
+from torch.utils.data.dataloader import DataLoader
 from ..utils.dataloaders import MultiviewDataModule
 import numpy as np
 import torch
@@ -21,7 +22,6 @@ class Optimisation_VAE(Plotting):
         data = data - 2*MAF
         data[torch.isnan(data)] = 0 
         return data
-
 
     def MSE_results(self, *data): 
         cross_recon = 0
@@ -90,104 +90,52 @@ class Optimisation_VAE(Plotting):
         self.data = data
         self.labels = labels
         self.val_set = val_set
-        generators =  self.generate_data(self.data, labels=self.labels)
-        if self.batch_size is None:
-            if self.labels is not None:
-                data = self.preprocess(generators, labels=True)
-            else:
-                data = self.preprocess(generators)
-        num_elements = len(generators[0].dataset)
-        batch_size = generators[0].batch_size
-
-        num_batches = len(generators[0])
+        #generators =  MultiviewDataModule.dataset(self.data, labels=self.labels) #TODO get working with labels
+        dataset =  MultiviewDataModule.dataset(self.data)
+        generator = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
         with torch.no_grad():
-            if self.batch_size is not None:
-                if self.joint_representation:
-                    predictions = torch.zeros(num_elements, int(self.z_dim))
-                else:
-                    predictions = [torch.zeros(num_elements, int(self.z_dim)) for i in range(len(generators))]
-                for batch_idx, local_batch in enumerate(zip(*generators)):
-                    if self.labels is not None:
-                        labels = [local_batch_[1].to(self.device, dtype=torch.int64) for local_batch_ in local_batch]
-                        local_batch = [local_batch_[0].to(self.device) for local_batch_ in local_batch] 
-                        labels = labels[0]
-                        local_batch = [local_batch, labels]
-                    else:
-                        local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
-                    mu, logvar = self.encode(local_batch)
-                    pred = self.reparameterise(mu, logvar)
-                    if self.sparse:
-                        pred = self.apply_threshold(pred)
-                    start = batch_idx * batch_size
-                    end = start + batch_size
-                    if batch_idx == num_batches - 1:
-                        end = num_elements
-                    if self.joint_representation:
-                        predictions[start:end, :] = pred
-                    else:
-                        for i, pred_ in enumerate(pred):
-                            predictions[i][start:end, :] = pred_
-            else:
-                mu, logvar = self.encode(data)
-                predictions = self.reparameterise(mu, logvar)
+            for batch_idx, local_batch in enumerate(generator): #not yet working 
+                local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
+                mu, logvar = self.encode(local_batch)
+                pred = self.reparameterise(mu, logvar)
                 if self.sparse:
-                    predictions = self.apply_threshold(predictions)
-        if self.joint_representation:
-            return predictions.cpu().detach().numpy()
-        return [predictions_.cpu().detach().numpy() for predictions_ in predictions]
+                    pred = self.apply_threshold(pred)
+                if batch_idx == 0:
+                    predictions = self.process_output(pred, data_type='latent')
+                else:
+                    predictions = self.process_output(pred, pred=predictions, data_type='latent')
+            if self.sparse:
+                predictions = self.apply_threshold(predictions) #TODO - check this works
+        return predictions
+
+    def process_output(self, data, pred=None, data_type=None):
+        if pred:
+            if self.variational and data_type is None and self.dist=='gaussian':
+                return [self.process_output(data_, pred=pred_, data_type=data_type) if isinstance(data_, list) else np.append(pred_, self.sample_from_normal(data_), axis=0) for pred_, data_ in zip(pred, data)]
+            return [self.process_output(data_, pred=pred_, data_type=data_type) if isinstance(data_, list) else np.append(pred_,data_, axis=0) for pred_, data_ in zip(pred, data)]
+        else:
+            if self.variational and data_type is None and self.dist=='gaussian':
+                return [self.process_output(data_, data_type=data_type) if isinstance(data_, list) else self.sample_from_normal(data_).cpu().detach().numpy() for data_ in data]
+            return [self.process_output(data_, data_type=data_type) if isinstance(data_, list) else data_.cpu().detach().numpy() for data_ in data] #is cpu needed?
 
     def predict_reconstruction(self, *data):
-        generators =  self.generate_data(data)
-        if self.batch_size==None:
-            data = self.preprocess(generators)
-        batch_size = generators[0].batch_size
-        num_elements = len(generators[0].dataset)
-        num_batches = len(generators[0])     
+        dataset =  MultiviewDataModule.dataset(self.data)
+        generator = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)   
         with torch.no_grad():
-            if self.batch_size!=None:
-                x_recon_out = []
-                if self.joint_representation:
-                    for i in range(self.n_views):
-                        x_recon_out.append(np.zeros((generators[i].dataset.shape[0], generators[i].dataset.shape[1])))
-                else:
-                    for i in range(self.n_views):
-                        x_recon_temp = [np.zeros((generator.dataset.shape[0], generator.dataset.shape[1])) for generator in generators]
-                        x_recon_out.append(x_recon_temp)
-
-                for batch_idx, (local_batch) in enumerate(zip(*generators)):
-                    local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
-                    mu, logvar = self.encode(local_batch)
-                    z = self.reparameterise(mu, logvar)
-                    if self.sparse:
-                        z = self.apply_threshold(z)
-                        
-                    start = batch_idx * batch_size
-                    end = start + batch_size
-                    if batch_idx == num_batches - 1:
-                        end = num_elements
-                    x_recon = self.decode(z)                  
-                    if self.joint_representation:
-                        for i in range(self.n_views):
-                            x_recon_out[i][start:end, :] = (self.sample_from_normal(x_recon[i])).cpu().detach().numpy()
-                    else:
-                        for i in range(self.n_views):
-                            for j in range(self.n_views):
-                                x_recon_out[i][j][start:end, :] = (self.sample_from_normal(x_recon[i][j])).cpu().detach().numpy()
-            else:
-                mu, logvar = self.encode(data)
+            for batch_idx, (local_batch) in enumerate(generator):
+                local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
+                mu, logvar = self.encode(local_batch)
                 z = self.reparameterise(mu, logvar)
                 if self.sparse:
                     z = self.apply_threshold(z)
-                if self.joint_representation:
-                    x_recon = self.decode(z)
-                    x_recon_out = [(self.sample_from_normal(x_recon_)).cpu().detach().numpy() for x_recon_ in x_recon]
+                x_recon = self.decode(z)   
+                if batch_idx == 0:
+                    x_reconstruction = self.process_output(x_recon)
                 else:
-                    x_recon = self.decode(z)
-                    x_recon_out = []
-                    for i in range(self.n_views):
-                        x_recon_temp = [(self.sample_from_normal(x_recon_)).cpu().detach().numpy() for x_recon_ in x_recon[i]]
-                        x_recon_out.append(x_recon_temp)
-            return x_recon_out
+
+                    x_reconstruction = self.process_output(x_recon, pred=x_reconstruction)
+            return x_reconstruction
+    
 
 class Optimisation_AAE(Optimisation_VAE):
     

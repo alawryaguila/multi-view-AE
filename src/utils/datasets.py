@@ -33,9 +33,8 @@ class MyDataset(Dataset):
             self.data = [torch.from_numpy(d).float() if isinstance(d,np.ndarray) else d for d in self.data]
             self.N = len(self.data[0])
             self.shape = np.shape(self.data[0])
-        else:
-            if isinstance(data,np.ndarray):
-                self.data = torch.from_numpy(self.data).float()
+        elif isinstance(data,np.ndarray):
+            self.data = torch.from_numpy(self.data).float()
             self.N = len(self.data)
             self.shape = np.shape(self.data)
 
