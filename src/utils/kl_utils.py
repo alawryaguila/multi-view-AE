@@ -9,6 +9,9 @@ def compute_log_alpha(mu, logvar):
 def compute_logvar(mu, log_alpha):
     return log_alpha + 2 * torch.log(torch.abs(mu) + 1e-8)
 
+def compute_mse(x, y):
+    return torch.mean(((x- y)**2).sum(dim=-1))
+
 def compute_kl(mu, logvar):
     return -0.5*torch.sum(1 + logvar - mu.pow(2) - logvar.exp(), dim=1).mean(0)
 

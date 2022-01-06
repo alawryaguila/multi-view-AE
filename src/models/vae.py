@@ -25,7 +25,6 @@ class VAE(pl.LightningModule, Optimisation_VAE):
                 learning_rate=0.001,
                 beta=1,
                 threshold=0,
-                SNP_model=False,
                 trainer_dict=None,
                 dist='gaussian',
                 **kwargs):
@@ -38,7 +37,6 @@ class VAE(pl.LightningModule, Optimisation_VAE):
         :param learning_rate: learning rate of optimisers.
         :param beta: weighting factor for Kullback-Leibler divergence term.
         :param threshold: Dropout threshold for sparsity constraint on latent representation. If threshold is 0 then there is no sparsity.
-        :param SNP_model: Whether model will be used for SNP data - parameter will be removed soon.
         :param dist: Approximate distribution of data for log likelihood calculation. Either 'gaussian' or 'bernoulli'.
         '''
 
@@ -52,11 +50,11 @@ class VAE(pl.LightningModule, Optimisation_VAE):
         self.non_linear = non_linear
         self.beta = beta
         self.learning_rate = learning_rate
-        self.SNP_model = SNP_model
         self.joint_representation = False
         self.threshold = threshold
         self.trainer_dict = trainer_dict
         self.dist = dist
+        self.variational = True
         if self.threshold!=0:
             self.sparse = True
             self.model_type = 'sparse_VAE'
@@ -72,6 +70,7 @@ class VAE(pl.LightningModule, Optimisation_VAE):
     def configure_optimizers(self):
         optimizers = [torch.optim.Adam(list(self.encoders[i].parameters()) + list(self.decoders[i].parameters()),
                                       lr=self.learning_rate) for i in range(self.n_views)]
+        print(optimizers)
         return optimizers
 
     def encode(self, x):
@@ -173,7 +172,7 @@ class VAE(pl.LightningModule, Optimisation_VAE):
                 'll': recon}
         return losses
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx, optimizer_idx):
 
         fwd_return = self.forward(batch)
         loss = self.loss_function(batch, fwd_return)

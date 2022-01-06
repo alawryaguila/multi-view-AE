@@ -29,7 +29,6 @@ class VAE(pl.LightningModule, Optimisation_VAE):
                 learning_rate=0.002,
                 beta=1,
                 threshold=0,
-                SNP_model=False,
                 join_type='Mean',
                 dist='gaussian',
                 **kwargs):
@@ -42,7 +41,6 @@ class VAE(pl.LightningModule, Optimisation_VAE):
         :param learning_rate: learning rate of optimisers.
         :param beta: weighting factor for Kullback-Leibler divergence term.
         :param threshold: Dropout threshold for sparsity constraint on latent representation. If threshold is 0 then there is no sparsity.
-        :param SNP_model: Whether model will be used for SNP data - parameter will be removed soon.
         :param join_type: How latent representations are combined. Either "Mean" or "PoE". 
         :param dist: Approximate distribution of data for log likelihood calculation. Either 'gaussian' or 'bernoulli'.
         '''
@@ -58,8 +56,8 @@ class VAE(pl.LightningModule, Optimisation_VAE):
         self.beta = beta
         self.dist = dist
         self.learning_rate = learning_rate
-        self.SNP_model = SNP_model
         self.joint_representation = True
+        self.variational = True
         self.join_type = join_type
         if self.join_type == 'PoE':
             self.join_z = ProductOfExperts()
@@ -79,8 +77,8 @@ class VAE(pl.LightningModule, Optimisation_VAE):
         self.__dict__.update(kwargs)
         self.n_views = len(input_dims)
         self.encoders = torch.nn.ModuleList([Encoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear, sparse=self.sparse, log_alpha=self.log_alpha) for input_dim in self.input_dims])
-        self.decoders = torch.nn.ModuleList([Decoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear) for input_dim in self.input_dims])
-        
+        self.decoders = torch.nn.ModuleList([Decoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, dist=self.dist, non_linear=self.non_linear) for input_dim in self.input_dims])       
+    
     def configure_optimizers(self):
         optimizers = [torch.optim.Adam(list(self.encoders[i].parameters()) + list(self.decoders[i].parameters()),
                                       lr=self.learning_rate) for i in range(self.n_views)]
@@ -185,13 +183,13 @@ class VAE(pl.LightningModule, Optimisation_VAE):
                 'll': recon}
         return losses
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch, batch_idx, optimizer_idx):
         fwd_return = self.forward(batch)
         loss = self.loss_function(batch, fwd_return)
         self.log(f'train_loss', loss['total'], on_epoch=True, prog_bar=True, logger=True)
         self.log(f'train_kl_loss', loss['kl'], on_epoch=True, prog_bar=True, logger=True)
         self.log(f'train_ll_loss', loss['ll'], on_epoch=True, prog_bar=True, logger=True)
-        return loss
+        return loss['total']
 
     def validation_step(self, batch, batch_idx):
         fwd_return = self.forward(batch)
@@ -199,7 +197,7 @@ class VAE(pl.LightningModule, Optimisation_VAE):
         self.log(f'val_loss', loss['total'], on_epoch=True, prog_bar=True, logger=True)
         self.log(f'val_kl_loss', loss['kl'], on_epoch=True, prog_bar=True, logger=True)
         self.log(f'val_ll_loss', loss['ll'], on_epoch=True, prog_bar=True, logger=True)
-        return loss     
+        return loss['total'] 
     
     def on_train_end(self):
         self.trainer.save_checkpoint(join(self.output_path, 'model.ckpt'))
