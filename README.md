@@ -1,4 +1,4 @@
-# Multi-view VAE models 
+# Multi-view autoencoders models 
 
 This repository contains various multi-view autoencoder models built in Pytorch.
 
