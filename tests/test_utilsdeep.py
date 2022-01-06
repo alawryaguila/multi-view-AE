@@ -1,9 +1,5 @@
-from src.models import utils_deep
-from src.utils.io_utils import ConfigReader
-from src.CV.cross_validation import CrossValidation
 import numpy as np
 import itertools as it
-
 
 def test_VAE():
     from src.models.vae import VAE
@@ -12,7 +8,7 @@ def test_VAE():
     test_1 = np.random.rand(50, 20)
     test_2 = np.random.rand(50, 20)
     DEVICE = 'cpu'
-    parameters = {'threshold': [0, 0.2], 'batch_size': [None, 10]}
+    parameters = {'threshold': [0, 0.2], 'batch_size': [None, 10], 'n_epochs': 10}
     param_combs = list(it.product(*(parameters[key] for key in parameters)))
     for comb in param_combs:
         params = {key: comb[idx] for idx, key in enumerate(parameters)}       
@@ -28,7 +24,7 @@ def test_jointVAE():
     test_1 = np.random.rand(50, 20)
     test_2 = np.random.rand(50, 20)
     DEVICE = 'cpu'
-    parameters = {'threshold': [0, 0.2], 'batch_size': [None, 10]}   
+    parameters = {'threshold': [0, 0.2], 'batch_size': [None, 10], 'n_epochs': 10}   
     param_combs = list(it.product(*(parameters[key] for key in parameters)))
     for comb in param_combs:
         params = {key: comb[idx] for idx, key in enumerate(parameters)}
@@ -44,7 +40,7 @@ def test_jointAAE():
     test_1 = np.random.rand(50, 20)
     test_2 = np.random.rand(50, 20)
     DEVICE = 'cpu'
-    parameters = {'z_dim': [5, 10], 'batch_size': [None, 10]}   
+    parameters = {'z_dim': [5, 10], 'batch_size': [None, 10], 'n_epochs': 10}   
     param_combs = list(it.product(*(parameters[key] for key in parameters)))
     for comb in param_combs:
         params = {key: comb[idx] for idx, key in enumerate(parameters)}
@@ -60,7 +56,7 @@ def test_AAE():
     test_1 = np.random.rand(50, 20)
     test_2 = np.random.rand(50, 20)
     DEVICE = 'cpu'
-    parameters = {'z_dim': [5, 10], 'batch_size': [None, 10]}   
+    parameters = {'z_dim': [5, 10], 'batch_size': [None, 10], 'n_epochs': 10}   
     param_combs = list(it.product(*(parameters[key] for key in parameters)))
     for comb in param_combs:
         params = {key: comb[idx] for idx, key in enumerate(parameters)}
@@ -75,7 +71,7 @@ def test_classiferVAE():
     train_labels = np.random.randint(2, size=200)
     test = np.random.rand(50, 20)
     DEVICE = 'cpu'
-    parameters = {'hidden_layers': [[], [100,50,10]], 'batch_size': [None, 10]}   
+    parameters = {'hidden_layers': [[], [100,50,10]], 'batch_size': [None, 10], 'n_epochs': 10}   
     param_combs = list(it.product(*(parameters[key] for key in parameters)))
     for comb in param_combs:
         params = {key: comb[idx] for idx, key in enumerate(parameters)}
@@ -84,10 +80,3 @@ def test_classiferVAE():
         latent = models.predict_latents(test)
         recon = models.predict_reconstruction(test)
 
-def test_CV():    
-    train_1 = np.random.rand(200, 20)
-    train_2 = np.random.rand(200, 20)
-    config_file = ConfigReader('./tests/test_config.yaml')
-    param_dict = {'latent_size': [3, 4], 'beta': [1, 2]}
-    cv = CrossValidation(config_file._conf, param_dict, model_type='VAE')
-    cv.gridsearch(train_1, train_2)

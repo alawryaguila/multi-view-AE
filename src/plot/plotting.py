@@ -63,10 +63,10 @@ class Plotting:
             plt.savefig(join(self.output_path, 'tSNE_view_{0}.png'.format(title_short[i])))
             plt.close()
 
-    def plot_UMAP(self, data, target, title, title_short):
-        if len(data) != self.n_views:
+    def plot_UMAP(self, data, target, title, title_short):   
+        for i, data_ in enumerate(data):   
             reducer = umap.UMAP()
-            projections = reducer.fit_transform(data)
+            projections = reducer.fit_transform(data_)
             color_code = ['b','r','c','m','y','g','k','orange', 'pink', 'gray','b','r','c','m','y','g','k','orange', 'pink', 'gray','b','r','c','m','y','g','k','orange', 'pink', 'gray']
             plt.figure()
             plt.rc('text', usetex=True)
@@ -76,26 +76,9 @@ class Plotting:
             handles, labels = plt.gca().get_legend_handles_labels()
             by_label = OrderedDict(zip(labels, handles))
             plt.legend(by_label.values(), by_label.keys())
-            plt.title('UMAP {0}'.format(title))
-            plt.savefig(join(self.output_path, 'UMAP_view_{0}.png'.format(title_short)))
-            plt.close()  
-        else:         
-            for i, data_ in enumerate(data):   
-                reducer = umap.UMAP()
-                projections = reducer.fit_transform(data_)
-                color_code = ['b','r','c','m','y','g','k','orange', 'pink', 'gray','b','r','c','m','y','g','k','orange', 'pink', 'gray','b','r','c','m','y','g','k','orange', 'pink', 'gray']
-                plt.figure()
-                plt.rc('text', usetex=True)
-                plt.rc('font', family='serif')
-                for j in range(len(np.unique(target))):
-                    plt.plot(projections[np.where(target==j),0],projections[np.where(target==j),1], color=color_code[j], label = str(j), linestyle='None', marker = '.')
-                handles, labels = plt.gca().get_legend_handles_labels()
-                by_label = OrderedDict(zip(labels, handles))
-                plt.legend(by_label.values(), by_label.keys())
-                plt.title('UMAP {0}'.format(title[i]))
-                plt.savefig(join(self.output_path, 'UMAP_view_{0}.png'.format(title_short[i])))
-                plt.close()
-
+            plt.title('UMAP {0}'.format(title[i]))
+            plt.savefig(join(self.output_path, 'UMAP_{0}.png'.format(title_short[i])))
+            plt.close()
 
     def plot_dropout(self, title=''):  
         if self.sparse:
@@ -155,6 +138,7 @@ class Plotting:
             print(line)
             if save:
                 writer_legend.write('%s\n' %line)
+                
     def plot_corr(self, *latents, corr_type='pearson'):
         if self.joint_representation: 
             print("Cannot create correlation plot from joint latent representation")
