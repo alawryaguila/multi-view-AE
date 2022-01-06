@@ -10,12 +10,15 @@ import datetime
 import os
 from sklearn.model_selection import KFold
 import random 
+from torchvision import datasets, transforms
+
 class Optimisation_VAE(Plotting):
     
     def __init__(self):
         super().__init__() 
 
     def fit(self, *data, labels=None, **kwargs):
+
         self.data = data
         self.labels = labels
         torch.manual_seed(42)  

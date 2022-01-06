@@ -45,6 +45,7 @@ class VAE(pl.LightningModule, Optimisation_VAE):
         self.model_type = 'VAE'
         self.input_dims = input_dims
         hidden_layer_dims = hidden_layer_dims.copy()
+        print(hidden_layer_dims)
         self.z_dim = z_dim
         hidden_layer_dims.append(self.z_dim)
         self.non_linear = non_linear
