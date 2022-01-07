@@ -73,7 +73,6 @@ class Optimisation_VAE(Plotting):
                 else:
                     pred = self.encode(local_batch)
                 if self.sparse:
-                    print("applying threshold for batch: ", batch_idx)
                     pred = self.apply_threshold(pred)
                 if batch_idx == 0:
                     predictions = self.process_output(pred, data_type='latent')
