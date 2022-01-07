@@ -1,17 +1,24 @@
 from setuptools import setup, find_packages
 import os
 
-with open('requirements.txt') as f:
-    required = f.read().splitlines()
-
-setup(
-    name='multiview_models',
-    version='1.0.0',   
+def setup_package():
+    data = dict(
+    name='multiae',
+    version='0.0.1',   
     packages=find_packages(exclude=['*tests']),
-    package_dir={"":"src"},
     author='Ana Lawry Aguila',
     author_email='ana.lawryaguila@outlook.com',
-    url='https://github.com/alawryaguila/multiview_models',
-    install_requires=[required],
-    description='A library for running multiview models on medical imaging data'
-)
+    url='https://github.com/alawryaguila/multiAE',
+    install_requires=[
+        'scikit-learn~=0.24.1',
+        'scipy~=1.7.1',
+        'pandas==1.1.3',
+        'matplotlib~=3.4.1',
+        'pytorch-lightning~=1.5.5',
+    ],
+    description='A library for running multiview autoencoder models on medical imaging data'
+    )
+    setup(**data)
+
+if __name__ == "__main__":
+    setup_package()
