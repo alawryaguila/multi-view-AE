@@ -17,22 +17,28 @@ class Optimisation_VAE(Plotting):
     def __init__(self):
         super().__init__() 
 
-    def fit(self, *data, labels=None, **kwargs):
-
+    def fit(self, *data, **kwargs):
         self.data = data
-        self.labels = labels
-        torch.manual_seed(42)  
-        torch.cuda.manual_seed(42)
+        self.labels = None
+        self.val_set = False
+        self.output_path = os.getcwd() #TODO - allow no path 
         self.eps = 1e-15 
         self.__dict__.update(kwargs)
-        #TO DO 
+        if not hasattr(self, 'trainer_dict') or not self.trainer_dict:
+            self.trainer_dict = {'early_stopping': self.val_set}
+        if not hasattr(self, 'batch_size') or not self.batch_size:
+            self.batch_size = data[0].shape[0] if (type(data)==list or type(data)==tuple) else data.shape[0]
+
+        torch.manual_seed(42)  
+        torch.cuda.manual_seed(42)
+        
         trainer_args = dict(output_path=self.output_path,
                         n_epochs=self.n_epochs,
                         **self.trainer_dict)
 
         #create trainer function
         py_trainer = trainer(**trainer_args)
-        datamodule = MultiviewDataModule(data, batch_size=self.batch_size, val=self.val_set)
+        datamodule = MultiviewDataModule(data, batch_size=self.batch_size, val=self.val_set) #TO DO - create for other data formats
         py_trainer.fit(self, datamodule)
 
     def specify_folder(self, path=None):
@@ -67,13 +73,12 @@ class Optimisation_VAE(Plotting):
                 else:
                     pred = self.encode(local_batch)
                 if self.sparse:
+                    print("applying threshold for batch: ", batch_idx)
                     pred = self.apply_threshold(pred)
                 if batch_idx == 0:
                     predictions = self.process_output(pred, data_type='latent')
                 else:
                     predictions = self.process_output(pred, pred=predictions, data_type='latent')
-            if self.sparse:
-                predictions = self.apply_threshold(predictions) #TODO - check this works
         return predictions
 
     def process_output(self, data, pred=None, data_type=None):
@@ -160,4 +165,4 @@ class Optimisation_AAE(Optimisation_VAE):
                 'recon': loss_recon,
                 'disc': loss_disc,
                 'gen': loss_gen}
-  
+        return loss

@@ -15,7 +15,7 @@ def trainer(output_path,
             early_stopping_delta=1e-3, 
             early_stopping_patience=10
             ):
-    callbacks = []
+    callbacks = []       
     callbacks.append(ModelCheckpoint(monitor=checkpoint_metric_name,
                                         dirpath=output_path,
                                         mode=checkpoint_monitor_mode,
@@ -27,7 +27,7 @@ def trainer(output_path,
                                         patience=early_stopping_patience,
                                         verbose=True,
                                         mode=checkpoint_monitor_mode,))
-    
+
     logger = pl.loggers.TensorBoardLogger(
             save_dir=join(output_path, 'logs')
     )
@@ -41,5 +41,7 @@ def trainer(output_path,
                     max_epochs=n_epochs,
                     logger=logger,
                     callbacks=callbacks)
+
     return trainer
+
 

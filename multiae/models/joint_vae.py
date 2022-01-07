@@ -136,14 +136,8 @@ class jointVAE(pl.LightningModule, Optimisation_VAE):
         assert self.threshold <= 1.0
         dropout = self.dropout()
         keep = (dropout < self.threshold).squeeze().cpu()
-        z_keep = []
         if self.joint_representation:
             z[:,~keep] = 0
-        else:
-            for _ in z:
-                _[:, ~keep] = 0
-                z_keep.append(_)
-                del _
         return z
 
     @staticmethod

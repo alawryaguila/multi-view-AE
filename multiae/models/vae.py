@@ -126,13 +126,10 @@ class VAE(pl.LightningModule, Optimisation_VAE):
         assert self.threshold <= 1.0
         keep = (self.dropout() < self.threshold).squeeze().cpu()
         z_keep = []
-        if self.joint_representation:
-            z[:,~keep] = 0
-        else:
-            for _ in z:
-                _[:, ~keep] = 0
-                z_keep.append(_)
-                del _
+        for _ in z:
+            _[:, ~keep] = 0
+            z_keep.append(_)
+            del _
         return z
 
     @staticmethod
@@ -174,7 +171,6 @@ class VAE(pl.LightningModule, Optimisation_VAE):
         return losses
 
     def training_step(self, batch, batch_idx, optimizer_idx):
-
         fwd_return = self.forward(batch)
         loss = self.loss_function(batch, fwd_return)
         self.log(f'train_loss', loss['total'], on_epoch=True, prog_bar=True, logger=True)

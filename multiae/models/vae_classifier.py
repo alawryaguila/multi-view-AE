@@ -25,7 +25,6 @@ class VAE_classifier(nn.Module, Optimisation_VAE):
                 beta=1,
                 threshold=0,
                 n_labels=None,
-                SNP_model=False,
                 **kwargs):
 
         ''' 
@@ -38,7 +37,6 @@ class VAE_classifier(nn.Module, Optimisation_VAE):
         :param beta: weighting factor for Kullback-Leibler divergence term.
         :param threshold: Dropout threshold for sparsity constraint on latent representation. If threshold is 0 then there is no sparsity.
         :param n_labels: Number of labels for classifier to predict.
-        :param SNP_model: Whether model will be used for SNP data - parameter will be removed soon.
         '''
         super().__init__()
         self.model_type = 'VAE_classifier'
@@ -51,7 +49,6 @@ class VAE_classifier(nn.Module, Optimisation_VAE):
         self.learning_rate = learning_rate
         self.joint_representation = False
         self.threshold = threshold
-        self.SNP_model = SNP_model
         if self.threshold!=0:
             self.sparse = True
             self.model_type = 'sparse_VAE_classifier'
