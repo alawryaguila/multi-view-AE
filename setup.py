@@ -18,6 +18,7 @@ def setup_package():
         'torch~=1.10.0',
         'torchvision~=0.11.0',
         'pytorch-lightning~=1.5.5',
+        'umap-learn~=0.5.2',
     ],
     description='A library for running multiview autoencoder models on medical imaging data'
     )
