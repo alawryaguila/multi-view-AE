@@ -6,13 +6,13 @@ This repository contains various multi-view autoencoder models built in Pytorch.
 
 Clone this repository and move to folder:
 ```bash
-git clone https://github.com/alawryaguila/multiview_models
-cd multiview_models
+git clone https://github.com/alawryaguila/multiAE
+cd multiAE
 ```
-TODO - change as now using requirements.txt file 
+
 Create the customised python environment:
 ```bash
-conda env create -f environment.yml
+conda create --name mvm
 ```
 
 Activate python environment:
@@ -20,12 +20,7 @@ Activate python environment:
 conda activate mvm
 ```
 
-Install multiview_models package:
+Install multiAE package:
 ```bash
 python setup.py install
 ```
-
-### Referencing
-
-TODO
-
