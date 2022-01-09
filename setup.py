@@ -10,6 +10,7 @@ def setup_package():
     author_email='ana.lawryaguila@outlook.com',
     url='https://github.com/alawryaguila/multiAE',
     install_requires=[
+        'pytest',
         'scikit-learn~=0.24.1',
         'scipy~=1.7.1',
         'pandas==1.1.3',
