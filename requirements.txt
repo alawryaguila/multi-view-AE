@@ -86,6 +86,7 @@ numba==0.54.1
 numpy==1.20.3
     # via
     #   matplotlib
+    #   multiae (setup.py)
     #   numba
     #   pandas
     #   pytorch-lightning
@@ -151,7 +152,6 @@ rsa==4.8
     # via google-auth
 scikit-learn==0.24.2
     # via
-    #   multiae (setup.py)
     #   pynndescent
     #   umap-learn
 scipy==1.7.3
