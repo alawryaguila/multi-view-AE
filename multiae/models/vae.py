@@ -6,7 +6,7 @@ from torch.distributions import Normal
 from .layers import Encoder, Decoder 
 from .utils_deep import Optimisation_VAE
 import numpy as np
-from ..utils.kl_utils import compute_logvar, compute_kl, compute_kl_sparse, compute_ll
+from ..utils.kl_utils import compute_kl, compute_kl_sparse, compute_ll
 from os.path import join
 import pytorch_lightning as pl
 class VAE(pl.LightningModule, Optimisation_VAE):
@@ -71,7 +71,6 @@ class VAE(pl.LightningModule, Optimisation_VAE):
     def configure_optimizers(self):
         optimizers = [torch.optim.Adam(list(self.encoders[i].parameters()) + list(self.decoders[i].parameters()),
                                       lr=self.learning_rate) for i in range(self.n_views)]
-        print(optimizers)
         return optimizers
 
     def encode(self, x):
@@ -100,7 +99,6 @@ class VAE(pl.LightningModule, Optimisation_VAE):
         return x_recon
 
     def forward(self, x):
-        self.zero_grad()
         mu, logvar = self.encode(x)
         z = self.reparameterise(mu, logvar)
         x_recon = self.decode(z)

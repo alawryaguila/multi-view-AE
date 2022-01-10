@@ -109,7 +109,6 @@ class jointVAE(pl.LightningModule, Optimisation_VAE):
         return x_recon
 
     def forward(self, x):
-        self.zero_grad()
         mu, logvar = self.encode(x)
         z = self.reparameterise(mu, logvar)
         x_recon = self.decode(z)

@@ -3,10 +3,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
 from .layers import Encoder, Decoder 
-from .utils_deep import Optimisation_DVCCA
+from .utils_deep import Optimisation_VAE
 import numpy as np
-
-class DVCCA(nn.Module, Optimisation_DVCCA):
+import pytorch_lightning as pl
+class DVCCA(pl.LightningModule, Optimisation_VAE):
 
     def __init__(self, input_dims, config, private):
         '''

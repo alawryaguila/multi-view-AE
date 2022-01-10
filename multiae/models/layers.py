@@ -62,7 +62,6 @@ class Encoder(nn.Module):
             return h1
 #TO DO - implement conv encoder and decoder
 
-
 class Discriminator(nn.Module):
     def __init__(
                 self, 

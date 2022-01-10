@@ -17,9 +17,9 @@ class Optimisation_VAE(Plotting):
     def __init__(self):
         super().__init__() 
 
-    def fit(self, *data, **kwargs):
+    def fit(self, *data, labels=None,**kwargs):
         self.data = data
-        self.labels = None
+        self.labels = labels
         self.val_set = False
         self.output_path = os.getcwd() #TODO - allow no path 
         self.eps = 1e-15 
@@ -38,7 +38,7 @@ class Optimisation_VAE(Plotting):
 
         #create trainer function
         py_trainer = trainer(**trainer_args)
-        datamodule = MultiviewDataModule(data, batch_size=self.batch_size, val=self.val_set) #TO DO - create for other data formats
+        datamodule = MultiviewDataModule(data, labels=self.labels, batch_size=self.batch_size, val=self.val_set) #TO DO - create for other data formats
         py_trainer.fit(self, datamodule)
 
     def specify_folder(self, path=None):
@@ -58,11 +58,9 @@ class Optimisation_VAE(Plotting):
             os.makedirs(output_path)   
         return output_path
 
-    def predict_latents(self, *data, labels=None, val_set=False):
-        self.labels = labels
+    def predict_latents(self, *data, val_set=False):
         self.val_set = val_set
-        #generators =  MultiviewDataModule.dataset(self.data, labels=self.labels) #TODO get working with labels
-        dataset =  MultiviewDataModule.dataset(data)
+        dataset =  MultiviewDataModule.dataset(data, labels=None)
         generator = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
         with torch.no_grad():
             for batch_idx, local_batch in enumerate(generator): 
@@ -91,7 +89,7 @@ class Optimisation_VAE(Plotting):
             return [self.process_output(data_, data_type=data_type) if isinstance(data_, list) else data_.cpu().detach().numpy() for data_ in data] #is cpu needed?
 
     def predict_reconstruction(self, *data):
-        dataset =  MultiviewDataModule.dataset(data)
+        dataset =  MultiviewDataModule.dataset(data, labels=None)
         generator = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)   
         with torch.no_grad():
             for batch_idx, (local_batch) in enumerate(generator):
@@ -110,7 +108,22 @@ class Optimisation_VAE(Plotting):
 
                     x_reconstruction = self.process_output(x_recon, pred=x_reconstruction)
             return x_reconstruction
-
+    
+    def predict_labels(self, *data):
+        dataset =  MultiviewDataModule.dataset(data, labels=None)
+        generator = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)   
+        with torch.no_grad():
+            for batch_idx, (local_batch) in enumerate(generator):
+                local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
+                mu, logvar = self.encode(local_batch)
+                z = self.reparameterise(mu, logvar)               
+                output = self.classify(z)
+                pred = [torch.argmax(output_, dim=1) for output_ in output]
+                if batch_idx == 0:
+                    predictions = self.process_output(pred, data_type='prediction')
+                else:
+                    predictions = self.process_output(pred, pred=predictions, data_type='prediction')
+            return predictions            
 class Optimisation_AAE(Optimisation_VAE):
     
     def __init__(self):
