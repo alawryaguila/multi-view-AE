@@ -1,6 +1,6 @@
 # Multi-view autoencoders models 
 
-This repository contains various multi-view autoencoder models built in Pytorch.
+This repository contains various multi-view autoencoder models built in Pytorch and Pytorch-Lightning.
 
 ### Installation
 
