@@ -52,6 +52,7 @@ class DVCCA(pl.LightningModule, Optimisation_VAE):
         self.input_dims = input_dims
         self.private = private
         self.n_views = len(input_dims)
+        self.__dict__.update(kwargs)
         self.encoder = torch.nn.ModuleList([Encoder(input_dim = self.input_dims[0], hidden_layer_dims=self.hidden_layer_dims, variational=True)])
         if private:
             self.private_encoders = torch.nn.ModuleList([Encoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=True) for input_dim in self.input_dims])
