@@ -54,7 +54,7 @@ def test_jointAAE():
         recon = models.predict_reconstruction(test_1, test_2)
 
 def test_DVCCA(): 
-    from multiae import jointAAE
+    from multiae import DVCCA
     train_1 = np.random.rand(200, 20)
     train_2 = np.random.rand(200, 20)
     test_1 = np.random.rand(50, 20)
@@ -65,7 +65,7 @@ def test_DVCCA():
     for comb in param_combs:
         path = str(os.getcwd()) + '/DVCCA/' + "_".join(str(item) for item in comb)
         params = {key: comb[idx] for idx, key in enumerate(parameters)}
-        models = jointAAE(input_dims=[20, 20], n_epochs=10, **params).to(DEVICE)
+        models = DVCCA(input_dims=[20, 20], n_epochs=10, **params).to(DEVICE)
         models.fit(train_1, train_2, output_path=path)
         latent = models.predict_latents(test_1, test_2)
         recon = models.predict_reconstruction(test_1, test_2)
