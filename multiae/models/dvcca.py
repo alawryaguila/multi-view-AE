@@ -7,8 +7,8 @@ from .utils_deep import Optimisation_VAE
 import numpy as np
 import pytorch_lightning as pl
 from os.path import join
-class DVCCA(pl.LightningModule, Optimisation_VAE):
 
+class DVCCA(pl.LightningModule, Optimisation_VAE):
     def __init__(
                 self, 
                 input_dims,
@@ -34,9 +34,9 @@ class DVCCA(pl.LightningModule, Optimisation_VAE):
         self.save_hyperparameters()
         self.model_type = 'DVCCA'
         self.input_dims = input_dims
-        hidden_layer_dims = hidden_layer_dims.copy()
+        self.hidden_layer_dims = hidden_layer_dims.copy()
         self.z_dim = z_dim
-        hidden_layer_dims.append(self.z_dim)
+        self.hidden_layer_dims.append(self.z_dim)
         self.non_linear = non_linear
         self.beta = beta
         self.learning_rate = learning_rate
@@ -47,12 +47,12 @@ class DVCCA(pl.LightningModule, Optimisation_VAE):
         self.input_dims = input_dims
         self.private = private
         self.n_views = len(input_dims)
-        self.encoder = torch.nn.ModuleList([Encoder(input_dim = self.input_dims[0], hidden_layer_dims=hidden_layer_dims, variational=True)])
+        self.encoder = torch.nn.ModuleList([Encoder(input_dim = self.input_dims[0], hidden_layer_dims=self.hidden_layer_dims, variational=True)])
         if private:
-            self.private_encoders = torch.nn.ModuleList([Encoder(input_dim = input_dim, hidden_layer_dims=hidden_layer_dims, variational=True) for input_dim in self.input_dims])
+            self.private_encoders = torch.nn.ModuleList([Encoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=True) for input_dim in self.input_dims])
             self.hidden_layer_dims[-1] = z_dim + z_dim
 
-        self.decoders = torch.nn.ModuleList([Decoder(input_dim = input_dim, hidden_layer_dims=hidden_layer_dims, variational=True) for input_dim in self.input_dims])
+        self.decoders = torch.nn.ModuleList([Decoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=True) for input_dim in self.input_dims])
         if private:
             self.optimizers = [torch.optim.Adam(self.encoder.parameters(),lr=0.001)] + [torch.optim.Adam(list(self.decoders[i].parameters()),
                                       lr=self.learning_rate) for i in range(self.n_views)]
