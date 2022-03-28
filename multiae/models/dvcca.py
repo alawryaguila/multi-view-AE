@@ -6,9 +6,21 @@ from .layers import Encoder, Decoder
 from .utils_deep import Optimisation_VAE
 import numpy as np
 import pytorch_lightning as pl
+from os.path import join
 class DVCCA(pl.LightningModule, Optimisation_VAE):
 
-    def __init__(self, input_dims, config, private):
+    def __init__(
+                self, 
+                input_dims,
+                z_dim=1,
+                hidden_layer_dims=[],
+                non_linear=False,
+                learning_rate=0.001,
+                beta=1,
+                threshold=0,
+                trainer_dict=None,
+                private=True,
+                **kwargs):
         '''
         Initialise the Deep Variational Canonical Correlation Analysis model
 
@@ -19,21 +31,26 @@ class DVCCA(pl.LightningModule, Optimisation_VAE):
         '''
 
         super().__init__()
-        self._config = config
+        self.save_hyperparameters()
         self.model_type = 'DVCCA'
+        self.input_dims = input_dims
+        hidden_layer_dims = hidden_layer_dims.copy()
+        self.z_dim = z_dim
+        hidden_layer_dims.append(self.z_dim)
+        self.non_linear = non_linear
+        self.beta = beta
+        self.learning_rate = learning_rate
+        self.threshold = threshold
+        self.trainer_dict = trainer_dict
         if private:
             self.model_type = 'DVCCA_private'
         self.input_dims = input_dims
-        self.hidden_layer_dims = config['hidden_layers']
-        self.hidden_layer_dims.append(config['latent_size'])
         self.private = private
         self.n_views = len(input_dims)
-        self.beta = config['beta']
-        self.learning_rate = config['learning_rate']
         self.encoder = torch.nn.ModuleList([Encoder(input_dim = self.input_dims[0], hidden_layer_dims=self.hidden_layer_dims, variational=True)])
         if private:
             self.private_encoders = torch.nn.ModuleList([Encoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=True) for input_dim in self.input_dims])
-            self.hidden_layer_dims[-1] = config['latent_size'] + config['latent_size']
+            self.hidden_layer_dims[-1] = z_dim + z_dim
 
         self.decoders = torch.nn.ModuleList([Decoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=True) for input_dim in self.input_dims])
         if private:
@@ -119,10 +136,27 @@ class DVCCA(pl.LightningModule, Optimisation_VAE):
 
         kl = self.calc_kl(self, mu, logvar)
         recon = self.calc_ll(self, x, x_recon)
-
         total = kl + recon
-        
         losses = {'total': total,
                 'kl': kl,
-                'reconstruction': recon}
+                'll': recon}
         return losses
+
+    def training_step(self, batch, batch_idx, optimizer_idx):
+        fwd_return = self.forward(batch)
+        loss = self.loss_function(batch, fwd_return)
+        self.log(f'train_loss', loss['total'], on_epoch=True, prog_bar=True, logger=True)
+        self.log(f'train_kl_loss', loss['kl'], on_epoch=True, prog_bar=True, logger=True)
+        self.log(f'train_ll_loss', loss['ll'], on_epoch=True, prog_bar=True, logger=True)
+        return loss['total']
+
+    def validation_step(self, batch, batch_idx):
+        fwd_return = self.forward(batch)
+        loss = self.loss_function(batch, fwd_return)
+        self.log(f'val_loss', loss['total'], on_epoch=True, prog_bar=True, logger=True)
+        self.log(f'val_kl_loss', loss['kl'], on_epoch=True, prog_bar=True, logger=True)
+        self.log(f'val_ll_loss', loss['ll'], on_epoch=True, prog_bar=True, logger=True)
+        return loss['total']
+    
+    def on_train_end(self):
+        self.trainer.save_checkpoint(join(self.output_path, 'model.ckpt'))

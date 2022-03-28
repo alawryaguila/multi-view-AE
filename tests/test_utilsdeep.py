@@ -1,6 +1,7 @@
 import numpy as np
 import itertools as it
 import os
+
 def test_VAE():
     from multiae import VAE
     train_1 = np.random.rand(200, 20)
@@ -46,6 +47,23 @@ def test_jointAAE():
     param_combs = list(it.product(*(parameters[key] for key in parameters)))
     for comb in param_combs:
         path = str(os.getcwd()) + '/jointAAE/' + "_".join(str(item) for item in comb)
+        params = {key: comb[idx] for idx, key in enumerate(parameters)}
+        models = jointAAE(input_dims=[20, 20], n_epochs=10, **params).to(DEVICE)
+        models.fit(train_1, train_2, output_path=path)
+        latent = models.predict_latents(test_1, test_2)
+        recon = models.predict_reconstruction(test_1, test_2)
+
+def test_DVCCA(): 
+    from multiae import jointAAE
+    train_1 = np.random.rand(200, 20)
+    train_2 = np.random.rand(200, 20)
+    test_1 = np.random.rand(50, 20)
+    test_2 = np.random.rand(50, 20)
+    DEVICE = 'cpu'
+    parameters = {'z_dim': [5, 10], 'batch_size': [None, 10]}   
+    param_combs = list(it.product(*(parameters[key] for key in parameters)))
+    for comb in param_combs:
+        path = str(os.getcwd()) + '/DVCCA/' + "_".join(str(item) for item in comb)
         params = {key: comb[idx] for idx, key in enumerate(parameters)}
         models = jointAAE(input_dims=[20, 20], n_epochs=10, **params).to(DEVICE)
         models.fit(train_1, train_2, output_path=path)
