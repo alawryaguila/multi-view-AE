@@ -24,9 +24,14 @@ class DVCCA(pl.LightningModule, Optimisation_VAE):
         '''
         Initialise the Deep Variational Canonical Correlation Analysis model
 
-        input_dims: The input data dimension.
-        config: Configuration dictionary.
-        private: Label to indicate VCCA or VCCA-private.
+        :param input_dims: columns of input data e.g. [M1 , M2] where M1 and M2 are number of the columns for views 1 and 2 respectively
+        :param z_dim: number of latent vectors
+        :param hidden_layer_dims: dimensions of hidden layers for encoder and decoder networks.
+        :param non_linear: non-linearity between hidden layers. If True ReLU is applied between hidden layers of encoder and decoder networks
+        :param learning_rate: learning rate of optimisers.
+        :param beta: weighting factor for Kullback-Leibler divergence term.
+        :param threshold: Dropout threshold for sparsity constraint on latent representation. If threshold is 0 then there is no sparsity.
+        :param private: Label to indicate VCCA or VCCA-private.
 
         '''
 
