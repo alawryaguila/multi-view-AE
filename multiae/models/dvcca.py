@@ -59,12 +59,15 @@ class DVCCA(pl.LightningModule, Optimisation_VAE):
             self.hidden_layer_dims[-1] = z_dim + z_dim
 
         self.decoders = torch.nn.ModuleList([Decoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=True) for input_dim in self.input_dims])
-        if private:
-            self.optimizers = [torch.optim.Adam(self.encoder.parameters(),lr=0.001)] + [torch.optim.Adam(list(self.decoders[i].parameters()),
-                                      lr=self.learning_rate) for i in range(self.n_views)]
+        
+    def configure_optimizers(self):
+        if self.private:
+            optimizers = [torch.optim.Adam(self.encoder.parameters(),lr=0.001)] + [torch.optim.Adam(list(self.decoders[i].parameters()),
+                                        lr=self.learning_rate) for i in range(self.n_views)]
         else:
-            self.optimizers = [torch.optim.Adam(self.encoder.parameters(), lr=0.001)] + [torch.optim.Adam(list(self.decoders[i].parameters()),
-                                      lr=0.001) for i in range(self.n_views)]
+            optimizers = [torch.optim.Adam(self.encoder.parameters(), lr=0.001)] + [torch.optim.Adam(list(self.decoders[i].parameters()),
+                                        lr=0.001) for i in range(self.n_views)]
+        return optimizers
     def encode(self, x):
         mu, logvar = self.encoder[0](x[0])
         if self.private:
