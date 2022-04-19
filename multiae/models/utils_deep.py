@@ -28,7 +28,8 @@ class Optimisation_VAE(Plotting):
             self.trainer_dict = {'early_stopping': self.val_set}
         if not hasattr(self, 'batch_size') or not self.batch_size:
             self.batch_size = data[0].shape[0] if (type(data)==list or type(data)==tuple) else data.shape[0]
-
+        #if not hasattr(self, 'n_epochs'):
+            #self.n_epochs = 200
         torch.manual_seed(42)  
         torch.cuda.manual_seed(42)
         
