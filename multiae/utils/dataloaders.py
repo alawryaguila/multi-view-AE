@@ -20,8 +20,8 @@ class MultiviewDataModule(pl.LightningDataModule):
             return self.list_split(data, labels, split)
         return self.data_split(data, labels, split)
 
-    def data_split(self, data, labels, split):
-        N = data[0].shape[0]
+    def data_split(self, data, labels, split):   
+        N = data.shape[0] if len(data) == 1 else data[0].shape[0]
         idx_1 = list(random.sample(range(0, N), int(N*split)))
         idx_2 = np.setdiff1d(list(range(N)),idx_1)
         data_1 = []
@@ -70,8 +70,8 @@ class MultiviewDataModule(pl.LightningDataModule):
             self.val_dataset = self.dataset(val_data, val_labels)
         else:
             self.train_dataset = self.dataset(self.data, self.labels)
-            self.val_dataset = None      
-
+            self.val_dataset = None 
+           
     @staticmethod
     def dataset(data, labels):
         if labels is not None:

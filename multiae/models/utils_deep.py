@@ -18,7 +18,7 @@ class Optimisation_VAE(Plotting):
         super().__init__() 
 
     def fit(self, *data, labels=None,**kwargs):
-        self.data = data
+        self.data = data[0] if len(data) == 1 else data
         self.labels = labels
         self.val_set = False
         self.output_path = os.getcwd() #TODO - allow no path 
@@ -60,12 +60,17 @@ class Optimisation_VAE(Plotting):
         return output_path
 
     def predict_latents(self, *data, val_set=False):
+        data = data[0] if len(data) == 1 else data
         self.val_set = val_set
         dataset =  MultiviewDataModule.dataset(data, labels=None)
+       
         generator = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
         with torch.no_grad():
             for batch_idx, local_batch in enumerate(generator): 
-                local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
+                if isinstance(local_batch, list):
+                    local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
+                else:
+                    local_batch = local_batch.to(self.device)
                 if self.variational:
                     mu, logvar = self.encode(local_batch)
                     pred = self.reparameterise(mu, logvar)
@@ -73,8 +78,11 @@ class Optimisation_VAE(Plotting):
                     pred = self.encode(local_batch)
                 if self.sparse:
                     pred = self.apply_threshold(pred)
+                print(pred.shape)
                 if batch_idx == 0:
                     predictions = self.process_output(pred, data_type='latent')
+                    print(predictions.shape)
+                    exit()
                 else:
                     predictions = self.process_output(pred, pred=predictions, data_type='latent')
         return predictions
@@ -90,11 +98,15 @@ class Optimisation_VAE(Plotting):
             return [self.process_output(data_, data_type=data_type) if isinstance(data_, list) else data_.cpu().detach().numpy() for data_ in data] #is cpu needed?
 
     def predict_reconstruction(self, *data):
+        data = data[0] if len(data) == 1 else data
         dataset =  MultiviewDataModule.dataset(data, labels=None)
         generator = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)   
         with torch.no_grad():
             for batch_idx, (local_batch) in enumerate(generator):
-                local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
+                if isinstance(local_batch, list):
+                    local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
+                else:
+                    local_batch = local_batch.to(self.device)
                 if self.variational:
                     mu, logvar = self.encode(local_batch)
                     z = self.reparameterise(mu, logvar)
@@ -111,11 +123,15 @@ class Optimisation_VAE(Plotting):
             return x_reconstruction
     
     def predict_labels(self, *data):
+        data = data[0] if len(data) == 1 else data
         dataset =  MultiviewDataModule.dataset(data, labels=None)
         generator = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)   
         with torch.no_grad():
             for batch_idx, (local_batch) in enumerate(generator):
-                local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
+                if isinstance(local_batch, list):
+                    local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
+                else:
+                    local_batch = local_batch.to(self.device)
                 mu, logvar = self.encode(local_batch)
                 z = self.reparameterise(mu, logvar)               
                 output = self.classify(z)
@@ -124,7 +140,8 @@ class Optimisation_VAE(Plotting):
                     predictions = self.process_output(pred, data_type='prediction')
                 else:
                     predictions = self.process_output(pred, pred=predictions, data_type='prediction')
-            return predictions            
+            return predictions  
+
 class Optimisation_AAE(Optimisation_VAE):
     
     def __init__(self):
