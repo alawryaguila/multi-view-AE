@@ -62,17 +62,17 @@ class VAE(pl.LightningModule, Optimisation_VAE):
         else:
             self.log_alpha = None
             self.sparse = False
-        self.n_views = len(input_dim)
         self.__dict__.update(kwargs)
-        self.encoder = torch.nn.ModuleList(Encoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear, sparse=self.sparse, log_alpha=self.log_alpha))
-        self.decoder = torch.nn.ModuleList(Decoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, dist=self.dist, non_linear=self.non_linear))
+        self.encoder = Encoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, non_linear=self.non_linear, sparse=self.sparse, log_alpha=self.log_alpha)
+        self.decoder = Decoder(input_dim=input_dim, hidden_layer_dims=hidden_layer_dims, variational=True, dist=self.dist, non_linear=self.non_linear)
 
     def configure_optimizers(self):
-        return torch.optim.Adam(list(self.encoder.parameters()) + list(self.decoder.parameters()),
+        optimizers = torch.optim.Adam(list(self.encoder.parameters()) + list(self.decoder.parameters()),
                                       lr=self.learning_rate)
+        return optimizers
 
     def encode(self, x):
-        return self.encode(x)
+        return self.encoder(x)
     
     def reparameterise(self, mu, logvar): 
         std = torch.exp(0.5*logvar)
@@ -137,7 +137,8 @@ class VAE(pl.LightningModule, Optimisation_VAE):
         logvar = fwd_rtn['logvar']
         kl = self.calc_kl(self, mu, logvar)
         recon = self.calc_ll(self, x, x_recon)
-        total = kl + recon
+
+        total = kl - recon
         losses = {'total': total,
                 'kl': kl,
                 'll': recon}
@@ -157,7 +158,7 @@ class VAE(pl.LightningModule, Optimisation_VAE):
         self.log(f'val_loss', loss['total'], on_epoch=True, prog_bar=True, logger=True)
         self.log(f'val_kl_loss', loss['kl'], on_epoch=True, prog_bar=True, logger=True)
         self.log(f'val_ll_loss', loss['ll'], on_epoch=True, prog_bar=True, logger=True)
-        return loss['total']
+        return loss['total'] 
     
     def on_train_end(self):
         self.trainer.save_checkpoint(join(self.output_path, 'model.ckpt'))

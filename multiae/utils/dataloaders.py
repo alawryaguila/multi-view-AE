@@ -8,20 +8,21 @@ import pytorch_lightning as pl
 import random 
 
 class MultiviewDataModule(pl.LightningDataModule):
-    def __init__(self, data, labels=None, batch_size=None, val=False):
+    def __init__(self, *data, labels=None, batch_size=None, val=False):
         self.data = data
         self.batch_size = batch_size
         self.val = val
         self.labels = labels
 
-    def split(self, data, labels=None, split=0.9):
+    def split(self, *data, labels=None, split=0.9):
         random.seed(42)
-        if isinstance(data, list) and isinstance(data[0], int):
-            return self.list_split(data, labels, split)
-        return self.data_split(data, labels, split)
+        if isinstance(data, (list, tuple)) and isinstance(data[0], (int, float)):
+            return self.data_split(data, labels, split)
+        return self.list_split(data, labels, split)
+       
 
-    def data_split(self, data, labels, split):   
-        N = data.shape[0] if len(data) == 1 else data[0].shape[0]
+    def data_split(self, data, labels, split):
+        N = data[0]
         idx_1 = list(random.sample(range(0, N), int(N*split)))
         idx_2 = np.setdiff1d(list(range(N)),idx_1)
         data_1 = []
@@ -65,15 +66,16 @@ class MultiviewDataModule(pl.LightningDataModule):
         if self.labels is not None:
             self.labels = self.process_labels(self.labels)
         if self.val:
-            train_data, val_data, train_labels, val_labels = self.split(self.data, self.labels)
-            self.train_dataset = self.dataset(train_data, train_labels) 
-            self.val_dataset = self.dataset(val_data, val_labels)
+            train_data, val_data, train_labels, val_labels = self.split(*self.data, labels=self.labels)
+            self.train_dataset = self.dataset(*train_data, labels=train_labels) 
+            self.val_dataset = self.dataset(*val_data, labels=val_labels)
         else:
-            self.train_dataset = self.dataset(self.data, self.labels)
-            self.val_dataset = None 
-           
+            self.train_dataset = self.dataset(*self.data, labels=self.labels)
+            self.val_dataset = None      
+
     @staticmethod
-    def dataset(data, labels):
+    def dataset(*data, labels=None):
+        data = data[0] if len(data)==1 else data #hacky work around to single data view
         if labels is not None:
             return MyDataset_labels(data, labels)
         return MyDataset(data)

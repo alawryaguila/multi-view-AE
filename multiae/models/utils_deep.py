@@ -18,7 +18,8 @@ class Optimisation_VAE(Plotting):
         super().__init__() 
 
     def fit(self, *data, labels=None,**kwargs):
-        self.data = data[0] if len(data) == 1 else data
+        print(len(data))
+        self.data = data
         self.labels = labels
         self.val_set = False
         self.output_path = os.getcwd() #TODO - allow no path 
@@ -39,7 +40,7 @@ class Optimisation_VAE(Plotting):
 
         #create trainer function
         py_trainer = trainer(**trainer_args)
-        datamodule = MultiviewDataModule(data, labels=self.labels, batch_size=self.batch_size, val=self.val_set) #TO DO - create for other data formats
+        datamodule = MultiviewDataModule(*data, labels=self.labels, batch_size=self.batch_size, val=self.val_set) #TO DO - create for other data formats
         py_trainer.fit(self, datamodule)
 
     def specify_folder(self, path=None):
@@ -60,17 +61,12 @@ class Optimisation_VAE(Plotting):
         return output_path
 
     def predict_latents(self, *data, val_set=False):
-        data = data[0] if len(data) == 1 else data
         self.val_set = val_set
-        dataset =  MultiviewDataModule.dataset(data, labels=None)
-       
+        dataset =  MultiviewDataModule.dataset(*data, labels=None)
         generator = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
         with torch.no_grad():
             for batch_idx, local_batch in enumerate(generator): 
-                if isinstance(local_batch, list):
-                    local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
-                else:
-                    local_batch = local_batch.to(self.device)
+                local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch] if isinstance(local_batch, (list, tuple)) else local_batch.to(self.device)
                 if self.variational:
                     mu, logvar = self.encode(local_batch)
                     pred = self.reparameterise(mu, logvar)
@@ -78,11 +74,8 @@ class Optimisation_VAE(Plotting):
                     pred = self.encode(local_batch)
                 if self.sparse:
                     pred = self.apply_threshold(pred)
-                print(pred.shape)
                 if batch_idx == 0:
                     predictions = self.process_output(pred, data_type='latent')
-                    print(predictions.shape)
-                    exit()
                 else:
                     predictions = self.process_output(pred, pred=predictions, data_type='latent')
         return predictions
@@ -90,23 +83,27 @@ class Optimisation_VAE(Plotting):
     def process_output(self, data, pred=None, data_type=None):
         if pred:
             if self.variational and data_type is None and self.dist=='gaussian':
-                return [self.process_output(data_, pred=pred_, data_type=data_type) if isinstance(data_, list) else np.append(pred_, self.sample_from_normal(data_), axis=0) for pred_, data_ in zip(pred, data)]
-            return [self.process_output(data_, pred=pred_, data_type=data_type) if isinstance(data_, list) else np.append(pred_,data_, axis=0) for pred_, data_ in zip(pred, data)]
+                if isinstance(data, (list, tuple)):
+                    return [self.process_output(data_, pred=pred_, data_type=data_type) if isinstance(data_, list) else np.append(pred_, self.sample_from_normal(data_), axis=0) for pred_, data_ in zip(pred, data)]
+                return np.append(pred, self.sample_from_normal(data), axis=0)
+            if isinstance(data, (list, tuple)):
+                return [self.process_output(data_, pred=pred_, data_type=data_type) if isinstance(data_, list) else np.append(pred_,data_, axis=0) for pred_, data_ in zip(pred, data)]
+            return np.append(pred, data, axis=0)
         else:
             if self.variational and data_type is None and self.dist=='gaussian':
-                return [self.process_output(data_, data_type=data_type) if isinstance(data_, list) else self.sample_from_normal(data_).cpu().detach().numpy() for data_ in data]
-            return [self.process_output(data_, data_type=data_type) if isinstance(data_, list) else data_.cpu().detach().numpy() for data_ in data] #is cpu needed?
+                if isinstance(data, (list, tuple)):
+                    return [self.process_output(data_, data_type=data_type) if isinstance(data_, list) else self.sample_from_normal(data_).cpu().detach().numpy() for data_ in data]
+                return self.sample_from_normal(data).cpu().detach().numpy()
+            if isinstance(data, (list, tuple)):
+                return [self.process_output(data_, data_type=data_type) if isinstance(data_, list) else data_.cpu().detach().numpy() for data_ in data] #is cpu needed?
+            return data.cpu().detach().numpy()
 
     def predict_reconstruction(self, *data):
-        data = data[0] if len(data) == 1 else data
-        dataset =  MultiviewDataModule.dataset(data, labels=None)
+        dataset =  MultiviewDataModule.dataset(*data, labels=None)
         generator = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)   
         with torch.no_grad():
             for batch_idx, (local_batch) in enumerate(generator):
-                if isinstance(local_batch, list):
-                    local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
-                else:
-                    local_batch = local_batch.to(self.device)
+                local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
                 if self.variational:
                     mu, logvar = self.encode(local_batch)
                     z = self.reparameterise(mu, logvar)
@@ -123,15 +120,11 @@ class Optimisation_VAE(Plotting):
             return x_reconstruction
     
     def predict_labels(self, *data):
-        data = data[0] if len(data) == 1 else data
-        dataset =  MultiviewDataModule.dataset(data, labels=None)
+        dataset =  MultiviewDataModule.dataset(*data, labels=None)
         generator = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)   
         with torch.no_grad():
             for batch_idx, (local_batch) in enumerate(generator):
-                if isinstance(local_batch, list):
-                    local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
-                else:
-                    local_batch = local_batch.to(self.device)
+                local_batch = [local_batch_.to(self.device) for local_batch_ in local_batch]
                 mu, logvar = self.encode(local_batch)
                 z = self.reparameterise(mu, logvar)               
                 output = self.classify(z)
@@ -140,8 +133,7 @@ class Optimisation_VAE(Plotting):
                     predictions = self.process_output(pred, data_type='prediction')
                 else:
                     predictions = self.process_output(pred, pred=predictions, data_type='prediction')
-            return predictions  
-
+            return predictions            
 class Optimisation_AAE(Optimisation_VAE):
     
     def __init__(self):

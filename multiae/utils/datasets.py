@@ -14,16 +14,10 @@ import pandas as pd
 class MyDataset(Dataset):
     def __init__(self, data, indices = False, transform=None):
         self.data = data
-        if isinstance(data,list) or isinstance(data,tuple):
-            if len(data)>=2:
-                self.data = [torch.from_numpy(d).float() if isinstance(d,np.ndarray) else d for d in self.data]
-                self.N = len(self.data[0])
-                self.shape = np.shape(self.data[0])
-            else:
-                self.data = torch.from_numpy(self.data[0]).float() if isinstance(self.data[0],np.ndarray) else self.data[0]
-                self.N = len(self.data[0])
-                self.shape = np.shape(self.data[0])
-
+        if isinstance(data,(list, tuple)):
+            self.data = [torch.from_numpy(d).float() if isinstance(d,np.ndarray) else d for d in self.data]
+            self.N = len(self.data[0])
+            self.shape = np.shape(self.data[0])
         elif isinstance(data,np.ndarray):
             self.data = torch.from_numpy(self.data).float()
             self.N = len(self.data)
@@ -33,7 +27,7 @@ class MyDataset(Dataset):
         self.indices = indices
 
     def __getitem__(self, index):
-        if isinstance(self.data,list) and len(self.data)>=2:
+        if isinstance(self.data,list):
             x = [d[index] for d in self.data]
         else:
             x = self.data[index]
@@ -51,7 +45,7 @@ class MyDataset_labels(Dataset):
     def __init__(self, data, labels, indices = False, transform=None):
         self.data = data
         self.labels = labels
-        if isinstance(data,list) or isinstance(data,tuple):
+        if isinstance(data,(list, tuple)):
             self.data = [torch.from_numpy(d).float() if isinstance(d,np.ndarray) else d for d in self.data]
             self.N = len(self.data[0])
             self.shape = np.shape(self.data[0])
