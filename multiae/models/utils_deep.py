@@ -81,7 +81,7 @@ class Optimisation_VAE(Plotting):
         return predictions
 
     def process_output(self, data, pred=None, data_type=None):
-        if pred:
+        if pred is not None:
             if self.variational and data_type is None and self.dist=='gaussian':
                 if isinstance(data, (list, tuple)):
                     return [self.process_output(data_, pred=pred_, data_type=data_type) if isinstance(data_, list) else np.append(pred_, self.sample_from_normal(data_), axis=0) for pred_, data_ in zip(pred, data)]
