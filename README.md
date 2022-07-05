@@ -16,8 +16,6 @@ This repository contains various multi-view autoencoder models built in Pytorch 
 | DVCCA | Deep Variational CCA [3] |    2 |
 |  jointAAE    | Multi-view Adversarial Autoencoder with joint latent representation  |   >=1 |
 | wAAE | Multi-view Adversarial Autoencoder with joint latent representation and wasserstein loss    |    >=1 |
-|  jointAAE    | Multi-view Adversarial Autoencoder with joint latent representation  |   >=1 |
-| wAAE | Multi-view Adversarial Autoencoder with joint latent representation and wasserstein loss    |    >=1 |
 |  mmVAE    | Variational mixture-of-experts autoencoder (MMVAE) [4] |   >=1 |
 | jointVAE | Multi-view VAE with joint representation. Multimodal Variational Autoencoder (MVAE) with ```join_type=PoE``` [5] |    >=1 |
 
