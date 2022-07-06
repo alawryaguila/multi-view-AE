@@ -139,7 +139,6 @@ class jointVAE(pl.LightningModule, Optimisation_VAE):
             z[:,~keep] = 0
         return z
 
-    @staticmethod
     def calc_kl(self, mu, logvar):
         '''
         VAE: Implementation from: https://arxiv.org/abs/1312.6114
@@ -152,7 +151,6 @@ class jointVAE(pl.LightningModule, Optimisation_VAE):
             kl+= compute_kl(mu, logvar)
         return self.beta*kl
 
-    @staticmethod
     def calc_ll(self, x, x_recon):
         ll = 0
         for i in range(self.n_views):
@@ -194,3 +192,4 @@ class jointVAE(pl.LightningModule, Optimisation_VAE):
     
     def on_train_end(self):
         self.trainer.save_checkpoint(join(self.output_path, 'model.ckpt'))
+        torch.save(self, join(self.output_path, 'model.pkl'))

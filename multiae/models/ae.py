@@ -76,7 +76,6 @@ class AE(pl.LightningModule, Optimisation_VAE):
                     'z': z}
         return fwd_rtn
 
-    @staticmethod
     def recon_loss(self, x, x_recon):
         recon = 0    
         for i in range(self.n_views):

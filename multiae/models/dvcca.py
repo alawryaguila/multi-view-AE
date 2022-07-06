@@ -128,7 +128,6 @@ class DVCCA(pl.LightningModule, Optimisation_VAE):
                     'logvar': logvar}
         return fwd_rtn
 
-    @staticmethod
     def calc_kl(self, mu, logvar):
         '''
         Implementation from: https://arxiv.org/abs/1312.6114
@@ -148,7 +147,6 @@ class DVCCA(pl.LightningModule, Optimisation_VAE):
                 kl+= compute_kl(mu, logvar)
         return self.beta*kl
 
-    @staticmethod
     def calc_ll(self, x, x_recon):
         ll = 0    
         for i in range(self.n_views):
@@ -165,7 +163,7 @@ class DVCCA(pl.LightningModule, Optimisation_VAE):
 
         kl = self.calc_kl(self, mu, logvar)
         recon = self.calc_ll(self, x, x_recon)
-        total = kl + recon
+        total = kl - recon
         losses = {'total': total,
                 'kl': kl,
                 'll': recon}
@@ -189,3 +187,4 @@ class DVCCA(pl.LightningModule, Optimisation_VAE):
     
     def on_train_end(self):
         self.trainer.save_checkpoint(join(self.output_path, 'model.ckpt'))
+        torch.save(self, join(self.output_path, 'model.pkl'))

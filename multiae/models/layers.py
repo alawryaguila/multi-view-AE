@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
+from torch.distributions.multivariate_normal import MultivariateNormal
 from ..utils.kl_utils import compute_logvar
 from ..utils.datasets import MyDataset
 import numpy as np
@@ -169,7 +170,10 @@ class Decoder(nn.Module):
                 return Normal(loc=x_rec, scale=torch.exp(0.5 * self.logvar_out))
             elif self.dist == 'bernoulli':
                 return torch.sigmoid(x_rec)
+            elif self.dist == 'MultivariateGaussian':
+                return MultivariateNormal(x_rec, torch.broadcast_to(torch.eye(x_rec.size()[1]), (x_rec.size()[0], x_rec.size()[1], x_rec.size()[1])))
+                #check this works
         return x_rec
-
+ 
 
 

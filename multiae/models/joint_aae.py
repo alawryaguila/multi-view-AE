@@ -107,7 +107,6 @@ class jointAAE(pl.LightningModule, Optimisation_AAE):
                     'z': z}
         return fwd_rtn
 
-    @staticmethod
     def recon_loss(self, x, fwd_rtn):
         x_recon = fwd_rtn['x_recon']
         recon = 0    
@@ -115,14 +114,12 @@ class jointAAE(pl.LightningModule, Optimisation_AAE):
             recon+= compute_mse(x[i], x_recon[i])
         return recon/self.n_views
 
-    @staticmethod
     def generator_loss(self, fwd_rtn):
         z = fwd_rtn['z']
         d_fake = fwd_rtn['d_fake']
         gen_loss= -torch.mean(torch.log(d_fake+self.eps))
         return gen_loss
 
-    @staticmethod
     def discriminator_loss(self, fwd_rtn):
         z = fwd_rtn['z']
         d_real = fwd_rtn['d_real']

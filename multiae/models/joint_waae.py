@@ -93,7 +93,6 @@ class wAAE(nn.Module, Optimisation_AAE):
                     'z': z}
         return fwd_rtn
 
-    @staticmethod
     def recon_loss(self, x, fwd_rtn):
         x_out = fwd_rtn['x_out']
         recon_loss = 0
@@ -101,14 +100,12 @@ class wAAE(nn.Module, Optimisation_AAE):
             recon_loss+= torch.mean(((x_out[i] - x[i])**2).sum(dim=-1))
         return recon_loss/self.n_views
 
-    @staticmethod
     def generator_loss(self, fwd_rtn):
         z = fwd_rtn['z']
         d_fake = fwd_rtn['d_fake']
         gen_loss= -torch.mean(d_fake.sum(dim=-1))
         return gen_loss
 
-    @staticmethod
     def discriminator_loss(self, fwd_rtn):
         z = fwd_rtn['z']
         d_real = fwd_rtn['d_real']

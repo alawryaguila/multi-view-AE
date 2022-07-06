@@ -142,7 +142,6 @@ class VAE_classifier(pl.LightningModule, Optimisation_VAE):
             del _
         return z
 
-    @staticmethod
     def calc_kl(self, mu, logvar):
         '''
         VAE: Implementation from: https://arxiv.org/abs/1312.6114
@@ -157,7 +156,6 @@ class VAE_classifier(pl.LightningModule, Optimisation_VAE):
                 kl+= compute_kl(mu[i], logvar[i])
         return self.beta*kl
 
-    @staticmethod
     def calc_ll(self, x, x_recon):
         ll = 0    
         for i in range(self.n_views):
@@ -165,7 +163,6 @@ class VAE_classifier(pl.LightningModule, Optimisation_VAE):
                     ll+= compute_ll(x[i], x_recon[i][j], dist=self.dist)
         return ll
 
-    @staticmethod
     def calc_ce(self, y, pred):
         ce = 0    
         for i in range(self.n_views):

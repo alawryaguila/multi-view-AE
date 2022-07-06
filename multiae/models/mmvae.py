@@ -10,13 +10,6 @@ from ..utils.kl_utils import compute_kl, compute_kl_sparse, compute_ll
 from os.path import join
 import pytorch_lightning as pl
 import math
-def kl_divergence(d1, d2, K=100):
-    """Computes closed-form KL if available, else computes a MC estimate."""
-    if (type(d1), type(d2)) in torch.distributions.kl._KL_REGISTRY:
-        return torch.distributions.kl_divergence(d1, d2)
-    else:
-        samples = d1.rsample(torch.Size([K]))
-        return (d1.log_prob(samples) - d2.log_prob(samples)).mean(0)
 
 class mmVAE(pl.LightningModule, Optimisation_VAE):
     '''
@@ -117,29 +110,12 @@ class mmVAE(pl.LightningModule, Optimisation_VAE):
     def moe_iwae(self, x, qz_xs, px_zs, zss): 
         lws = []
         for r, qz_x in enumerate(qz_xs): 
-            #print('zss[r]:',zss[r].shape)
-            #print('qz_x:',qz_x.loc.shape)
-            #print('px_zs[r]:',len(px_zs[r]))
             lpz = Normal(loc=0,scale=1).log_prob(zss[r]).sum(-1)
-            #print(lpz.shape)
-            #print('px_z batch shape:',px_zs[0][0].loc.view(*px_zs[0][0].batch_shape[:2], -1).shape)
-            #print('px_z batch shape:',px_zs[1][0].loc.view(*px_zs[1][0].batch_shape[:2], -1).shape)
-            #print('px_z logprob(x[d]) sum: ', px_zs[0][0].log_prob(x[0]).view(*px_zs[0][0].batch_shape[:2], -1).sum(-1).shape)
-            #print(torch.stack([qz_x.log_prob(zss[r]).sum(-1) for qz_x in qz_xs]).shape)
-            #print(qz_x.log_prob(zss[r]).sum(-1).shape)
-            #print(qz_x.log_prob(zss[r]).shape)
-            #print(len(qz_xs))
             lqz_x = self.log_mean_exp(torch.stack([qz_x.log_prob(zss[r]).sum(-1) for qz_x in qz_xs])) #summing over M modalities for each z to create q(z|x1:M)
-            #print(lqz_x.shape)
             lpx_z = [px_z.log_prob(x[d]).view(*px_z.batch_shape[:2], -1).sum(-1)
                     for d, px_z in enumerate(px_zs[r])] #summing over each decoder 
-            #print('lpx_z:',lpx_z[0].shape)
             lpx_z = torch.stack(lpx_z).sum(0)
-            #print('lpz:',lpz.shape)
-            #print('lqz_x:',lqz_x.shape)
-            #print('lpx_z:',lpx_z.shape)
             lw = lpz + lpx_z - lqz_x
-            #print(lw.shape)
             lws.append(lw)
         return self.log_mean_exp(torch.stack(lws), dim=1).mean(0).sum() #looser iwae bound where have 
     
@@ -169,4 +145,5 @@ class mmVAE(pl.LightningModule, Optimisation_VAE):
     
     def on_train_end(self):
         self.trainer.save_checkpoint(join(self.output_path, 'model.ckpt'))
+        torch.save(self, join(self.output_path, 'model.pkl'))
 

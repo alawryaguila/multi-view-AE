@@ -18,11 +18,11 @@ class Optimisation_VAE(Plotting):
         super().__init__() 
 
     def fit(self, *data, labels=None,**kwargs):
-        print(len(data))
         self.data = data
         self.labels = labels
         self.val_set = False
-        self.output_path = os.getcwd() #TODO - allow no path 
+        if not hasattr(self, 'output_path'):
+            self.output_path = os.getcwd() #TODO - allow no path 
         self.eps = 1e-15 
         self.__dict__.update(kwargs)
         if not hasattr(self, 'trainer_dict') or not self.trainer_dict:

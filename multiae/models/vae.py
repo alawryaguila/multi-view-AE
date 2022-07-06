@@ -124,7 +124,6 @@ class VAE(pl.LightningModule, Optimisation_VAE):
             kl = compute_kl(mu, logvar)
         return self.beta*kl
 
-    @staticmethod
     def calc_ll(self, x, x_recon):
         return compute_ll(x, x_recon, dist=self.dist)
 

@@ -8,3 +8,5 @@ from .dvcca import *
 from .utils_deep import *
 from .layers import *
 from .multi_vae import *
+from .mmvae import *
+from .mvtcae import *
