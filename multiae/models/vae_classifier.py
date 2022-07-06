@@ -217,9 +217,9 @@ class VAE_classifier(pl.LightningModule, Optimisation_VAE):
         logvar = fwd_rtn["logvar"]
         pred = fwd_rtn["pred"]
 
-        kl = self.calc_kl(self, mu, logvar)
-        recon = self.calc_ll(self, x, x_recon)
-        ce = self.calc_ce(self, y, pred)
+        kl = self.calc_kl(mu, logvar)
+        recon = self.calc_ll(x, x_recon)
+        ce = self.calc_ce(y, pred)
         total = kl + ce + recon
         losses = {"total": total, "kl": kl, "ll": recon, "ce": ce}
         return losses

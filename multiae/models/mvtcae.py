@@ -158,9 +158,9 @@ class MVTCAE(pl.LightningModule, Optimisation_VAE):
         cvib_weight = self.alpha / self.n_views
         vib_weight = 1 - self.alpha
 
-        grp_kl = self.calc_kl_groupwise(self, mu, logvar)
-        cvib_kl = self.calc_kl_cvib(self, mu, logvar)
-        recon = self.calc_ll(self, x, x_recon)
+        grp_kl = self.calc_kl_groupwise(mu, logvar)
+        cvib_kl = self.calc_kl_cvib(mu, logvar)
+        recon = self.calc_ll(x, x_recon)
 
         kld_weighted = cvib_weight * cvib_kl + vib_weight * grp_kl
         total = -rec_weight * recon + self.beta * kld_weighted

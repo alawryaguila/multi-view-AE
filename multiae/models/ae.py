@@ -113,7 +113,7 @@ class AE(pl.LightningModule, Optimisation_VAE):
     def loss_function(self, x, fwd_rtn):
         x_recon = fwd_rtn["x_recon"]
         z = fwd_rtn["z"]
-        recon = self.recon_loss(self, x, x_recon)
+        recon = self.recon_loss(x, x_recon)
         losses = {"total": recon}
         return losses
 

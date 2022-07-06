@@ -198,8 +198,8 @@ class DVCCA(pl.LightningModule, Optimisation_VAE):
         mu = fwd_rtn["mu"]
         logvar = fwd_rtn["logvar"]
 
-        kl = self.calc_kl(self, mu, logvar)
-        recon = self.calc_ll(self, x, x_recon)
+        kl = self.calc_kl(mu, logvar)
+        recon = self.calc_ll(x, x_recon)
         total = kl - recon
         losses = {"total": total, "kl": kl, "ll": recon}
         return losses
