@@ -2,39 +2,43 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
-from .layers import Encoder, Decoder, Discriminator 
+from .layers import Encoder, Decoder, Discriminator
 from .utils_deep import Optimisation_AAE
 from ..utils.kl_utils import compute_mse
 import numpy as np
-from torch.autograd import Variable 
+from torch.autograd import Variable
 import pytorch_lightning as pl
-class jointAAE(pl.LightningModule, Optimisation_AAE):
-    '''
-    Multi-view Adversarial Autoencoder model with a joint latent representation.
-    
-    '''      
-    def __init__(
-                self, 
-                input_dims,
-                z_dim=1,
-                hidden_layer_dims=[],
-                discriminator_layer_dims=[],
-                non_linear=False,
-                learning_rate=0.002,
-                **kwargs):
 
-        ''' 
+
+class jointAAE(pl.LightningModule, Optimisation_AAE):
+    """
+    Multi-view Adversarial Autoencoder model with a joint latent representation.
+
+    """
+
+    def __init__(
+        self,
+        input_dims,
+        z_dim=1,
+        hidden_layer_dims=[],
+        discriminator_layer_dims=[],
+        non_linear=False,
+        learning_rate=0.002,
+        **kwargs,
+    ):
+
+        """
         :param input_dims: columns of input data e.g. [M1 , M2] where M1 and M2 are number of the columns for views 1 and 2 respectively
         :param z_dim: number of latent vectors
         :param hidden_layer_dims: dimensions of hidden layers for encoder and decoder networks.
         :param discriminator_layer_dims: dimensions of hidden layers for encoder and decoder networks.
         :param non_linear: non-linearity between hidden layers. If True ReLU is applied between hidden layers of encoder and decoder networks
         :param learning_rate: learning rate of optimisers.
-        '''
+        """
         super().__init__()
         self.automatic_optimization = False
         self.save_hyperparameters()
-        self.model_type = 'joint_AAE'
+        self.model_type = "joint_AAE"
         self.input_dims = input_dims
         self.hidden_layer_dims = hidden_layer_dims.copy()
         self.z_dim = z_dim
@@ -47,16 +51,65 @@ class jointAAE(pl.LightningModule, Optimisation_AAE):
         self.sparse = False
         self.variational = False
         self.__dict__.update(kwargs)
-        self.encoders = torch.nn.ModuleList([Encoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=False, non_linear=self.non_linear) for input_dim in self.input_dims])
-        self.decoders = torch.nn.ModuleList([Decoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, variational=False, non_linear=self.non_linear) for input_dim in self.input_dims])
-        self.discriminator = Discriminator(input_dim = self.z_dim, hidden_layer_dims=discriminator_layer_dims, output_dim=1)
-        
+        self.encoders = torch.nn.ModuleList(
+            [
+                Encoder(
+                    input_dim=input_dim,
+                    hidden_layer_dims=self.hidden_layer_dims,
+                    variational=False,
+                    non_linear=self.non_linear,
+                )
+                for input_dim in self.input_dims
+            ]
+        )
+        self.decoders = torch.nn.ModuleList(
+            [
+                Decoder(
+                    input_dim=input_dim,
+                    hidden_layer_dims=self.hidden_layer_dims,
+                    variational=False,
+                    non_linear=self.non_linear,
+                )
+                for input_dim in self.input_dims
+            ]
+        )
+        self.discriminator = Discriminator(
+            input_dim=self.z_dim,
+            hidden_layer_dims=discriminator_layer_dims,
+            output_dim=1,
+        )
+
     def configure_optimizers(self):
         optimizers = []
-        [optimizers.append(torch.optim.Adam(list(self.encoders[i].parameters()), lr=self.learning_rate)) for i in range(self.n_views)]
-        [optimizers.append(torch.optim.Adam(list(self.decoders[i].parameters()), lr=self.learning_rate)) for i in range(self.n_views)]
-        [optimizers.append(torch.optim.Adam(list(self.encoders[i].parameters()), lr=self.learning_rate)) for i in range(self.n_views)]
-        optimizers.append(torch.optim.Adam(list(self.discriminator.parameters()), lr=self.learning_rate))
+        [
+            optimizers.append(
+                torch.optim.Adam(
+                    list(self.encoders[i].parameters()), lr=self.learning_rate
+                )
+            )
+            for i in range(self.n_views)
+        ]
+        [
+            optimizers.append(
+                torch.optim.Adam(
+                    list(self.decoders[i].parameters()), lr=self.learning_rate
+                )
+            )
+            for i in range(self.n_views)
+        ]
+        [
+            optimizers.append(
+                torch.optim.Adam(
+                    list(self.encoders[i].parameters()), lr=self.learning_rate
+                )
+            )
+            for i in range(self.n_views)
+        ]
+        optimizers.append(
+            torch.optim.Adam(
+                list(self.discriminator.parameters()), lr=self.learning_rate
+            )
+        )
         return optimizers
 
     def encode(self, x):
@@ -64,11 +117,11 @@ class jointAAE(pl.LightningModule, Optimisation_AAE):
         for i in range(self.n_views):
             z_ = self.encoders[i](x[i])
             z.append(z_)
-            
+
         z = torch.stack(z)
         mean_z = torch.mean(z, axis=0)
         return mean_z
-    
+
     def decode(self, z):
         x_recon = []
         for i in range(self.n_views):
@@ -77,7 +130,7 @@ class jointAAE(pl.LightningModule, Optimisation_AAE):
         return x_recon
 
     def disc(self, z):
-        z_real = Variable(torch.randn(z.size()[0], self.z_dim) * 1.).to(self.device)
+        z_real = Variable(torch.randn(z.size()[0], self.z_dim) * 1.0).to(self.device)
         d_real = self.discriminator(z_real)
         d_fake = self.discriminator(z)
         return d_real, d_fake
@@ -85,17 +138,14 @@ class jointAAE(pl.LightningModule, Optimisation_AAE):
     def forward_recon(self, x):
         z = self.encode(x)
         x_recon = self.decode(z)
-        fwd_rtn = {'x_recon': x_recon,
-                    'z': z}
+        fwd_rtn = {"x_recon": x_recon, "z": z}
         return fwd_rtn
-    
+
     def forward_discrim(self, x):
         [encoder.eval() for encoder in self.encoders]
         z = self.encode(x)
         d_real, d_fake = self.disc(z)
-        fwd_rtn = {'d_real': d_real,
-                    'd_fake': d_fake,
-                    'z': z}
+        fwd_rtn = {"d_real": d_real, "d_fake": d_fake, "z": z}
         return fwd_rtn
 
     def forward_gen(self, x):
@@ -103,42 +153,61 @@ class jointAAE(pl.LightningModule, Optimisation_AAE):
         self.discriminator.eval()
         z = self.encode(x)
         _, d_fake = self.disc(z)
-        fwd_rtn = {'d_fake': d_fake,
-                    'z': z}
+        fwd_rtn = {"d_fake": d_fake, "z": z}
         return fwd_rtn
 
     def recon_loss(self, x, fwd_rtn):
-        x_recon = fwd_rtn['x_recon']
-        recon = 0    
+        x_recon = fwd_rtn["x_recon"]
+        recon = 0
         for i in range(self.n_views):
-            recon+= compute_mse(x[i], x_recon[i])
-        return recon/self.n_views
+            recon += compute_mse(x[i], x_recon[i])
+        return recon / self.n_views
 
     def generator_loss(self, fwd_rtn):
-        z = fwd_rtn['z']
-        d_fake = fwd_rtn['d_fake']
-        gen_loss= -torch.mean(torch.log(d_fake+self.eps))
+        z = fwd_rtn["z"]
+        d_fake = fwd_rtn["d_fake"]
+        gen_loss = -torch.mean(torch.log(d_fake + self.eps))
         return gen_loss
 
     def discriminator_loss(self, fwd_rtn):
-        z = fwd_rtn['z']
-        d_real = fwd_rtn['d_real']
-        d_fake = fwd_rtn['d_fake']
-        disc_loss= -torch.mean(torch.log(d_real+self.eps)+torch.log(1-d_fake+self.eps))
+        z = fwd_rtn["z"]
+        d_real = fwd_rtn["d_real"]
+        d_fake = fwd_rtn["d_fake"]
+        disc_loss = -torch.mean(
+            torch.log(d_real + self.eps) + torch.log(1 - d_fake + self.eps)
+        )
         return disc_loss
 
     def training_step(self, batch, batch_idx):
         loss = self.optimise_batch(batch)
-        self.log(f'train_loss', loss['total'], on_epoch=True, prog_bar=True, logger=True)
-        self.log(f'train_recon_loss', loss['recon'], on_epoch=True, prog_bar=True, logger=True)
-        self.log(f'train_disc_loss', loss['disc'], on_epoch=True, prog_bar=True, logger=True)
-        self.log(f'train_gen_loss', loss['gen'], on_epoch=True, prog_bar=True, logger=True)
-        return loss['total']
+        self.log(
+            f"train_loss", loss["total"], on_epoch=True, prog_bar=True, logger=True
+        )
+        self.log(
+            f"train_recon_loss",
+            loss["recon"],
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
+        )
+        self.log(
+            f"train_disc_loss", loss["disc"], on_epoch=True, prog_bar=True, logger=True
+        )
+        self.log(
+            f"train_gen_loss", loss["gen"], on_epoch=True, prog_bar=True, logger=True
+        )
+        return loss["total"]
 
     def validation_step(self, batch, batch_idx):
         loss = self.validate_batch(batch)
-        self.log(f'val_loss', loss['total'], on_epoch=True, prog_bar=True, logger=True)
-        self.log(f'val_recon_loss', loss['recon'], on_epoch=True, prog_bar=True, logger=True)
-        self.log(f'val_disc_loss', loss['disc'], on_epoch=True, prog_bar=True, logger=True)
-        self.log(f'val_gen_loss', loss['gen'], on_epoch=True, prog_bar=True, logger=True)
-        return loss['total']
+        self.log(f"val_loss", loss["total"], on_epoch=True, prog_bar=True, logger=True)
+        self.log(
+            f"val_recon_loss", loss["recon"], on_epoch=True, prog_bar=True, logger=True
+        )
+        self.log(
+            f"val_disc_loss", loss["disc"], on_epoch=True, prog_bar=True, logger=True
+        )
+        self.log(
+            f"val_gen_loss", loss["gen"], on_epoch=True, prog_bar=True, logger=True
+        )
+        return loss["total"]

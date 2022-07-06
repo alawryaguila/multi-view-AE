@@ -2,28 +2,30 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
-from .layers import Encoder, Decoder 
+from .layers import Encoder, Decoder
 from .utils_deep import Optimisation_VAE
 import numpy as np
 from ..utils.kl_utils import compute_kl, compute_kl_sparse, compute_ll
 import pytorch_lightning as pl
 from os.path import join
 
+
 class DVCCA(pl.LightningModule, Optimisation_VAE):
     def __init__(
-                self, 
-                input_dims,
-                z_dim=1,
-                hidden_layer_dims=[],
-                non_linear=False,
-                learning_rate=0.001,
-                beta=1,
-                threshold=0,
-                trainer_dict=None,
-                dist='gaussian',
-                private=True,
-                **kwargs):
-        '''
+        self,
+        input_dims,
+        z_dim=1,
+        hidden_layer_dims=[],
+        non_linear=False,
+        learning_rate=0.001,
+        beta=1,
+        threshold=0,
+        trainer_dict=None,
+        dist="gaussian",
+        private=True,
+        **kwargs,
+    ):
+        """
         Initialise the Deep Variational Canonical Correlation Analysis model
 
         :param input_dims: columns of input data e.g. [M1 , M2] where M1 and M2 are number of the columns for views 1 and 2 respectively
@@ -35,11 +37,11 @@ class DVCCA(pl.LightningModule, Optimisation_VAE):
         :param threshold: TODO - Dropout threshold for sparsity constraint on latent representation. If threshold is 0 then there is no sparsity.
         :param private: Label to indicate VCCA or VCCA-private.
 
-        '''
+        """
 
         super().__init__()
         self.save_hyperparameters()
-        self.model_type = 'DVCCA'
+        self.model_type = "DVCCA"
         self.input_dims = input_dims
         self.hidden_layer_dims = hidden_layer_dims.copy()
         self.z_dim = z_dim
@@ -51,33 +53,70 @@ class DVCCA(pl.LightningModule, Optimisation_VAE):
         self.trainer_dict = trainer_dict
         self.dist = dist
         self.variational = True
-        if self.threshold!=0:
+        if self.threshold != 0:
             self.sparse = True
-            self.model_type = 'sparse_VAE'
-            self.log_alpha = torch.nn.Parameter(torch.FloatTensor(1, self.z_dim).normal_(0,0.01))
+            self.model_type = "sparse_VAE"
+            self.log_alpha = torch.nn.Parameter(
+                torch.FloatTensor(1, self.z_dim).normal_(0, 0.01)
+            )
         else:
             self.log_alpha = None
             self.sparse = False
         if private:
-            self.model_type = 'DVCCA_private'
+            self.model_type = "DVCCA_private"
         self.input_dims = input_dims
         self.private = private
         self.n_views = len(input_dims)
         self.__dict__.update(kwargs)
-        self.encoder = torch.nn.ModuleList([Encoder(input_dim = self.input_dims[0], hidden_layer_dims=self.hidden_layer_dims, sparse=self.sparse, variational=True)])
+        self.encoder = torch.nn.ModuleList(
+            [
+                Encoder(
+                    input_dim=self.input_dims[0],
+                    hidden_layer_dims=self.hidden_layer_dims,
+                    sparse=self.sparse,
+                    variational=True,
+                )
+            ]
+        )
         if private:
-            self.private_encoders = torch.nn.ModuleList([Encoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, sparse=self.sparse, variational=True) for input_dim in self.input_dims])
+            self.private_encoders = torch.nn.ModuleList(
+                [
+                    Encoder(
+                        input_dim=input_dim,
+                        hidden_layer_dims=self.hidden_layer_dims,
+                        sparse=self.sparse,
+                        variational=True,
+                    )
+                    for input_dim in self.input_dims
+                ]
+            )
             self.hidden_layer_dims[-1] = z_dim + z_dim
 
-        self.decoders = torch.nn.ModuleList([Decoder(input_dim = input_dim, hidden_layer_dims=self.hidden_layer_dims, dist=self.dist, variational=True) for input_dim in self.input_dims])
-        
+        self.decoders = torch.nn.ModuleList(
+            [
+                Decoder(
+                    input_dim=input_dim,
+                    hidden_layer_dims=self.hidden_layer_dims,
+                    dist=self.dist,
+                    variational=True,
+                )
+                for input_dim in self.input_dims
+            ]
+        )
+
     def configure_optimizers(self):
         if self.private:
-            optimizers = [torch.optim.Adam(self.encoder.parameters(),lr=0.001)] + [torch.optim.Adam(list(self.decoders[i].parameters()),
-                                        lr=self.learning_rate) for i in range(self.n_views)]
+            optimizers = [torch.optim.Adam(self.encoder.parameters(), lr=0.001)] + [
+                torch.optim.Adam(
+                    list(self.decoders[i].parameters()), lr=self.learning_rate
+                )
+                for i in range(self.n_views)
+            ]
         else:
-            optimizers = [torch.optim.Adam(self.encoder.parameters(), lr=0.001)] + [torch.optim.Adam(list(self.decoders[i].parameters()),
-                                        lr=0.001) for i in range(self.n_views)]
+            optimizers = [torch.optim.Adam(self.encoder.parameters(), lr=0.001)] + [
+                torch.optim.Adam(list(self.decoders[i].parameters()), lr=0.001)
+                for i in range(self.n_views)
+            ]
         return optimizers
 
     def encode(self, x):
@@ -87,25 +126,25 @@ class DVCCA(pl.LightningModule, Optimisation_VAE):
             logvar_tmp = []
             for i in range(self.n_views):
                 mu_p, logvar_p = self.private_encoders[i](x[i])
-                mu_ = torch.cat((mu, mu_p),1)
+                mu_ = torch.cat((mu, mu_p), 1)
                 mu_tmp.append(mu_)
-                logvar_ = torch.cat((logvar, logvar_p),1)
+                logvar_ = torch.cat((logvar, logvar_p), 1)
                 logvar_tmp.append(logvar_)
             mu = mu_tmp
             logvar = logvar_tmp
         return mu, logvar
-    
+
     def reparameterise(self, mu, logvar):
         if self.private:
             z = []
             for i in range(self.n_views):
-                std = torch.exp(0.5*logvar[i])
+                std = torch.exp(0.5 * logvar[i])
                 eps = torch.randn_like(mu[i])
-                z.append(mu[i]+eps*std)
+                z.append(mu[i] + eps * std)
         else:
-            std = torch.exp(0.5*logvar)
+            std = torch.exp(0.5 * logvar)
             eps = torch.randn_like(mu)
-            z = mu+eps*std
+            z = mu + eps * std
         return z
 
     def decode(self, z):
@@ -123,68 +162,70 @@ class DVCCA(pl.LightningModule, Optimisation_VAE):
         mu, logvar = self.encode(x)
         z = self.reparameterise(mu, logvar)
         x_recon = self.decode(z)
-        fwd_rtn = {'x_recon': x_recon,
-                    'mu': mu,
-                    'logvar': logvar}
+        fwd_rtn = {"x_recon": x_recon, "mu": mu, "logvar": logvar}
         return fwd_rtn
 
     def calc_kl(self, mu, logvar):
-        '''
+        """
         Implementation from: https://arxiv.org/abs/1312.6114
 
-        '''
+        """
         kl = 0
         if self.private:
             for i in range(self.n_views):
                 if self.sparse:
-                    kl+= compute_kl_sparse(mu[i], logvar[i])
+                    kl += compute_kl_sparse(mu[i], logvar[i])
                 else:
-                    kl+= compute_kl(mu[i], logvar[i])
+                    kl += compute_kl(mu[i], logvar[i])
         else:
             if self.sparse:
                 compute_kl_sparse(mu, logvar)
             else:
-                kl+= compute_kl(mu, logvar)
-        return self.beta*kl
+                kl += compute_kl(mu, logvar)
+        return self.beta * kl
 
     def calc_ll(self, x, x_recon):
-        ll = 0    
+        ll = 0
         for i in range(self.n_views):
-            ll+= compute_ll(x[i], x_recon[i], dist=self.dist)
+            ll += compute_ll(x[i], x_recon[i], dist=self.dist)
         return ll
 
     def sample_from_normal(self, normal):
         return normal.loc
-        
+
     def loss_function(self, x, fwd_rtn):
-        x_recon = fwd_rtn['x_recon']
-        mu = fwd_rtn['mu']
-        logvar = fwd_rtn['logvar']
+        x_recon = fwd_rtn["x_recon"]
+        mu = fwd_rtn["mu"]
+        logvar = fwd_rtn["logvar"]
 
         kl = self.calc_kl(self, mu, logvar)
         recon = self.calc_ll(self, x, x_recon)
         total = kl - recon
-        losses = {'total': total,
-                'kl': kl,
-                'll': recon}
+        losses = {"total": total, "kl": kl, "ll": recon}
         return losses
 
     def training_step(self, batch, batch_idx, optimizer_idx):
         fwd_return = self.forward(batch)
         loss = self.loss_function(batch, fwd_return)
-        self.log(f'train_loss', loss['total'], on_epoch=True, prog_bar=True, logger=True)
-        self.log(f'train_kl_loss', loss['kl'], on_epoch=True, prog_bar=True, logger=True)
-        self.log(f'train_ll_loss', loss['ll'], on_epoch=True, prog_bar=True, logger=True)
-        return loss['total']
+        self.log(
+            f"train_loss", loss["total"], on_epoch=True, prog_bar=True, logger=True
+        )
+        self.log(
+            f"train_kl_loss", loss["kl"], on_epoch=True, prog_bar=True, logger=True
+        )
+        self.log(
+            f"train_ll_loss", loss["ll"], on_epoch=True, prog_bar=True, logger=True
+        )
+        return loss["total"]
 
     def validation_step(self, batch, batch_idx):
         fwd_return = self.forward(batch)
         loss = self.loss_function(batch, fwd_return)
-        self.log(f'val_loss', loss['total'], on_epoch=True, prog_bar=True, logger=True)
-        self.log(f'val_kl_loss', loss['kl'], on_epoch=True, prog_bar=True, logger=True)
-        self.log(f'val_ll_loss', loss['ll'], on_epoch=True, prog_bar=True, logger=True)
-        return loss['total']
-    
+        self.log(f"val_loss", loss["total"], on_epoch=True, prog_bar=True, logger=True)
+        self.log(f"val_kl_loss", loss["kl"], on_epoch=True, prog_bar=True, logger=True)
+        self.log(f"val_ll_loss", loss["ll"], on_epoch=True, prog_bar=True, logger=True)
+        return loss["total"]
+
     def on_train_end(self):
-        self.trainer.save_checkpoint(join(self.output_path, 'model.ckpt'))
-        torch.save(self, join(self.output_path, 'model.pkl'))
+        self.trainer.save_checkpoint(join(self.output_path, "model.ckpt"))
+        torch.save(self, join(self.output_path, "model.pkl"))
