@@ -5,14 +5,14 @@ import torch.nn.functional as F
 # import pytorch_lightning as pl
 from torch.distributions import Normal
 from .layers import Encoder, Decoder
-from .utils_deep import Optimisation_VAE
+from .utils_deep import BaseModel
 import numpy as np
 from ..utils.kl_utils import compute_kl, compute_kl_sparse, compute_ll
 from os.path import join
 import pytorch_lightning as pl
 
 
-class VAE(pl.LightningModule, Optimisation_VAE):
+class VAE(pl.LightningModule, BaseModel):
     """
     Multi-view Variational Autoencoder model with a separate latent representation for each view.
 
@@ -156,7 +156,6 @@ class VAE(pl.LightningModule, Optimisation_VAE):
         logvar = fwd_rtn["logvar"]
         kl = self.calc_kl(mu, logvar)
         recon = self.calc_ll(x, x_recon)
-
         total = kl - recon
         losses = {"total": total, "kl": kl, "ll": recon}
         return losses

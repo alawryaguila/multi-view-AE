@@ -3,13 +3,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
 from .layers import Encoder, Decoder
-from .utils_deep import Optimisation_VAE
+from .utils_deep import BaseModel
 import numpy as np
 from ..utils.kl_utils import compute_logvar, compute_kl, compute_kl_sparse, compute_ll
 from os.path import join
 
 
-class cVAE(nn.Module, Optimisation_VAE):
+class cVAE(nn.Module, BaseModel):
     def __init__(
         self,
         input_dims,

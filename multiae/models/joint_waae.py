@@ -3,12 +3,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
 from .layers import Encoder, Decoder, Discriminator
-from .utils_deep import Optimisation_AAE
+from .utils_deep import BaseModelAAE
 import numpy as np
 from torch.autograd import Variable
 
 
-class wAAE(nn.Module, Optimisation_AAE):
+class wAAE(nn.Module, BaseModelAAE):
     def __init__(self, input_dims, config):
 
         """

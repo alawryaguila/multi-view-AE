@@ -4,14 +4,14 @@ import torch.nn.functional as F
 from torch.distributions import Normal
 from os.path import join
 from .layers import Encoder, Decoder
-from .utils_deep import Optimisation_VAE
+from .utils_deep import BaseModel
 import numpy as np
 from ..utils.kl_utils import compute_logvar, compute_kl, compute_kl_sparse, compute_ll
 from ..utils.calc_utils import ProductOfExperts, MeanRepresentation
 import pytorch_lightning as pl
 
 
-class jointVAE(pl.LightningModule, Optimisation_VAE):
+class jointVAE(pl.LightningModule, BaseModel):
     """
     Multi-view Variational Autoencoder model with a joint latent representation.
 
@@ -197,8 +197,8 @@ class jointVAE(pl.LightningModule, Optimisation_VAE):
         mu = fwd_rtn["mu"]
         logvar = fwd_rtn["logvar"]
 
-        kl = self.calc_kl(self, mu, logvar)
-        recon = self.calc_ll(self, x, x_recon)
+        kl = self.calc_kl(mu, logvar)
+        recon = self.calc_ll(x, x_recon)
 
         total = kl - recon
         losses = {"total": total, "kl": kl, "ll": recon}

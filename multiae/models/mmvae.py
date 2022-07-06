@@ -5,7 +5,7 @@ import torch.nn.functional as F
 # import pytorch_lightning as pl
 from torch.distributions import Normal
 from .layers import Encoder, Decoder
-from .utils_deep import Optimisation_VAE
+from .utils_deep import BaseModel
 import numpy as np
 from ..utils.kl_utils import compute_kl, compute_kl_sparse, compute_ll
 from os.path import join
@@ -13,7 +13,7 @@ import pytorch_lightning as pl
 import math
 
 
-class mmVAE(pl.LightningModule, Optimisation_VAE):
+class mmVAE(pl.LightningModule, BaseModel):
     """
     Multi-view Variational Autoencoder model using Mixture of Experts approach (https://arxiv.org/abs/1911.03393).
     Code is based on: https://github.com/iffsid/mmvae

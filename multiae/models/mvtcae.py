@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.multivariate_normal import MultivariateNormal
 from .layers import Encoder, Decoder
-from .utils_deep import Optimisation_VAE
+from .utils_deep import BaseModel
 import numpy as np
 from ..utils.kl_utils import compute_kl, compute_kl_sparse, compute_ll
 from ..utils.calc_utils import ProductOfExperts
@@ -11,7 +11,7 @@ from os.path import join
 import pytorch_lightning as pl
 
 
-class MVTCAE(pl.LightningModule, Optimisation_VAE):
+class MVTCAE(pl.LightningModule, BaseModel):
     """
     Multi-View Total Correlation Auto-Encoder (MVTCAE) https://proceedings.neurips.cc/paper/2021/hash/65a99bb7a3115fdede20da98b08a370f-Abstract.html
     """

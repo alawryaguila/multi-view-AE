@@ -13,7 +13,7 @@ import random
 from torchvision import datasets, transforms
 
 
-class Optimisation_VAE(Plotting):
+class BaseModel(Plotting):
     def __init__(self):
         super().__init__()
 
@@ -33,8 +33,6 @@ class Optimisation_VAE(Plotting):
                 if (type(data) == list or type(data) == tuple)
                 else data.shape[0]
             )
-        # if not hasattr(self, 'n_epochs'):
-        # self.n_epochs = 200
         torch.manual_seed(42)
         torch.cuda.manual_seed(42)
 
@@ -176,7 +174,7 @@ class Optimisation_VAE(Plotting):
             return predictions
 
 
-class Optimisation_AAE(Optimisation_VAE):
+class BaseModelAAE(BaseModel):
     def __init__(self):
         super().__init__()
 

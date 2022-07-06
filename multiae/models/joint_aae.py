@@ -3,14 +3,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
 from .layers import Encoder, Decoder, Discriminator
-from .utils_deep import Optimisation_AAE
+from .utils_deep import BaseModelAAE
 from ..utils.kl_utils import compute_mse
 import numpy as np
 from torch.autograd import Variable
 import pytorch_lightning as pl
 
 
-class jointAAE(pl.LightningModule, Optimisation_AAE):
+class jointAAE(pl.LightningModule, BaseModelAAE):
     """
     Multi-view Adversarial Autoencoder model with a joint latent representation.
 
