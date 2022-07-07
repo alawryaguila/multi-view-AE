@@ -159,7 +159,6 @@ class AAE(pl.LightningModule, BaseModelAAE):
         fwd_rtn = {"d_fake": d_fake, "z": z}
         return fwd_rtn
 
-    @staticmethod
     def recon_loss(self, x, fwd_rtn):
         x_recon = fwd_rtn["x_recon"]
         recon = 0
