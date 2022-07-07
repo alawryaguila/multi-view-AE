@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.distributions import Normal
 from os.path import join
 from .layers import Encoder, Decoder
-from .utils_deep import BaseModel
+from ..base.base_model import BaseModel
 import numpy as np
 from ..utils.kl_utils import compute_logvar, compute_kl, compute_kl_sparse, compute_ll
 from ..utils.calc_utils import ProductOfExperts, MeanRepresentation

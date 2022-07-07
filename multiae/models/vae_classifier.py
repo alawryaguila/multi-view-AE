@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from .layers import Encoder, Decoder, Classifier
-from .utils_deep import BaseModel
+from ..base.base_model import BaseModel
 import numpy as np
 from ..utils.kl_utils import compute_kl, compute_kl_sparse, compute_ll
 import pytorch_lightning as pl

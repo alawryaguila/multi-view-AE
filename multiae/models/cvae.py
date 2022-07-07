@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
 from .layers import Encoder, Decoder
-from .utils_deep import BaseModel
+from ..base.base_model import BaseModel
 import numpy as np
 from ..utils.kl_utils import compute_logvar, compute_kl, compute_kl_sparse, compute_ll
 from os.path import join

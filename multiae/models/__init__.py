@@ -5,7 +5,6 @@ from .joint_aae import *
 from .aae import *
 from .vae_classifier import *
 from .dvcca import *
-from .utils_deep import *
 from .layers import *
 from .multi_vae import *
 from .mmvae import *
