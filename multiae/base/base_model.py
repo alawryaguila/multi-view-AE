@@ -2,9 +2,7 @@ from torch.utils.data.dataloader import DataLoader
 from ..utils.dataloaders import MultiviewDataModule
 import numpy as np
 import torch
-from torchvision import transforms
-from ..utils.io_utils import Logger
-from ..utils.trainer import trainer
+from .base_trainer import trainer
 from ..plot.plotting import Plotting
 import datetime
 import os

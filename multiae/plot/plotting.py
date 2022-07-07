@@ -11,7 +11,6 @@ from matplotlib import rc
 from sklearn.manifold import TSNE
 import umap
 from collections import OrderedDict
-from ..utils.io_utils import ResultsWriter
 from ..utils.calc_utils import calc_corr
 import itertools
 
@@ -142,8 +141,6 @@ class Plotting:
         print("~~~~~~~printing reconstruction results~~~~~~~")
         x_recon = self.predict_reconstruction(*data)
         to_print = []
-        if save:
-            writer_legend = ResultsWriter(filepath=join(self.output_path, "legend.txt"))
         if self.joint_representation:
             recon_loss = 0
             for i in range(self.n_views):
@@ -217,11 +214,6 @@ class Plotting:
                     recon_type, cross_view_recon
                 )
             )
-
-        for line in to_print:
-            print(line)
-            if save:
-                writer_legend.write("%s\n" % line)
 
     def plot_corr(self, *latents, corr_type="pearson"):
         if self.joint_representation:
