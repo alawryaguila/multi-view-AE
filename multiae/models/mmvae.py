@@ -123,14 +123,6 @@ class mmVAE(BaseModel):
         return x_recon
 
     def forward(self, x):
-
-        mu, logvar = self.encode(x)
-        z = self.reparameterise(mu, logvar)
-        x_recon = self.decode(z)
-        fwd_rtn = {"x_recon": x_recon, "z": z}
-        return fwd_rtn
-
-    def forward_k(self, x):
         qz_xs, zss = [], []
         mu, logvar = self.encode(x)
         for i in range(self.n_views):
@@ -170,21 +162,3 @@ class mmVAE(BaseModel):
         total = -self.moe_iwae(x, qz_xs, px_zs, zss)
         losses = {"total": total}
         return losses
-
-    def training_step(self, batch, batch_idx, optimizer_idx):
-        fwd_return = self.forward_k(batch)
-        loss = self.loss_function(batch, fwd_return)
-        self.log(
-            f"train_loss", loss["total"], on_epoch=True, prog_bar=True, logger=True
-        )
-        return loss["total"]
-
-    def validation_step(self, batch, batch_idx):
-        fwd_return = self.forward_k(batch)
-        loss = self.loss_function(batch, fwd_return)
-        self.log(f"val_loss", loss["total"], on_epoch=True, prog_bar=True, logger=True)
-        return loss["total"]
-
-    def on_train_end(self):
-        self.trainer.save_checkpoint(join(self.output_path, "model.ckpt"))
-        torch.save(self, join(self.output_path, "model.pkl"))

@@ -223,29 +223,3 @@ class VAE_classifier(BaseModel):
         total = kl + ce + recon
         losses = {"total": total, "kl": kl, "ll": recon, "ce": ce}
         return losses
-
-    def training_step(self, batch, batch_idx, optimizer_idx):
-        fwd_return = self.forward(batch[0])
-        loss = self.loss_function(batch, fwd_return)
-        self.log(
-            f"train_loss", loss["total"], on_epoch=True, prog_bar=True, logger=True
-        )
-        self.log(
-            f"train_kl_loss", loss["kl"], on_epoch=True, prog_bar=True, logger=True
-        )
-        self.log(
-            f"train_ll_loss", loss["ll"], on_epoch=True, prog_bar=True, logger=True
-        )
-        self.log(
-            f"train_ce_loss", loss["ce"], on_epoch=True, prog_bar=True, logger=True
-        )
-        return loss["total"]
-
-    def validation_step(self, batch, batch_idx):
-        fwd_return = self.forward(batch[0])
-        loss = self.loss_function(batch, fwd_return)
-        self.log(f"val_loss", loss["total"], on_epoch=True, prog_bar=True, logger=True)
-        self.log(f"val_kl_loss", loss["kl"], on_epoch=True, prog_bar=True, logger=True)
-        self.log(f"val_ll_loss", loss["ll"], on_epoch=True, prog_bar=True, logger=True)
-        self.log(f"val_ce_loss", loss["ce"], on_epoch=True, prog_bar=True, logger=True)
-        return loss["total"]

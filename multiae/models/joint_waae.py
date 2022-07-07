@@ -9,7 +9,16 @@ from torch.autograd import Variable
 
 
 class wAAE(BaseModelAAE):
-    def __init__(self, input_dims, config):
+    def __init__(
+        self,
+        input_dims,
+        z_dim=1,
+        hidden_layer_dims=[],
+        discriminator_layer_dims=[],
+        non_linear=False,
+        learning_rate=0.002,
+        **kwargs,
+    ):
 
         """
 
@@ -22,18 +31,21 @@ class wAAE(BaseModelAAE):
         """
 
         super().__init__()
-        self._config = config
-        self.model_type = "joint_wAAE"
+        self.automatic_optimization = False
+        self.save_hyperparameters()
+        self.model_type = "joint_AAE"
         self.input_dims = input_dims
-        self.hidden_layer_dims = config["hidden_layers"].copy()
-        self.z_dim = config["latent_size"]
+        self.hidden_layer_dims = hidden_layer_dims.copy()
+        self.z_dim = z_dim
         self.hidden_layer_dims.append(self.z_dim)
-        self.non_linear = config["non_linear"]
-        self.SNP_model = config["SNP_model"]
-        self.learning_rate = config["learning_rate"]
+        self.non_linear = non_linear
+        self.learning_rate = learning_rate
         self.n_views = len(input_dims)
-        self.wasserstein = True
         self.joint_representation = True
+        self.wasserstein = True
+        self.sparse = False
+        self.variational = False
+        self.__dict__.update(kwargs)
 
         self.encoders = torch.nn.ModuleList(
             [
@@ -61,22 +73,67 @@ class wAAE(BaseModelAAE):
             input_dim=self.z_dim, hidden_layer_dims=[3], output_dim=1, wasserstein=True
         )
 
-        self.encoder_optimizers = [
-            torch.optim.Adam(list(self.encoders[i].parameters()), lr=self.learning_rate)
-            for i in range(self.n_views)
-        ]
-        self.generator_optimizers = [
-            torch.optim.Adam(list(self.encoders[i].parameters()), lr=self.learning_rate)
-            for i in range(self.n_views)
-        ]
-        self.decoder_optimizers = [
-            torch.optim.Adam(list(self.decoders[i].parameters()), lr=self.learning_rate)
-            for i in range(self.n_views)
-        ]
-        self.discriminator_optimizer = torch.optim.Adam(
-            list(self.discriminator.parameters()), lr=self.learning_rate
+        self.encoders = torch.nn.ModuleList(
+            [
+                Encoder(
+                    input_dim=input_dim,
+                    hidden_layer_dims=self.hidden_layer_dims,
+                    variational=False,
+                    non_linear=self.non_linear,
+                )
+                for input_dim in self.input_dims
+            ]
+        )
+        self.decoders = torch.nn.ModuleList(
+            [
+                Decoder(
+                    input_dim=input_dim,
+                    hidden_layer_dims=self.hidden_layer_dims,
+                    variational=False,
+                    non_linear=self.non_linear,
+                )
+                for input_dim in self.input_dims
+            ]
+        )
+        self.discriminator = Discriminator(
+            input_dim=self.z_dim,
+            hidden_layer_dims=discriminator_layer_dims,
+            wasserstein=True,
+            output_dim=1,
         )
 
+    def configure_optimizers(self):
+        optimizers = []
+        [
+            optimizers.append(
+                torch.optim.Adam(
+                    list(self.encoders[i].parameters()), lr=self.learning_rate
+                )
+            )
+            for i in range(self.n_views)
+        ]
+        [
+            optimizers.append(
+                torch.optim.Adam(
+                    list(self.decoders[i].parameters()), lr=self.learning_rate
+                )
+            )
+            for i in range(self.n_views)
+        ]
+        [
+            optimizers.append(
+                torch.optim.Adam(
+                    list(self.encoders[i].parameters()), lr=self.learning_rate
+                )
+            )
+            for i in range(self.n_views)
+        ]
+        optimizers.append(
+            torch.optim.Adam(
+                list(self.discriminator.parameters()), lr=self.learning_rate
+            )
+        )
+        return optimizers
     def encode(self, x):
         z = []
         for i in range(self.n_views):
@@ -143,3 +200,37 @@ class wAAE(BaseModelAAE):
         disc_loss = -torch.mean(d_real.sum(dim=-1)) + torch.mean(d_fake.sum(dim=-1))
 
         return disc_loss
+
+    def training_step(self, batch, batch_idx):
+        loss = self.optimise_batch(batch)
+        self.log(
+            f"train_loss", loss["total"], on_epoch=True, prog_bar=True, logger=True
+        )
+        self.log(
+            f"train_recon_loss",
+            loss["recon"],
+            on_epoch=True,
+            prog_bar=True,
+            logger=True,
+        )
+        self.log(
+            f"train_disc_loss", loss["disc"], on_epoch=True, prog_bar=True, logger=True
+        )
+        self.log(
+            f"train_gen_loss", loss["gen"], on_epoch=True, prog_bar=True, logger=True
+        )
+        return loss["total"]
+
+    def validation_step(self, batch, batch_idx):
+        loss = self.validate_batch(batch)
+        self.log(f"val_loss", loss["total"], on_epoch=True, prog_bar=True, logger=True)
+        self.log(
+            f"val_recon_loss", loss["recon"], on_epoch=True, prog_bar=True, logger=True
+        )
+        self.log(
+            f"val_disc_loss", loss["disc"], on_epoch=True, prog_bar=True, logger=True
+        )
+        self.log(
+            f"val_gen_loss", loss["gen"], on_epoch=True, prog_bar=True, logger=True
+        )
+        return loss["total"]
