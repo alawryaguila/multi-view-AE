@@ -10,7 +10,7 @@ from torch.autograd import Variable
 import pytorch_lightning as pl
 
 
-class jointAAE(pl.LightningModule, BaseModelAAE):
+class jointAAE(BaseModelAAE):
     """
     Multi-view Adversarial Autoencoder model with a joint latent representation.
 

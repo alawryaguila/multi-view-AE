@@ -10,7 +10,7 @@ import pytorch_lightning as pl
 from os.path import join
 
 
-class DVCCA(pl.LightningModule, BaseModel):
+class DVCCA(BaseModel):
     def __init__(
         self,
         input_dims,

@@ -9,7 +9,7 @@ from ..utils.kl_utils import compute_logvar, compute_kl, compute_kl_sparse, comp
 from os.path import join
 
 
-class cVAE(nn.Module, BaseModel):
+class cVAE(BaseModel):
     def __init__(
         self,
         input_dims,

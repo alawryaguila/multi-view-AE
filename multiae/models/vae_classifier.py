@@ -8,7 +8,7 @@ from ..utils.kl_utils import compute_kl, compute_kl_sparse, compute_ll
 import pytorch_lightning as pl
 
 
-class VAE_classifier(pl.LightningModule, BaseModel):
+class VAE_classifier(BaseModel):
     """
     Variational Autoencoder model with a classifier trained model trained on the latent representation to classify provided labels.
 

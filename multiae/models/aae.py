@@ -11,7 +11,7 @@ import pytorch_lightning as pl
 from os.path import join
 
 
-class AAE(pl.LightningModule, BaseModelAAE):
+class AAE(BaseModelAAE):
     """
     Multi-view Adversarial Autoencoder model with a separate latent representation for each view.
 

@@ -11,7 +11,7 @@ from os.path import join
 import pytorch_lightning as pl
 
 
-class MVTCAE(pl.LightningModule, BaseModel):
+class MVTCAE(BaseModel):
     """
     Multi-View Total Correlation Auto-Encoder (MVTCAE) https://proceedings.neurips.cc/paper/2021/hash/65a99bb7a3115fdede20da98b08a370f-Abstract.html
     """
@@ -167,53 +167,3 @@ class MVTCAE(pl.LightningModule, BaseModel):
 
         losses = {"total": total, "kl_cvib": cvib_kl, "kl_grp": grp_kl, "ll": recon}
         return losses
-
-    def training_step(self, batch, batch_idx, optimizer_idx):
-        fwd_return = self.forward(batch)
-        loss = self.loss_function(batch, fwd_return)
-        self.log(
-            f"train_loss", loss["total"], on_epoch=True, prog_bar=True, logger=True
-        )
-        self.log(
-            f"train_kl_cvib_loss",
-            loss["kl_cvib"],
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-        )
-        self.log(
-            f"train_kl_grpwise_loss",
-            loss["kl_grp"],
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-        )
-        self.log(
-            f"train_ll_loss", loss["ll"], on_epoch=True, prog_bar=True, logger=True
-        )
-        return loss["total"]
-
-    def validation_step(self, batch, batch_idx):
-        fwd_return = self.forward(batch)
-        loss = self.loss_function(batch, fwd_return)
-        self.log(f"val_loss", loss["total"], on_epoch=True, prog_bar=True, logger=True)
-        self.log(
-            f"val_kl_cvib_loss",
-            loss["kl_cvib"],
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-        )
-        self.log(
-            f"val_kl_grpwise_loss",
-            loss["kl_grp"],
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-        )
-        self.log(f"val_ll_loss", loss["ll"], on_epoch=True, prog_bar=True, logger=True)
-        return loss["total"]
-
-    def on_train_end(self):
-        self.trainer.save_checkpoint(join(self.output_path, "model.ckpt"))
-        torch.save(self, join(self.output_path, "model.pkl"))

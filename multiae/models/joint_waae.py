@@ -8,7 +8,7 @@ import numpy as np
 from torch.autograd import Variable
 
 
-class wAAE(nn.Module, BaseModelAAE):
+class wAAE(BaseModelAAE):
     def __init__(self, input_dims, config):
 
         """

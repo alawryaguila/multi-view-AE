@@ -13,7 +13,7 @@ import pytorch_lightning as pl
 import math
 
 
-class mmVAE(pl.LightningModule, BaseModel):
+class mmVAE(BaseModel):
     """
     Multi-view Variational Autoencoder model using Mixture of Experts approach (https://arxiv.org/abs/1911.03393).
     Code is based on: https://github.com/iffsid/mmvae

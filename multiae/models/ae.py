@@ -10,7 +10,7 @@ import pytorch_lightning as pl
 from os.path import join
 
 
-class AE(pl.LightningModule, BaseModel):
+class AE(BaseModel):
     def __init__(
         self,
         input_dims,

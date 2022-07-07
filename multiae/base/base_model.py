@@ -9,10 +9,13 @@ import os
 from sklearn.model_selection import KFold
 import random
 from torchvision import datasets, transforms
+from os.path import join
+import pytorch_lightning as pl
 
-class BaseModel(Plotting):
+class BaseModel(pl.LightningModule, Plotting):
     def __init__(self):
         super().__init__()
+        
 
     def fit(self, *data, labels=None, **kwargs):
         self.data = data
@@ -153,6 +156,23 @@ class BaseModel(Plotting):
                     )
             return predictions
 
+    def _step(self, batch, batch_idx, stage):
+        fwd_return = self.forward(batch)
+        loss = self.loss_function(batch, fwd_return)     
+        for loss_n, loss_val in loss.items():
+            self.log(
+                f"{stage}_{loss_n}", loss_val, on_epoch=True, prog_bar=True, logger=True
+            ) 
+        return loss['total']         
+    def training_step(self, batch, batch_idx, optimizer_idx):
+        return self._step(batch, batch_idx, stage='train')
+
+    def validation_step(self, batch, batch_idx):
+        return self._step(batch, batch_idx, stage='val')
+
+    def on_train_end(self):
+        self.trainer.save_checkpoint(join(self.output_path, "model.ckpt"))
+        torch.save(self, join(self.output_path, "model.pkl"))
 
 class BaseModelAAE(BaseModel):
     def __init__(self):

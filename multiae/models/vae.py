@@ -12,7 +12,7 @@ from os.path import join
 import pytorch_lightning as pl
 
 
-class VAE(pl.LightningModule, BaseModel):
+class VAE(BaseModel):
     """
     Multi-view Variational Autoencoder model with a separate latent representation for each view.
 

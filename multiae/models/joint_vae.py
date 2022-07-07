@@ -11,7 +11,7 @@ from ..utils.calc_utils import ProductOfExperts, MeanRepresentation
 import pytorch_lightning as pl
 
 
-class jointVAE(pl.LightningModule, BaseModel):
+class jointVAE(BaseModel):
     """
     Multi-view Variational Autoencoder model with a joint latent representation.
 

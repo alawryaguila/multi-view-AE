@@ -9,9 +9,9 @@ from ..base.base_model import BaseModel
 import numpy as np
 from ..utils.kl_utils import compute_kl, compute_kl_sparse, compute_ll
 from os.path import join
-import pytorch_lightning as pl
 
-class multiVAE(pl.LightningModule, BaseModel):
+
+class multiVAE(BaseModel):
     """
     Multi-view Variational Autoencoder model with a separate latent representation for each view.
 
@@ -195,29 +195,3 @@ class multiVAE(pl.LightningModule, BaseModel):
         total = kl - recon
         losses = {"total": total, "kl": kl, "ll": recon}
         return losses
-
-    def training_step(self, batch, batch_idx, optimizer_idx):
-        fwd_return = self.forward(batch)
-        loss = self.loss_function(batch, fwd_return)
-        self.log(
-            f"train_loss", loss["total"], on_epoch=True, prog_bar=True, logger=True
-        )
-        self.log(
-            f"train_kl_loss", loss["kl"], on_epoch=True, prog_bar=True, logger=True
-        )
-        self.log(
-            f"train_ll_loss", loss["ll"], on_epoch=True, prog_bar=True, logger=True
-        )
-        return loss["total"]
-
-    def validation_step(self, batch, batch_idx):
-        fwd_return = self.forward(batch)
-        loss = self.loss_function(batch, fwd_return)
-        self.log(f"val_loss", loss["total"], on_epoch=True, prog_bar=True, logger=True)
-        self.log(f"val_kl_loss", loss["kl"], on_epoch=True, prog_bar=True, logger=True)
-        self.log(f"val_ll_loss", loss["ll"], on_epoch=True, prog_bar=True, logger=True)
-        return loss["total"]
-
-    def on_train_end(self):
-        self.trainer.save_checkpoint(join(self.output_path, "model.ckpt"))
-        torch.save(self, join(self.output_path, "model.pkl"))
