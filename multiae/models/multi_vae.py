@@ -11,7 +11,6 @@ from ..utils.kl_utils import compute_kl, compute_kl_sparse, compute_ll
 from os.path import join
 import pytorch_lightning as pl
 
-
 class multiVAE(pl.LightningModule, BaseModel):
     """
     Multi-view Variational Autoencoder model with a separate latent representation for each view.

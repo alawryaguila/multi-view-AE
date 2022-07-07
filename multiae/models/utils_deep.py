@@ -12,7 +12,6 @@ from sklearn.model_selection import KFold
 import random
 from torchvision import datasets, transforms
 
-
 class BaseModel(Plotting):
     def __init__(self):
         super().__init__()
@@ -46,23 +45,6 @@ class BaseModel(Plotting):
             *data, labels=self.labels, batch_size=self.batch_size, val=self.val_set
         )  # TO DO - create for other data formats
         py_trainer.fit(self, datamodule)
-
-    def specify_folder(self, path=None):
-        if path is None:
-            self.output_path = self.format_folder()
-        else:
-            self.output_path = path
-        return self.output_path
-
-    def format_folder(self, output_dir="./"):
-        init_path = output_dir
-        model_type = self.model_type
-        date = str(datetime.date.today())
-        date = date.replace("-", "_")
-        output_path = init_path + "/" + model_type + "/" + date
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
-        return output_path
 
     def predict_latents(self, *data, val_set=False):
         self.val_set = val_set
@@ -198,7 +180,7 @@ class BaseModelAAE(BaseModel):
 
     def optimise_batch(self, local_batch):
         fwd_return = self.forward_recon(local_batch)
-        loss_recon = self.recon_loss(self, local_batch, fwd_return)
+        loss_recon = self.recon_loss(local_batch, fwd_return)
         opts = self.optimizers()
         enc_opt = [opts.pop(0) for idx in range(self.n_views)]
         dec_opt = [opts.pop(0) for idx in range(self.n_views)]
@@ -211,7 +193,7 @@ class BaseModelAAE(BaseModel):
         [optimizer.step() for optimizer in dec_opt]
 
         fwd_return = self.forward_discrim(local_batch)
-        loss_disc = self.discriminator_loss(self, fwd_return)
+        loss_disc = self.discriminator_loss(fwd_return)
         disc_opt.zero_grad()
         self.manual_backward(loss_disc)
         disc_opt.step()
@@ -219,7 +201,7 @@ class BaseModelAAE(BaseModel):
             for p in self.discriminator.parameters():
                 p.data.clamp_(-0.01, 0.01)
         fwd_return = self.forward_gen(local_batch)
-        loss_gen = self.generator_loss(self, fwd_return)
+        loss_gen = self.generator_loss(fwd_return)
         [optimizer.zero_grad() for optimizer in gen_opt]
         self.manual_backward(loss_gen)
         [optimizer.step() for optimizer in gen_opt]
