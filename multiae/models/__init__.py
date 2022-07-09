@@ -3,7 +3,6 @@ from .ae import *
 from .joint_aae import *
 from .aae import *
 from .joint_waae import *
-from .vae_classifier import *
 from .dvcca import *
 from .layers import *
 from .multi_vae import *
