@@ -4,7 +4,7 @@ import os
 def setup_package():
     data = dict(
     name='multiae',
-    version='0.0.1',   
+    version='0.0.2',   
     packages=find_packages(exclude=['*tests']),
     author='Ana Lawry Aguila',
     author_email='ana.lawryaguila@outlook.com',
@@ -16,10 +16,11 @@ def setup_package():
         'scipy~=1.7.1',
         'pandas==1.1.3',
         'matplotlib~=3.4.1',
-        'torch~=1.10.0',
+        'torch==1.10.2',
         'torchvision~=0.11.0',
-        'pytorch-lightning>=1.5.8',
+        'pytorch-lightning>=1.5.5',
         'umap-learn~=0.5.2',
+        'hydra-core~=1.2.0',
     ],
     description='A library for running multiview autoencoder models on medical imaging data'
     )
