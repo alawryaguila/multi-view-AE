@@ -1,0 +1,4 @@
+_target_: multiae.utils.dataloaders.MultiviewDataModule
+
+batch_size: 100
+val: False

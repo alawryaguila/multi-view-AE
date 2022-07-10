@@ -1,0 +1,23 @@
+# @package _global_
+
+# specify here default training configuration
+defaults:
+  - _self_
+  - datamodule: base.yaml
+  - model: base.yaml
+  - callbacks: base.yaml
+  - trainer: base.yaml
+
+  # experiment configs allows for changing parameters for specific model
+  # and configuration
+  - experiment: null
+
+# path to original working directory
+# hydra hijacks working directory by changing it to the new log directory
+# https://hydra.cc/docs/next/tutorials/basic/running_your_app/working_directory
+original_work_dir: ${hydra.runtime.cwd}
+
+#disable hydras output subdir
+hydra.output_subdir: null
+
+out_dir: ${original_work_dir}/base/${now:%Y_%m_%d}

@@ -10,7 +10,7 @@ from ..utils.calc_utils import ProductOfExperts
 from os.path import join
 import pytorch_lightning as pl
 
-
+import os
 class MVTCAE(BaseModel):
     """
     Multi-View Total Correlation Auto-Encoder (MVTCAE) https://proceedings.neurips.cc/paper/2021/hash/65a99bb7a3115fdede20da98b08a370f-Abstract.html
@@ -19,14 +19,7 @@ class MVTCAE(BaseModel):
     def __init__(
         self,
         input_dims,
-        z_dim=1,
-        hidden_layer_dims=[],
-        non_linear=False,
-        learning_rate=0.001,
-        beta=1,
-        alpha=0.5,
-        trainer_dict=None,
-        dist="gaussian",
+        expt='MVTCAE',
         **kwargs,
     ):
 
@@ -39,22 +32,23 @@ class MVTCAE(BaseModel):
         :param beta: weighting factor for Kullback-Leibler divergence term.
         :param dist: Approximate distribution of data for log likelihood calculation. Either 'gaussian', 'MultivariateGaussian' or 'bernoulli'.
         """
+        super().__init__(expt=expt)
+        print(self.cfg)
 
-        super().__init__()
         self.save_hyperparameters()
-        self.model_type = "VAE"
+        self.model_type = expt
         self.input_dims = input_dims
-        hidden_layer_dims = hidden_layer_dims.copy()
-        self.z_dim = z_dim
-        self.sparse = False
+        #TODO get rid of redundancy here
+        hidden_layer_dims = self.cfg.model.hidden_layer_dims.copy()
+        self.z_dim = self.cfg.model.z_dim
+        self.sparse = self.cfg.model.sparse
         hidden_layer_dims.append(self.z_dim)
-        self.non_linear = non_linear
-        self.beta = beta
-        self.alpha = alpha
-        self.learning_rate = learning_rate
-        self.trainer_dict = trainer_dict
-        self.dist = dist
-        self.variational = True
+        self.non_linear = self.cfg.model.non_linear
+        self.beta = self.cfg.model.beta
+        self.alpha = self.cfg.model.alpha
+        self.learning_rate = self.cfg.model.learning_rate
+        self.dist = self.cfg.model.dist
+        self.variational = self.cfg.model.variational
         self.n_views = len(input_dims)
         self.__dict__.update(kwargs)
         self.encoders = torch.nn.ModuleList(
@@ -62,7 +56,7 @@ class MVTCAE(BaseModel):
                 Encoder(
                     input_dim=input_dim,
                     hidden_layer_dims=hidden_layer_dims,
-                    variational=True,
+                    variational=self.variational,
                     non_linear=self.non_linear,
                     sparse=False,
                 )
@@ -74,7 +68,7 @@ class MVTCAE(BaseModel):
                 Decoder(
                     input_dim=input_dim,
                     hidden_layer_dims=hidden_layer_dims,
-                    variational=True,
+                    variational=self.variational,
                     dist=self.dist,
                     non_linear=self.non_linear,
                 )
