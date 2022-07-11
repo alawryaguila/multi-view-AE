@@ -7,11 +7,9 @@ defaults:
 # this allows you to overwrite only specified parameters
 # default parameters for MVTCAE model
 model_name: "MVTCAE"
+
 model:
-  z_dim: 2
-  hidden_layer_dims: []
   non_linear: False
-  learning_rate: 0.001
   beta: 1
   alpha: 0.5
   dist: "gaussian"

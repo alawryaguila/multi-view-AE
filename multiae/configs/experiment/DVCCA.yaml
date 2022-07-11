@@ -5,8 +5,8 @@ defaults:
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
-# default parameters for mcVAE model
-model_name: "mcVAE"
+# default parameters for DVCCA model
+model_name: "DVCCA"
 
 model:
   non_linear: False
@@ -14,5 +14,5 @@ model:
   threshold: 0
   dist: "gaussian"
   variational: True
-  joint_representation: False
+  private: True
 out_dir: ${original_work_dir}/${model_name}/${now:%Y_%m_%d}
