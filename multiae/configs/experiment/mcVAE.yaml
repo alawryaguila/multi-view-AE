@@ -17,4 +17,5 @@ model:
   threshold: 0
   dist: "gaussian"
   variational: True
+  joint_representation: False
 out_dir: ${original_work_dir}/${model_name}/${now:%Y_%m_%d}

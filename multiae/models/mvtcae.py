@@ -22,33 +22,19 @@ class MVTCAE(BaseModel):
         expt='MVTCAE',
         **kwargs,
     ):
-
-        """
-        :param input_dims: columns of input data e.g. [M1 , M2] where M1 and M2 are number of the columns for views 1 and 2 respectively
-        :param z_dim: number of latent vectors
-        :param hidden_layer_dims: dimensions of hidden layers for encoder and decoder networks.
-        :param non_linear: non-linearity between hidden layers. If True ReLU is applied between hidden layers of encoder and decoder networks
-        :param learning_rate: learning rate of optimisers.
-        :param beta: weighting factor for Kullback-Leibler divergence term.
-        :param dist: Approximate distribution of data for log likelihood calculation. Either 'gaussian', 'MultivariateGaussian' or 'bernoulli'.
-        """
+    
         super().__init__(expt=expt)
         self.save_hyperparameters()
+
+        self.__dict__.update(self.cfg.model)
+        self.__dict__.update(kwargs)
+
         self.model_type = expt
         self.input_dims = input_dims
-        #TODO get rid of redundancy here
-        hidden_layer_dims = self.cfg.model.hidden_layer_dims.copy()
-        self.z_dim = self.cfg.model.z_dim
-        self.sparse = self.cfg.model.sparse
+        hidden_layer_dims = self.hidden_layer_dims.copy()
         hidden_layer_dims.append(self.z_dim)
-        self.non_linear = self.cfg.model.non_linear
-        self.beta = self.cfg.model.beta
-        self.alpha = self.cfg.model.alpha
-        self.learning_rate = self.cfg.model.learning_rate
-        self.dist = self.cfg.model.dist
-        self.variational = self.cfg.model.variational
         self.n_views = len(input_dims)
-        self.__dict__.update(kwargs)
+
         self.encoders = torch.nn.ModuleList(
             [
                 Encoder(

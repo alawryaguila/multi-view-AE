@@ -26,31 +26,19 @@ class mcVAE(BaseModel):
         **kwargs,
     ):
 
-        """
-        :param input_dims: columns of input data e.g. [M1 , M2] where M1 and M2 are number of the columns for views 1 and 2 respectively
-        :param z_dim: number of latent vectors
-        :param hidden_layer_dims: dimensions of hidden layers for encoder and decoder networks.
-        :param non_linear: non-linearity between hidden layers. If True ReLU is applied between hidden layers of encoder and decoder networks
-        :param learning_rate: learning rate of optimisers.
-        :param beta: weighting factor for Kullback-Leibler divergence term.
-        :param threshold: Dropout threshold for sparsity constraint on latent representation. If threshold is 0 then there is no sparsity.
-        :param dist: Approximate distribution of data for log likelihood calculation. Either 'gaussian' or 'bernoulli'.
-        """
+        super().__init__(expt=expt)
 
-        super().__init__(expt='mcVAE')
         self.save_hyperparameters()
+
+        self.__dict__.update(self.cfg.model)
+        self.__dict__.update(kwargs)
+
         self.model_type = expt
         self.input_dims = input_dims
-        hidden_layer_dims = self.cfg.model.hidden_layer_dims.copy()
-        self.z_dim = self.cfg.model.z_dim
+        hidden_layer_dims = self.hidden_layer_dims.copy()
         hidden_layer_dims.append(self.z_dim)
-        self.non_linear = self.cfg.model.non_linear
-        self.beta = self.cfg.model.beta
-        self.learning_rate = self.cfg.model.learning_rate
-        self.joint_representation = False
-        self.threshold = self.cfg.model.threshold
-        self.dist = self.cfg.model.dist
-        self.variational = self.cfg.model.variational
+        self.n_views = len(input_dims)
+
         if self.threshold != 0:
             self.sparse = True
             self.model_type = "sparse_VAE"
