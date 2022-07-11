@@ -33,8 +33,6 @@ class MVTCAE(BaseModel):
         :param dist: Approximate distribution of data for log likelihood calculation. Either 'gaussian', 'MultivariateGaussian' or 'bernoulli'.
         """
         super().__init__(expt=expt)
-        print(self.cfg)
-
         self.save_hyperparameters()
         self.model_type = expt
         self.input_dims = input_dims
@@ -159,5 +157,5 @@ class MVTCAE(BaseModel):
         kld_weighted = cvib_weight * cvib_kl + vib_weight * grp_kl
         total = -rec_weight * recon + self.beta * kld_weighted
 
-        losses = {"total": total, "kl_cvib": cvib_kl, "kl_grp": grp_kl, "ll": recon}
+        losses = {"loss": total, "kl_cvib": cvib_kl, "kl_grp": grp_kl, "ll": recon}
         return losses

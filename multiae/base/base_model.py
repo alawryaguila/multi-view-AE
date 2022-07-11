@@ -9,24 +9,28 @@ import os
 from sklearn.model_selection import KFold
 import random
 from torchvision import datasets, transforms
-from os.path import join
+from os.path import join, exists
 import pytorch_lightning as pl
+import hydra 
+from hydra import compose, initialize
+from omegaconf import DictConfig
 
 class BaseModel(pl.LightningModule, Plotting):
-    def __init__(self):
+    def __init__(self,
+        expt=None,
+        ):
         super().__init__()
-        
+        with initialize(version_base=None, config_path="../configs"):
+            if expt:
+                self.cfg = compose(config_name="run", return_hydra_config=True, overrides=["experiment={0}.yaml".format(expt)])
+            else:
+                self.cfg = compose(config_name="run", return_hydra_config=True)
 
     def fit(self, *data, labels=None, **kwargs):
         self.data = data
         self.labels = labels
         self.val_set = False
-        if not hasattr(self, "output_path"):
-            self.output_path = os.getcwd()  # TODO - allow no path
-        self.eps = 1e-15
         self.__dict__.update(kwargs)
-        if not hasattr(self, "trainer_dict") or not self.trainer_dict:
-            self.trainer_dict = {"early_stopping": self.val_set}
         if not hasattr(self, "batch_size") or not self.batch_size:
             self.batch_size = (
                 data[0].shape[0]
@@ -36,15 +40,18 @@ class BaseModel(pl.LightningModule, Plotting):
         torch.manual_seed(42)
         torch.cuda.manual_seed(42)
 
-        trainer_args = dict(
-            output_path=self.output_path, n_epochs=self.n_epochs, **self.trainer_dict
-        )
+        callbacks =  []
+        for _, cb_conf in self.cfg.callbacks.items():
+            callbacks.append(hydra.utils.instantiate(cb_conf))
 
-        # create trainer function
-        py_trainer = trainer(**trainer_args)
-        datamodule = MultiviewDataModule(
-            *data, labels=self.labels, batch_size=self.batch_size, val=self.val_set
-        )  # TO DO - create for other data formats
+        logger = hydra.utils.instantiate(self.cfg.logger)
+
+        if not exists(self.cfg.trainer.resume_from_checkpoint):
+            self.cfg.trainer.resume_from_checkpoint = None
+        py_trainer =  hydra.utils.instantiate(self.cfg.trainer, callbacks=callbacks, logger=logger)
+
+        datamodule = hydra.utils.instantiate(self.cfg.datamodule, *data, labels=self.labels) 
+
         py_trainer.fit(self, datamodule)
 
     def predict_latents(self, *data, val_set=False):
@@ -163,7 +170,8 @@ class BaseModel(pl.LightningModule, Plotting):
             self.log(
                 f"{stage}_{loss_n}", loss_val, on_epoch=True, prog_bar=True, logger=True
             ) 
-        return loss['total']         
+        return loss['loss']         
+
     def training_step(self, batch, batch_idx, optimizer_idx):
         return self._step(batch, batch_idx, stage='train')
 
@@ -171,8 +179,8 @@ class BaseModel(pl.LightningModule, Plotting):
         return self._step(batch, batch_idx, stage='val')
 
     def on_train_end(self):
-        self.trainer.save_checkpoint(join(self.output_path, "model.ckpt"))
-        torch.save(self, join(self.output_path, "model.pkl"))
+        self.trainer.save_checkpoint(join(self.cfg.out_dir, "model.ckpt"))
+        torch.save(self, join(self.cfg.out_dir, "model.pkl"))
 
 class BaseModelAAE(BaseModel):
     def __init__(self):

@@ -7,6 +7,7 @@ defaults:
   - model: base.yaml
   - callbacks: base.yaml
   - trainer: base.yaml
+  - logger: base.yaml
 
   # experiment configs allows for changing parameters for specific model
   # and configuration

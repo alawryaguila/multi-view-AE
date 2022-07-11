@@ -160,5 +160,5 @@ class mmVAE(BaseModel):
     def loss_function(self, x, fwd_rtn):
         qz_xs, px_zs, zss = fwd_rtn["qz_xs"], fwd_rtn["px_zs"], fwd_rtn["zss"]
         total = -self.moe_iwae(x, qz_xs, px_zs, zss)
-        losses = {"total": total}
+        losses = {"loss": total}
         return losses

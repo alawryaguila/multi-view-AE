@@ -201,5 +201,5 @@ class jointVAE(BaseModel):
         recon = self.calc_ll(x, x_recon)
 
         total = kl - recon
-        losses = {"total": total, "kl": kl, "ll": recon}
+        losses = {"loss": total, "kl": kl, "ll": recon}
         return losses

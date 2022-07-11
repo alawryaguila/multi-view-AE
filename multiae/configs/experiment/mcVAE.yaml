@@ -5,7 +5,7 @@ defaults:
 
 # all parameters below will be merged with parameters from default configurations set above
 # this allows you to overwrite only specified parameters
-# default parameters for MVTCAE model
+# default parameters for mcVAE model
 model_name: "mcVAE"
 
 model:

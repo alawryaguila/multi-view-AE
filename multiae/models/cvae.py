@@ -212,5 +212,5 @@ class cVAE(BaseModel):
         recon = self.calc_ll(self, x, x_recon)
 
         total = kl - recon
-        losses = {"total": total, "kl": kl, "ll": recon}
+        losses = {"loss": total, "kl": kl, "ll": recon}
         return losses

@@ -2,8 +2,6 @@ _target_: pytorch_lightning.Trainer
 
 gpus: 0
 
-output_path: ${out_dir}
+max_epochs: 10
 
-n_epochs: 100
-
-early_stopping: False
+resume_from_checkpoint: ${out_dir}/last.ckpt
