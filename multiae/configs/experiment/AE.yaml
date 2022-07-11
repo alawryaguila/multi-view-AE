@@ -10,7 +10,7 @@ model_name: "AE"
 
 model:
   non_linear: False
-  beta: 1
-  threshold: 0
+  sparse: False
+  joint_representation: False
   variational: False
 out_dir: ${original_work_dir}/${model_name}/${now:%Y_%m_%d}

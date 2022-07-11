@@ -15,23 +15,8 @@ class AE(BaseModel):
         self,
         input_dims,
         expt='AE',
-        z_dim=1,
-        hidden_layer_dims=[],
-        non_linear=False,
-        learning_rate=0.001,
-        SNP_model=False,
-        trainer_dict=None,
         **kwargs,
     ):
-
-        """
-        :param input_dims: columns of input data e.g. [M1 , M2] where M1 and M2 are number of the columns for views 1 and 2 respectively
-        :param z_dim: number of latent vectors
-        :param hidden_layer_dims: dimensions of hidden layers for encoder and decoder networks.
-        :param non_linear: non-linearity between hidden layers. If True ReLU is applied between hidden layers of encoder and decoder networks
-        :param learning_rate: learning rate of optimisers.
-        :param SNP_model: Whether model will be used for SNP data - parameter will be removed soon.
-        """
 
         super().__init__(expt=expt)
 
@@ -39,19 +24,13 @@ class AE(BaseModel):
 
         self.__dict__.update(self.cfg.model)
         self.__dict__.update(kwargs)
+
+        self.model_type = expt
         self.input_dims = input_dims
-        hidden_layer_dims = hidden_layer_dims.copy()
-        self.z_dim = z_dim
+        hidden_layer_dims = self.hidden_layer_dims.copy()  
         hidden_layer_dims.append(self.z_dim)
-        self.non_linear = non_linear
-        self.learning_rate = learning_rate
-        self.SNP_model = SNP_model
-        self.joint_representation = False
-        self.trainer_dict = trainer_dict
-        self.variational = False
-        self.sparse = False
         self.n_views = len(input_dims)
-        self.__dict__.update(kwargs)
+        
         self.encoders = torch.nn.ModuleList(
             [
                 Encoder(
@@ -117,7 +96,6 @@ class AE(BaseModel):
 
     def loss_function(self, x, fwd_rtn):
         x_recon = fwd_rtn["x_recon"]
-        z = fwd_rtn["z"]
         recon = self.recon_loss(x, x_recon)
         losses = {"loss": recon}
         return losses

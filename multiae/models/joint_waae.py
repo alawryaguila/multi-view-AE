@@ -13,43 +13,21 @@ class wAAE(BaseModelAAE):
         self,
         input_dims,
         expt='wAAE',
-        z_dim=1,
-        hidden_layer_dims=[],
-        discriminator_layer_dims=[],
-        non_linear=False,
-        learning_rate=0.002,
         **kwargs,
     ):
-
-        """
-
-        Initialise Adversarial Autoencoder model with joint representation and wasserstein loss.
-
-        input_dims: The input data dimension.
-        config: Configuration dictionary.
-
-
-        """
-
         super().__init__(expt=expt)
 
         self.save_hyperparameters()
-
+        self.automatic_optimization = False
         self.__dict__.update(self.cfg.model)
         self.__dict__.update(kwargs)
-        self.automatic_optimization = False
+
+        self.model_type = expt
         self.input_dims = input_dims
-        self.hidden_layer_dims = hidden_layer_dims.copy()
-        self.z_dim = z_dim
-        self.hidden_layer_dims.append(self.z_dim)
-        self.non_linear = non_linear
-        self.learning_rate = learning_rate
+        hidden_layer_dims = self.hidden_layer_dims.copy()  
+        hidden_layer_dims.append(self.z_dim)
+        self.hidden_layer_dims = hidden_layer_dims
         self.n_views = len(input_dims)
-        self.joint_representation = True
-        self.wasserstein = True
-        self.sparse = False
-        self.variational = False
-        self.__dict__.update(kwargs)
 
         self.encoders = torch.nn.ModuleList(
             [
@@ -73,35 +51,10 @@ class wAAE(BaseModelAAE):
                 for input_dim in self.input_dims
             ]
         )
-        self.discriminator = Discriminator(
-            input_dim=self.z_dim, hidden_layer_dims=[3], output_dim=1, wasserstein=True
-        )
 
-        self.encoders = torch.nn.ModuleList(
-            [
-                Encoder(
-                    input_dim=input_dim,
-                    hidden_layer_dims=self.hidden_layer_dims,
-                    variational=False,
-                    non_linear=self.non_linear,
-                )
-                for input_dim in self.input_dims
-            ]
-        )
-        self.decoders = torch.nn.ModuleList(
-            [
-                Decoder(
-                    input_dim=input_dim,
-                    hidden_layer_dims=self.hidden_layer_dims,
-                    variational=False,
-                    non_linear=self.non_linear,
-                )
-                for input_dim in self.input_dims
-            ]
-        )
         self.discriminator = Discriminator(
             input_dim=self.z_dim,
-            hidden_layer_dims=discriminator_layer_dims,
+            hidden_layer_dims=self.discriminator_layer_dims,
             wasserstein=True,
             output_dim=1,
         )
