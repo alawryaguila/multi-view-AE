@@ -1,56 +1,55 @@
 from torch.utils.data.dataloader import DataLoader
 from ..utils.dataloaders import MultiviewDataModule
+from ..utils.utils import update_dict
 import numpy as np
 import torch
-from .base_trainer import trainer
 from ..plot.plotting import Plotting
-import datetime
-import os
-from sklearn.model_selection import KFold
-import random
-from torchvision import datasets, transforms
-from os.path import join
+from os.path import join, exists
 import pytorch_lightning as pl
+import hydra 
+from hydra import compose, initialize
+from omegaconf import DictConfig
 
 class BaseModel(pl.LightningModule, Plotting):
-    def __init__(self):
+    def __init__(self,
+        expt=None,
+        ):
         super().__init__()
-        
+        with initialize(version_base=None, config_path="../configs"):
+            if expt:
+                self.cfg = compose(config_name="run", return_hydra_config=True, overrides=["experiment={0}.yaml".format(expt)])
+            else:
+                self.cfg = compose(config_name="run", return_hydra_config=True)
 
     def fit(self, *data, labels=None, **kwargs):
         self.data = data
         self.labels = labels
         self.val_set = False
-        if not hasattr(self, "output_path"):
-            self.output_path = os.getcwd()  # TODO - allow no path
-        self.eps = 1e-15
-        self.__dict__.update(kwargs)
-        if not hasattr(self, "trainer_dict") or not self.trainer_dict:
-            self.trainer_dict = {"early_stopping": self.val_set}
-        if not hasattr(self, "batch_size") or not self.batch_size:
-            self.batch_size = (
-                data[0].shape[0]
-                if (type(data) == list or type(data) == tuple)
-                else data.shape[0]
-            )
+
         torch.manual_seed(42)
         torch.cuda.manual_seed(42)
+        self.cfg.callbacks = update_dict(self.cfg.callbacks, kwargs)
+        callbacks =  []
+        for _, cb_conf in self.cfg.callbacks.items():
+            callbacks.append(hydra.utils.instantiate(cb_conf))
 
-        trainer_args = dict(
-            output_path=self.output_path, n_epochs=self.n_epochs, **self.trainer_dict
-        )
+        self.cfg.logger = update_dict(self.cfg.logger, kwargs)
+        logger = hydra.utils.instantiate(self.cfg.logger)
 
-        # create trainer function
-        py_trainer = trainer(**trainer_args)
-        datamodule = MultiviewDataModule(
-            *data, labels=self.labels, batch_size=self.batch_size, val=self.val_set
-        )  # TO DO - create for other data formats
+        self.cfg.trainer = update_dict(self.cfg.trainer, kwargs)
+        if not exists(self.cfg.trainer.resume_from_checkpoint):
+            self.cfg.trainer.resume_from_checkpoint = None
+        py_trainer =  hydra.utils.instantiate(self.cfg.trainer, callbacks=callbacks, logger=logger)
+
+        self.cfg.datamodule = update_dict(self.cfg.datamodule, kwargs)
+        datamodule = hydra.utils.instantiate(self.cfg.datamodule, *data, labels=self.labels) 
+
         py_trainer.fit(self, datamodule)
 
     def predict_latents(self, *data, val_set=False):
         self.val_set = val_set
         dataset = MultiviewDataModule.dataset(*data, labels=None)
-        generator = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
+        generator = DataLoader(dataset, batch_size=self.cfg.datamodule.batch_size, shuffle=False)
         with torch.no_grad():
             for batch_idx, local_batch in enumerate(generator):
                 local_batch = (
@@ -75,7 +74,7 @@ class BaseModel(pl.LightningModule, Plotting):
 
     def process_output(self, data, pred=None, data_type=None):
         if pred is not None:
-            if self.variational and data_type is None and self.dist == "gaussian":
+            if self.cfg.model.variational and data_type is None and self.cfg.model.dist == "gaussian":
                 if isinstance(data, (list, tuple)):
                     return [
                         self.process_output(data_, pred=pred_, data_type=data_type)
@@ -93,7 +92,7 @@ class BaseModel(pl.LightningModule, Plotting):
                 ]
             return np.append(pred, data, axis=0)
         else:
-            if self.variational and data_type is None and self.dist == "gaussian":
+            if self.cfg.model.variational and data_type is None and self.cfg.model.dist == "gaussian":
                 if isinstance(data, (list, tuple)):
                     return [
                         self.process_output(data_, data_type=data_type)
@@ -113,7 +112,7 @@ class BaseModel(pl.LightningModule, Plotting):
 
     def predict_reconstruction(self, *data):
         dataset = MultiviewDataModule.dataset(*data, labels=None)
-        generator = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
+        generator = DataLoader(dataset, batch_size=self.cfg.datamodule.batch_size, shuffle=False)
         with torch.no_grad():
             for batch_idx, (local_batch) in enumerate(generator):
                 local_batch = [
@@ -138,7 +137,7 @@ class BaseModel(pl.LightningModule, Plotting):
 
     def predict_labels(self, *data):
         dataset = MultiviewDataModule.dataset(*data, labels=None)
-        generator = DataLoader(dataset, batch_size=self.batch_size, shuffle=False)
+        generator = DataLoader(dataset, batch_size=self.cfg.datamodule.batch_size, shuffle=False)
         with torch.no_grad():
             for batch_idx, (local_batch) in enumerate(generator):
                 local_batch = [
@@ -163,7 +162,8 @@ class BaseModel(pl.LightningModule, Plotting):
             self.log(
                 f"{stage}_{loss_n}", loss_val, on_epoch=True, prog_bar=True, logger=True
             ) 
-        return loss['total']         
+        return loss['loss']         
+
     def training_step(self, batch, batch_idx, optimizer_idx):
         return self._step(batch, batch_idx, stage='train')
 
@@ -171,8 +171,8 @@ class BaseModel(pl.LightningModule, Plotting):
         return self._step(batch, batch_idx, stage='val')
 
     def on_train_end(self):
-        self.trainer.save_checkpoint(join(self.output_path, "model.ckpt"))
-        torch.save(self, join(self.output_path, "model.pkl"))
+        self.trainer.save_checkpoint(join(self.cfg.out_dir, "model.ckpt"))
+        torch.save(self, join(self.cfg.out_dir, "model.pkl"))
 
 class BaseModelAAE(BaseModel):
     def __init__(self):

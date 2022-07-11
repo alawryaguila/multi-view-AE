@@ -34,6 +34,7 @@ class AE(BaseModel):
 
         super().__init__()
         self.model_type = "AE"
+        print(self.cfg)
         self.input_dims = input_dims
         hidden_layer_dims = hidden_layer_dims.copy()
         self.z_dim = z_dim

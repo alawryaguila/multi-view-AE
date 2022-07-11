@@ -1,0 +1,22 @@
+# @package _global_
+
+defaults:
+  - override /model: base.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+# default parameters for MMVAE model
+model_name: "MMVAE"
+
+model:
+  non_linear: False
+  beta: 1
+  threshold: 0
+  dist: "gaussian"
+  variational: True
+  joint_representation: True
+  log_alpha: null
+  sparse: False
+  K: 20
+
+out_dir: ${original_work_dir}/${model_name}/${now:%Y_%m_%d}

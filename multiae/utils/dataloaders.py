@@ -10,23 +10,26 @@ import random
 class MultiviewDataModule(pl.LightningDataModule):
     def __init__(self, *data, labels=None, batch_size=None, val=False):
         self.data = data
-        self.batch_size = batch_size
+        if batch_size is None:
+            self.batch_size =data[0].shape[0] if (type(data) == list or type(data) == tuple) else data.shape[0]
+        else:
+            self.batch_size = batch_size
         self.val = val
         self.labels = labels
 
     def split(self, *data, labels=None, split=0.9):
         random.seed(42)
-        if isinstance(data, (list, tuple)) and isinstance(data[0], (int, float)):
+        if isinstance(data, (list, tuple)) and isinstance(data[0], (np.ndarray)):
             return self.data_split(data, labels, split)
         return self.list_split(data, labels, split)
 
     def data_split(self, data, labels, split):
-        N = data[0]
+        N = data[0].shape[0]
         idx_1 = list(random.sample(range(0, N), int(N * split)))
         idx_2 = np.setdiff1d(list(range(N)), idx_1)
         data_1 = []
         data_2 = []
-        for data_ in self.data:
+        for data_ in data:
             data_1_ = data_[idx_1, :]
             data_2_ = data_[idx_2, :]
             data_1.append(data_1_)
@@ -35,6 +38,7 @@ class MultiviewDataModule(pl.LightningDataModule):
             labels_1, labels_2 = self.labels_split(labels, idx_1, idx_2)
             return [data_1, data_2, labels_1, labels_2]
         return [data_1, data_2, None, None]
+
 
     def list_split(self, idx_list, labels, split):
         N = len(idx_list)

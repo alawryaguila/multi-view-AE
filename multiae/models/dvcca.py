@@ -6,68 +6,39 @@ from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
 import numpy as np
 from ..utils.kl_utils import compute_kl, compute_kl_sparse, compute_ll
-import pytorch_lightning as pl
-from os.path import join
-
 
 class DVCCA(BaseModel):
     def __init__(
         self,
         input_dims,
-        z_dim=1,
-        hidden_layer_dims=[],
-        non_linear=False,
-        learning_rate=0.001,
-        beta=1,
-        threshold=0,
-        trainer_dict=None,
-        dist="gaussian",
-        private=True,
+        expt='DVCCA',
         **kwargs,
     ):
-        """
-        Initialise the Deep Variational Canonical Correlation Analysis model
 
-        :param input_dims: columns of input data e.g. [M1 , M2] where M1 and M2 are number of the columns for views 1 and 2 respectively
-        :param z_dim: number of latent vectors
-        :param hidden_layer_dims: dimensions of hidden layers for encoder and decoder networks.
-        :param non_linear: non-linearity between hidden layers. If True ReLU is applied between hidden layers of encoder and decoder networks
-        :param learning_rate: learning rate of optimisers.
-        :param beta: weighting factor for Kullback-Leibler divergence term.
-        :param threshold: TODO - Dropout threshold for sparsity constraint on latent representation. If threshold is 0 then there is no sparsity.
-        :param private: Label to indicate VCCA or VCCA-private.
+        super().__init__(expt=expt)
 
-        """
-
-        super().__init__()
         self.save_hyperparameters()
-        self.model_type = "DVCCA"
+
+        self.__dict__.update(self.cfg.model)
+        self.__dict__.update(kwargs)
+
+        self.model_type = expt
         self.input_dims = input_dims
-        self.hidden_layer_dims = hidden_layer_dims.copy()
-        self.z_dim = z_dim
-        self.hidden_layer_dims.append(self.z_dim)
-        self.non_linear = non_linear
-        self.beta = beta
-        self.learning_rate = learning_rate
-        self.threshold = threshold
-        self.trainer_dict = trainer_dict
-        self.dist = dist
-        self.variational = True
+        hidden_layer_dims = self.hidden_layer_dims.copy()  
+        hidden_layer_dims.append(self.z_dim)
+        self.hidden_layer_dims = hidden_layer_dims
+        print(self.hidden_layer_dims)
+        self.n_views = len(input_dims)
+
         if self.threshold != 0:
             self.sparse = True
-            self.model_type = "sparse_VAE"
             self.log_alpha = torch.nn.Parameter(
                 torch.FloatTensor(1, self.z_dim).normal_(0, 0.01)
             )
         else:
             self.log_alpha = None
             self.sparse = False
-        if private:
-            self.model_type = "DVCCA_private"
-        self.input_dims = input_dims
-        self.private = private
-        self.n_views = len(input_dims)
-        self.__dict__.update(kwargs)
+
         self.encoder = torch.nn.ModuleList(
             [
                 Encoder(
@@ -78,7 +49,7 @@ class DVCCA(BaseModel):
                 )
             ]
         )
-        if private:
+        if self.private:
             self.private_encoders = torch.nn.ModuleList(
                 [
                     Encoder(
@@ -90,7 +61,7 @@ class DVCCA(BaseModel):
                     for input_dim in self.input_dims
                 ]
             )
-            self.hidden_layer_dims[-1] = z_dim + z_dim
+            self.hidden_layer_dims[-1] = self.z_dim + self.z_dim
 
         self.decoders = torch.nn.ModuleList(
             [
@@ -106,15 +77,15 @@ class DVCCA(BaseModel):
 
     def configure_optimizers(self):
         if self.private:
-            optimizers = [torch.optim.Adam(self.encoder.parameters(), lr=0.001)] + [
+            optimizers = [torch.optim.Adam(self.encoder.parameters(), lr=self.learning_rate)] + [
                 torch.optim.Adam(
                     list(self.decoders[i].parameters()), lr=self.learning_rate
                 )
                 for i in range(self.n_views)
             ]
         else:
-            optimizers = [torch.optim.Adam(self.encoder.parameters(), lr=0.001)] + [
-                torch.optim.Adam(list(self.decoders[i].parameters()), lr=0.001)
+            optimizers = [torch.optim.Adam(self.encoder.parameters(), lr=self.learning_rate)] + [
+                torch.optim.Adam(list(self.decoders[i].parameters()), lr=self.learning_rate)
                 for i in range(self.n_views)
             ]
         return optimizers
@@ -166,10 +137,6 @@ class DVCCA(BaseModel):
         return fwd_rtn
 
     def calc_kl(self, mu, logvar):
-        """
-        Implementation from: https://arxiv.org/abs/1312.6114
-
-        """
         kl = 0
         if self.private:
             for i in range(self.n_views):
@@ -201,5 +168,5 @@ class DVCCA(BaseModel):
         kl = self.calc_kl(mu, logvar)
         recon = self.calc_ll(x, x_recon)
         total = kl - recon
-        losses = {"total": total, "kl": kl, "ll": recon}
+        losses = {"loss": total, "kl": kl, "ll": recon}
         return losses

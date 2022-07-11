@@ -11,7 +11,7 @@ from ..utils.kl_utils import compute_kl, compute_kl_sparse, compute_ll
 from os.path import join
 
 
-class multiVAE(BaseModel):
+class mcVAE(BaseModel):
     """
     Multi-view Variational Autoencoder model with a separate latent representation for each view.
 
@@ -22,43 +22,23 @@ class multiVAE(BaseModel):
     def __init__(
         self,
         input_dims,
-        z_dim=1,
-        hidden_layer_dims=[],
-        non_linear=False,
-        learning_rate=0.001,
-        beta=1,
-        threshold=0,
-        trainer_dict=None,
-        dist="gaussian",
+        expt='mcVAE',
         **kwargs,
     ):
 
-        """
-        :param input_dims: columns of input data e.g. [M1 , M2] where M1 and M2 are number of the columns for views 1 and 2 respectively
-        :param z_dim: number of latent vectors
-        :param hidden_layer_dims: dimensions of hidden layers for encoder and decoder networks.
-        :param non_linear: non-linearity between hidden layers. If True ReLU is applied between hidden layers of encoder and decoder networks
-        :param learning_rate: learning rate of optimisers.
-        :param beta: weighting factor for Kullback-Leibler divergence term.
-        :param threshold: Dropout threshold for sparsity constraint on latent representation. If threshold is 0 then there is no sparsity.
-        :param dist: Approximate distribution of data for log likelihood calculation. Either 'gaussian' or 'bernoulli'.
-        """
+        super().__init__(expt=expt)
 
-        super().__init__()
         self.save_hyperparameters()
-        self.model_type = "VAE"
+
+        self.__dict__.update(self.cfg.model)
+        self.__dict__.update(kwargs)
+
+        self.model_type = expt
         self.input_dims = input_dims
-        hidden_layer_dims = hidden_layer_dims.copy()
-        self.z_dim = z_dim
+        hidden_layer_dims = self.hidden_layer_dims.copy()
         hidden_layer_dims.append(self.z_dim)
-        self.non_linear = non_linear
-        self.beta = beta
-        self.learning_rate = learning_rate
-        self.joint_representation = False
-        self.threshold = threshold
-        self.trainer_dict = trainer_dict
-        self.dist = dist
-        self.variational = True
+        self.n_views = len(input_dims)
+
         if self.threshold != 0:
             self.sparse = True
             self.model_type = "sparse_VAE"
@@ -193,5 +173,5 @@ class multiVAE(BaseModel):
         kl = self.calc_kl(mu, logvar)
         recon = self.calc_ll(x, x_recon)
         total = kl - recon
-        losses = {"total": total, "kl": kl, "ll": recon}
+        losses = {"loss": total, "kl": kl, "ll": recon}
         return losses

@@ -7,9 +7,6 @@ from ..base.base_model import BaseModelAAE
 import numpy as np
 from ..utils.kl_utils import compute_mse
 from torch.autograd import Variable
-import pytorch_lightning as pl
-from os.path import join
-
 
 class AAE(BaseModelAAE):
     """

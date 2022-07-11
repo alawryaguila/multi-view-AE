@@ -1,0 +1,19 @@
+# @package _global_
+
+defaults:
+  - override /model: base.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+# default parameters for MVAE model
+model_name: "MVAE"
+
+model:
+  non_linear: False
+  beta: 1
+  threshold: 0
+  dist: "gaussian"
+  variational: True
+  joint_representation: True
+  join_type: "PoE"
+out_dir: ${original_work_dir}/${model_name}/${now:%Y_%m_%d}

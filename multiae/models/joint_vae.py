@@ -8,10 +8,8 @@ from ..base.base_model import BaseModel
 import numpy as np
 from ..utils.kl_utils import compute_logvar, compute_kl, compute_kl_sparse, compute_ll
 from ..utils.calc_utils import ProductOfExperts, MeanRepresentation
-import pytorch_lightning as pl
 
-
-class jointVAE(BaseModel):
+class MVAE(BaseModel):
     """
     Multi-view Variational Autoencoder model with a joint latent representation.
 
@@ -25,43 +23,23 @@ class jointVAE(BaseModel):
     def __init__(
         self,
         input_dims,
-        z_dim=1,
-        hidden_layer_dims=[],
-        non_linear=False,
-        learning_rate=0.002,
-        beta=1,
-        threshold=0,
-        join_type="Mean",
-        dist="gaussian",
+        expt='MVAE',
         **kwargs,
     ):
 
-        """
-        :param input_dims: columns of input data e.g. [M1 , M2] where M1 and M2 are number of the columns for views 1 and 2 respectively
-        :param z_dim: number of latent vectors
-        :param hidden_layer_dims: dimensions of hidden layers for encoder and decoder networks.
-        :param non_linear: non-linearity between hidden layers. If True ReLU is applied between hidden layers of encoder and decoder networks
-        :param learning_rate: learning rate of optimisers.
-        :param beta: weighting factor for Kullback-Leibler divergence term.
-        :param threshold: Dropout threshold for sparsity constraint on latent representation. If threshold is 0 then there is no sparsity.
-        :param join_type: How latent representations are combined. Either "Mean" or "PoE".
-        :param dist: Approximate distribution of data for log likelihood calculation. Either 'gaussian' or 'bernoulli'.
-        """
+        super().__init__(expt=expt)
 
-        super().__init__()
         self.save_hyperparameters()
-        self.model_type = "joint_VAE"
+
+        self.__dict__.update(self.cfg.model)
+        self.__dict__.update(kwargs)
+
+        self.model_type = expt
         self.input_dims = input_dims
-        hidden_layer_dims = hidden_layer_dims.copy()
-        self.z_dim = z_dim
+        hidden_layer_dims = self.hidden_layer_dims.copy()
         hidden_layer_dims.append(self.z_dim)
-        self.non_linear = non_linear
-        self.beta = beta
-        self.dist = dist
-        self.learning_rate = learning_rate
-        self.joint_representation = True
-        self.variational = True
-        self.join_type = join_type
+        self.n_views = len(input_dims)
+
         if self.join_type == "PoE":
             self.join_z = ProductOfExperts()
         elif self.join_type == "Mean":
@@ -69,10 +47,9 @@ class jointVAE(BaseModel):
         else:
             print("Incorrect join method")
             exit()
-        self.threshold = threshold
+
         if self.threshold != 0:
             self.sparse = True
-            self.model_type = "joint_sparse_VAE"
             self.log_alpha = torch.nn.Parameter(
                 torch.FloatTensor(1, self.z_dim).normal_(0, 0.01)
             )
@@ -201,5 +178,5 @@ class jointVAE(BaseModel):
         recon = self.calc_ll(x, x_recon)
 
         total = kl - recon
-        losses = {"total": total, "kl": kl, "ll": recon}
+        losses = {"loss": total, "kl": kl, "ll": recon}
         return losses
