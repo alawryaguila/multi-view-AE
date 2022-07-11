@@ -18,6 +18,7 @@ class AAE(BaseModelAAE):
         self,
         input_dims,
         z_dim=1,
+        expt='AAE',
         hidden_layer_dims=[],
         discriminator_layer_dims=[],
         non_linear=False,
@@ -33,9 +34,14 @@ class AAE(BaseModelAAE):
         :param non_linear: non-linearity between hidden layers. If True ReLU is applied between hidden layers of encoder and decoder networks
         :param learning_rate: learning rate of optimisers.
         """
-        super().__init__()
+
+        super().__init__(expt=expt)
+
+        self.save_hyperparameters()
+
+        self.__dict__.update(self.cfg.model)
+        self.__dict__.update(kwargs)
         self.automatic_optimization = False
-        self.model_type = "AAE"
         self.input_dims = input_dims
         self.hidden_layer_dims = hidden_layer_dims.copy()
         self.z_dim = z_dim
@@ -192,37 +198,3 @@ class AAE(BaseModelAAE):
             disc_loss += -torch.mean(label_fake * torch.log(d_fake[i] + self.eps))
 
         return disc_loss / (self.n_views + 1)
-
-    def training_step(self, batch, batch_idx):
-        loss = self.optimise_batch(batch)
-        self.log(
-            f"train_loss", loss["total"], on_epoch=True, prog_bar=True, logger=True
-        )
-        self.log(
-            f"train_recon_loss",
-            loss["recon"],
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-        )
-        self.log(
-            f"train_disc_loss", loss["disc"], on_epoch=True, prog_bar=True, logger=True
-        )
-        self.log(
-            f"train_gen_loss", loss["gen"], on_epoch=True, prog_bar=True, logger=True
-        )
-        return loss["total"]
-
-    def validation_step(self, batch, batch_idx):
-        loss = self.validate_batch(batch)
-        self.log(f"val_loss", loss["total"], on_epoch=True, prog_bar=True, logger=True)
-        self.log(
-            f"val_recon_loss", loss["recon"], on_epoch=True, prog_bar=True, logger=True
-        )
-        self.log(
-            f"val_disc_loss", loss["disc"], on_epoch=True, prog_bar=True, logger=True
-        )
-        self.log(
-            f"val_gen_loss", loss["gen"], on_epoch=True, prog_bar=True, logger=True
-        )
-        return loss["total"]

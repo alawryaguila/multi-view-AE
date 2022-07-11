@@ -14,6 +14,7 @@ class AE(BaseModel):
     def __init__(
         self,
         input_dims,
+        expt='AE',
         z_dim=1,
         hidden_layer_dims=[],
         non_linear=False,
@@ -32,9 +33,12 @@ class AE(BaseModel):
         :param SNP_model: Whether model will be used for SNP data - parameter will be removed soon.
         """
 
-        super().__init__()
-        self.model_type = "AE"
-        print(self.cfg)
+        super().__init__(expt=expt)
+
+        self.save_hyperparameters()
+
+        self.__dict__.update(self.cfg.model)
+        self.__dict__.update(kwargs)
         self.input_dims = input_dims
         hidden_layer_dims = hidden_layer_dims.copy()
         self.z_dim = z_dim
@@ -115,6 +119,6 @@ class AE(BaseModel):
         x_recon = fwd_rtn["x_recon"]
         z = fwd_rtn["z"]
         recon = self.recon_loss(x, x_recon)
-        losses = {"total": recon}
+        losses = {"loss": recon}
         return losses
 

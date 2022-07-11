@@ -1,7 +1,7 @@
 import numpy as np
 import itertools as it
 import os
-from multiae import mcVAE, MVTCAE, MVAE, mmVAE, DVCCA
+from multiae import mcVAE, MVTCAE, MVAE, mmVAE, DVCCA, AAE, jointAAE, wAAE, AE
 
 def test_mcVAE(): 
     train_1 = np.random.rand(200, 20)
@@ -20,10 +20,10 @@ def test_jointVAE():
     test_1 = np.random.rand(50, 20)
     test_2 = np.random.rand(50, 20)
     DEVICE = 'cpu'
-    models = MVAE(input_dims=[20, 20]).to(DEVICE)
-    models.fit(train_1, train_2, max_epochs=5, batch_size=50)
-    latent = models.predict_latents(test_1, test_2)
-    recon = models.predict_reconstruction(test_1, test_2)
+    model = MVAE(input_dims=[20, 20]).to(DEVICE)
+    model.fit(train_1, train_2, max_epochs=5, batch_size=50)
+    latent = model.predict_latents(test_1, test_2)
+    recon = model.predict_reconstruction(test_1, test_2)
 
 
 def test_multiMVTCAE(): 
@@ -43,10 +43,10 @@ def test_mmVAE():
     test_1 = np.random.rand(50, 20)
     test_2 = np.random.rand(50, 20)
     DEVICE = 'cpu'
-    models = mmVAE(input_dims=[20, 20]).to(DEVICE)
-    models.fit(train_1, train_2, max_epochs=5, batch_size=50)
-    latent = models.predict_latents(test_1, test_2)
-    recon = models.predict_reconstruction(test_1, test_2)
+    model = mmVAE(input_dims=[20, 20]).to(DEVICE)
+    model.fit(train_1, train_2, max_epochs=5, batch_size=50)
+    latent = model.predict_latents(test_1, test_2)
+    recon = model.predict_reconstruction(test_1, test_2)
 
 
 def test_DVCCA(): 
@@ -55,7 +55,51 @@ def test_DVCCA():
     test_1 = np.random.rand(50, 20)
     test_2 = np.random.rand(50, 20)
     DEVICE = 'cpu'
-    models = DVCCA(input_dims=[20, 20]).to(DEVICE)
-    models.fit(train_1, train_2, max_epochs=5, batch_size=50)
-    latent = models.predict_latents(test_1, test_2)
-    recon = models.predict_reconstruction(test_1, test_2)
+    model = DVCCA(input_dims=[20, 20]).to(DEVICE)
+    model.fit(train_1, train_2, max_epochs=5, batch_size=50)
+    latent = model.predict_latents(test_1, test_2)
+    recon = model.predict_reconstruction(test_1, test_2)
+
+def test_AAE(): 
+    train_1 = np.random.rand(200, 20)
+    train_2 = np.random.rand(200, 20)
+    test_1 = np.random.rand(50, 20)
+    test_2 = np.random.rand(50, 20)
+    DEVICE = 'cpu'
+    model = AAE(input_dims=[20, 20]).to(DEVICE)
+    model.fit(train_1, train_2, max_epochs=5, batch_size=50)
+    latent = model.predict_latents(test_1, test_2)
+    recon = model.predict_reconstruction(test_1, test_2)
+
+def test_jointAAE(): 
+    train_1 = np.random.rand(200, 20)
+    train_2 = np.random.rand(200, 20)
+    test_1 = np.random.rand(50, 20)
+    test_2 = np.random.rand(50, 20)
+    DEVICE = 'cpu'
+    model = jointAAE(input_dims=[20, 20]).to(DEVICE)
+    model.fit(train_1, train_2, max_epochs=5, batch_size=50)
+    latent = model.predict_latents(test_1, test_2)
+    recon = model.predict_reconstruction(test_1, test_2)
+
+def test_wAAE(): 
+    train_1 = np.random.rand(200, 20)
+    train_2 = np.random.rand(200, 20)
+    test_1 = np.random.rand(50, 20)
+    test_2 = np.random.rand(50, 20)
+    DEVICE = 'cpu'
+    model = wAAE(input_dims=[20, 20]).to(DEVICE)
+    model.fit(train_1, train_2, max_epochs=5, batch_size=50)
+    latent = model.predict_latents(test_1, test_2)
+    recon = model.predict_reconstruction(test_1, test_2)
+
+def test_AE(): 
+    train_1 = np.random.rand(200, 20)
+    train_2 = np.random.rand(200, 20)
+    test_1 = np.random.rand(50, 20)
+    test_2 = np.random.rand(50, 20)
+    DEVICE = 'cpu'
+    model = AE(input_dims=[20, 20]).to(DEVICE)
+    model.fit(train_1, train_2, max_epochs=5, batch_size=50)
+    latent = model.predict_latents(test_1, test_2)
+    recon = model.predict_reconstruction(test_1, test_2)

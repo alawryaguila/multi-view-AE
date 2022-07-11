@@ -175,21 +175,22 @@ class BaseModel(pl.LightningModule, Plotting):
         torch.save(self, join(self.cfg.out_dir, "model.pkl"))
 
 class BaseModelAAE(BaseModel):
-    def __init__(self):
-        super().__init__()
+    def __init__(self,
+                expt=None):
+        super().__init__(expt=expt)
 
     def validate_batch(self, local_batch):
         with torch.no_grad():
             self.eval()
             fwd_return = self.forward_recon(local_batch)
-            loss_recon = self.recon_loss(self, local_batch, fwd_return)
+            loss_recon = self.recon_loss(local_batch, fwd_return)
             fwd_return = self.forward_discrim(local_batch)
-            loss_disc = self.discriminator_loss(self, fwd_return)
+            loss_disc = self.discriminator_loss(fwd_return)
             fwd_return = self.forward_gen(local_batch)
-            loss_gen = self.generator_loss(self, fwd_return)
+            loss_gen = self.generator_loss(fwd_return)
             loss_total = loss_recon + loss_disc + loss_gen
             loss = {
-                "total": loss_total,
+                "loss": loss_total,
                 "recon": loss_recon,
                 "disc": loss_disc,
                 "gen": loss_gen,
@@ -225,9 +226,25 @@ class BaseModelAAE(BaseModel):
         [optimizer.step() for optimizer in gen_opt]
         loss_total = loss_recon + loss_disc + loss_gen
         loss = {
-            "total": loss_total,
+            "loss": loss_total,
             "recon": loss_recon,
             "disc": loss_disc,
             "gen": loss_gen,
         }
         return loss
+
+    def training_step(self, batch, batch_idx):
+        loss = self.optimise_batch(batch)
+        for loss_n, loss_val in loss.items():
+            self.log(
+                f"train_{loss_n}", loss_val, on_epoch=True, prog_bar=True, logger=True
+            ) 
+        return loss["loss"]
+
+    def validation_step(self, batch, batch_idx):
+        loss = self.validate_batch(batch)
+        for loss_n, loss_val in loss.items():
+            self.log(
+                f"val_{loss_n}", loss_val, on_epoch=True, prog_bar=True, logger=True
+            ) 
+        return loss["loss"]

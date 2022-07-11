@@ -12,6 +12,7 @@ class wAAE(BaseModelAAE):
     def __init__(
         self,
         input_dims,
+        expt='wAAE',
         z_dim=1,
         hidden_layer_dims=[],
         discriminator_layer_dims=[],
@@ -30,10 +31,13 @@ class wAAE(BaseModelAAE):
 
         """
 
-        super().__init__()
-        self.automatic_optimization = False
+        super().__init__(expt=expt)
+
         self.save_hyperparameters()
-        self.model_type = "joint_AAE"
+
+        self.__dict__.update(self.cfg.model)
+        self.__dict__.update(kwargs)
+        self.automatic_optimization = False
         self.input_dims = input_dims
         self.hidden_layer_dims = hidden_layer_dims.copy()
         self.z_dim = z_dim
@@ -200,37 +204,3 @@ class wAAE(BaseModelAAE):
         disc_loss = -torch.mean(d_real.sum(dim=-1)) + torch.mean(d_fake.sum(dim=-1))
 
         return disc_loss
-
-    def training_step(self, batch, batch_idx):
-        loss = self.optimise_batch(batch)
-        self.log(
-            f"train_loss", loss["total"], on_epoch=True, prog_bar=True, logger=True
-        )
-        self.log(
-            f"train_recon_loss",
-            loss["recon"],
-            on_epoch=True,
-            prog_bar=True,
-            logger=True,
-        )
-        self.log(
-            f"train_disc_loss", loss["disc"], on_epoch=True, prog_bar=True, logger=True
-        )
-        self.log(
-            f"train_gen_loss", loss["gen"], on_epoch=True, prog_bar=True, logger=True
-        )
-        return loss["total"]
-
-    def validation_step(self, batch, batch_idx):
-        loss = self.validate_batch(batch)
-        self.log(f"val_loss", loss["total"], on_epoch=True, prog_bar=True, logger=True)
-        self.log(
-            f"val_recon_loss", loss["recon"], on_epoch=True, prog_bar=True, logger=True
-        )
-        self.log(
-            f"val_disc_loss", loss["disc"], on_epoch=True, prog_bar=True, logger=True
-        )
-        self.log(
-            f"val_gen_loss", loss["gen"], on_epoch=True, prog_bar=True, logger=True
-        )
-        return loss["total"]
