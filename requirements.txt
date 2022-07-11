@@ -10,6 +10,10 @@ aiohttp==3.8.1
     # via fsspec
 aiosignal==1.2.0
     # via aiohttp
+antlr4-python3-runtime==4.9.3
+    # via
+    #   hydra-core
+    #   omegaconf
 async-timeout==4.0.2
     # via aiohttp
 asynctest==0.13.0
@@ -50,6 +54,8 @@ google-auth-oauthlib==0.4.6
     # via tensorboard
 grpcio==1.43.0
     # via tensorboard
+hydra-core==1.2.0
+    # via multiae (setup.py)
 idna==3.3
     # via
     #   requests
@@ -59,6 +65,8 @@ importlib-metadata==4.10.0
     #   markdown
     #   pluggy
     #   pytest
+importlib-resources==5.8.0
+    # via hydra-core
 iniconfig==1.1.1
     # via pytest
 joblib==1.1.0
@@ -98,12 +106,15 @@ numpy==1.20.3
     #   umap-learn
 oauthlib==3.1.1
     # via requests-oauthlib
+omegaconf==2.2.2
+    # via hydra-core
 packaging==21.3
     # via
+    #   hydra-core
     #   pytest
     #   pytorch-lightning
     #   torchmetrics
-pandas==1.1.3
+pandas==1.2.5
     # via multiae (setup.py)
 pillow==9.0.0
     # via
@@ -140,7 +151,9 @@ pytorch-lightning==1.5.8
 pytz==2021.3
     # via pandas
 pyyaml==6.0
-    # via pytorch-lightning
+    # via
+    #   omegaconf
+    #   pytorch-lightning
 requests==2.27.1
     # via
     #   fsspec
@@ -176,7 +189,7 @@ threadpoolctl==3.0.0
     # via scikit-learn
 toml==0.10.2
     # via pytest
-torch==1.10.1
+torch==1.10.2
     # via
     #   multiae (setup.py)
     #   pytorch-lightning
@@ -184,7 +197,7 @@ torch==1.10.1
     #   torchvision
 torchmetrics==0.6.2
     # via pytorch-lightning
-torchvision==0.11.2
+torchvision==0.11.3
     # via multiae (setup.py)
 tqdm==4.62.3
     # via
@@ -209,7 +222,9 @@ wheel==0.37.1
 yarl==1.7.2
     # via aiohttp
 zipp==3.7.0
-    # via importlib-metadata
+    # via
+    #   importlib-metadata
+    #   importlib-resources
 
 # The following packages are considered to be unsafe in a requirements file:
 # setuptools

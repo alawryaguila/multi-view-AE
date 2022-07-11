@@ -14,10 +14,10 @@ def setup_package():
         'numpy>=1.17'
         'scikit-learn~=0.24.1',
         'scipy~=1.7.1',
-        'pandas==1.1.3',
+        'pandas~=1.2.3',
         'matplotlib~=3.4.1',
         'torch==1.10.2',
-        'torchvision~=0.11.0',
+        'torchvision~=0.11.3',
         'pytorch-lightning>=1.5.5',
         'umap-learn~=0.5.2',
         'hydra-core~=1.2.0',
