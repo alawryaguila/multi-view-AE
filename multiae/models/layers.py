@@ -75,10 +75,6 @@ class Encoder(nn.Module):
             h1 = self.encoder_layers[-1](h1)
             return h1
 
-
-# TO DO - implement conv encoder and decoder
-
-
 class Discriminator(nn.Module):
     def __init__(
         self,

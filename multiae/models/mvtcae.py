@@ -1,16 +1,12 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.distributions.multivariate_normal import MultivariateNormal
 from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
-import numpy as np
-from ..utils.kl_utils import compute_kl, compute_kl_sparse, compute_ll
+from ..utils.kl_utils import compute_kl, compute_ll
 from ..utils.calc_utils import ProductOfExperts
-from os.path import join
-import pytorch_lightning as pl
+import hydra 
+from omegaconf import DictConfig
+from torch.distributions import Normal
 
-import os
 class MVTCAE(BaseModel):
     """
     Multi-View Total Correlation Auto-Encoder (MVTCAE) https://proceedings.neurips.cc/paper/2021/hash/65a99bb7a3115fdede20da98b08a370f-Abstract.html
@@ -72,76 +68,74 @@ class MVTCAE(BaseModel):
         return optimizers
 
     def encode(self, x):
-        mu = []
-        logvar = []
+        qz_xs = []
         for i in range(self.n_views):
-            mu_, logvar_ = self.encoders[i](x[i])
-            mu.append(mu_)
-            logvar.append(logvar_)
-        return mu, logvar
+            mu, logvar = self.encoders[i](x[i])
+            qz_x = hydra.utils.instantiate(self.enc_dist, loc=mu, scale=logvar.exp().pow(0.5))
+            qz_xs.append(qz_x)
+        return qz_xs
 
-    def reparameterise(self, mu, logvar):
+    def decode(self, qz_xs):
+        mu = [qz_x.loc for qz_x in qz_xs]
+        var = [qz_x.variance for qz_x in qz_xs]
         mu = torch.stack(mu)
-        logvar = torch.stack(logvar)
-        mu, logvar = ProductOfExperts()(mu, logvar)
-        std = torch.exp(0.5 * logvar)
-        # return MultivariateNormal(mu, torch.diag_embed(std)).rsample()
-        eps = torch.randn_like(mu)
-        return mu + eps * std
-
-    def decode(self, z):
-        x_recon = []
+        var = torch.stack(var)
+        mu, var = ProductOfExperts()(mu, var)
+        px_zs = []
         for i in range(self.n_views):
-            mu_out = self.decoders[i](z)
-            x_recon.append(mu_out)
-        return x_recon
+            px_z = self.decoders[i](hydra.utils.instantiate(self.enc_dist, loc=mu, scale=var.pow(0.5)).rsample())
+            px_zs.append(px_z)
+        return px_zs
 
     def forward(self, x):
-        mu, logvar = self.encode(x)
-        z = self.reparameterise(mu, logvar)
-        x_recon = self.decode(z)
-        fwd_rtn = {"x_recon": x_recon, "mu": mu, "logvar": logvar}
+        qz_xs = self.encode(x)
+        px_zs = self.decode(qz_xs)
+        fwd_rtn = {"px_zs": px_zs, "qz_xs": qz_xs}
         return fwd_rtn
 
-    def calc_kl_cvib(self, mu, logvar):
-        mugrp = torch.stack(mu)
-        logvargrp = torch.stack(logvar)
-        mugrp, logvargrp = ProductOfExperts()(mugrp, logvargrp)
+    def calc_kl_cvib(self, qz_xs):
+        mu = [qz_x.loc for qz_x in qz_xs]
+        var = [qz_x.variance for qz_x in qz_xs]
+        mu = torch.stack(mu)
+        var = torch.stack(var)
+        mu, var = ProductOfExperts()(mu, var)
         kl = 0
         for i in range(self.n_views):
-            kl += compute_kl(mugrp, logvargrp, mu[i], logvar[i])
+            kl += hydra.utils.instantiate(self.enc_dist, loc=mu, scale=var.pow(0.5)).kl_divergence(qz_xs[i]).sum(1, keepdims=True).mean(0)
         return kl
 
-    def calc_kl_groupwise(self, mu, logvar):
+    def calc_kl_groupwise(self, qz_xs):
+        mu = [qz_x.loc for qz_x in qz_xs]
+        var = [qz_x.variance for qz_x in qz_xs]
         mu = torch.stack(mu)
-        logvar = torch.stack(logvar)
-        mu, logvar = ProductOfExperts()(mu, logvar)
-        return compute_kl(mu, logvar)
+        var = torch.stack(var)
+        mu, var = ProductOfExperts()(mu, var)
+        prior = Normal(0, 1) #TODO - flexible prior
+        return hydra.utils.instantiate(self.enc_dist, loc=mu, scale=var.pow(0.5)).kl_divergence(prior).sum(1, keepdims=True).mean(0)
 
-    def calc_ll(self, x, x_recon):
+    def calc_ll(self, x, px_zs):
         ll = 0
         for i in range(self.n_views):
-            ll += compute_ll(x[i], x_recon[i], dist=self.dist)
+            ll += compute_ll(x[i], px_zs[i], dist=self.dist) #TODO - change
         return ll
 
     def sample_from_normal(self, normal):
         return normal.loc
 
     def loss_function(self, x, fwd_rtn):
-        x_recon = fwd_rtn["x_recon"]
-        mu = fwd_rtn["mu"]
-        logvar = fwd_rtn["logvar"]
+        px_zs = fwd_rtn["px_zs"]
+        qz_xs = fwd_rtn["qz_xs"]
 
         rec_weight = (self.n_views - self.alpha) / self.n_views
         cvib_weight = self.alpha / self.n_views
         vib_weight = 1 - self.alpha
 
-        grp_kl = self.calc_kl_groupwise(mu, logvar)
-        cvib_kl = self.calc_kl_cvib(mu, logvar)
-        recon = self.calc_ll(x, x_recon)
+        grp_kl = self.calc_kl_groupwise(qz_xs)
+        cvib_kl = self.calc_kl_cvib(qz_xs)
+        ll = self.calc_ll(x, px_zs)
 
         kld_weighted = cvib_weight * cvib_kl + vib_weight * grp_kl
-        total = -rec_weight * recon + self.beta * kld_weighted
+        total = -rec_weight * ll + self.beta * kld_weighted
 
-        losses = {"loss": total, "kl_cvib": cvib_kl, "kl_grp": grp_kl, "ll": recon}
+        losses = {"loss": total, "kl_cvib": cvib_kl, "kl_grp": grp_kl, "ll": ll}
         return losses

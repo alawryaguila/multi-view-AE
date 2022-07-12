@@ -1,14 +1,10 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-# import pytorch_lightning as pl
-from torch.distributions import Normal
 from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
-import numpy as np
+from torch.distributions import Normal
 from ..utils.kl_utils import compute_kl, compute_kl_sparse, compute_ll
-from os.path import join
+import hydra 
+from omegaconf import DictConfig
 
 
 class mcVAE(BaseModel):
@@ -69,7 +65,7 @@ class mcVAE(BaseModel):
                     input_dim=input_dim,
                     hidden_layer_dims=hidden_layer_dims,
                     variational=True,
-                    dist=self.dist,
+                    dist=self.dec_dist.dist,
                     non_linear=self.non_linear,
                 )
                 for input_dim in self.input_dims
@@ -88,35 +84,33 @@ class mcVAE(BaseModel):
         return optimizers
 
     def encode(self, x):
+        qz_xs = []
+        for i in range(self.n_views):
+            mu, logvar = self.encoders[i](x[i])
+            qz_x = hydra.utils.instantiate(self.enc_dist, loc=mu, scale=logvar.exp().pow(0.5))
+            qz_xs.append(qz_x)
+        return qz_xs
+
+    def sample_loc_variance(self, qz_xs):
         mu = []
-        logvar = []
+        var = []
+        for qz_x in qz_xs:
+            mu.append(qz_x.loc)
+            var.append(qz_x.variance)
+        return mu, var
+        
+    def decode(self, qz_xs):
+        px_zs = []
         for i in range(self.n_views):
-            mu_, logvar_ = self.encoders[i](x[i])
-            mu.append(mu_)
-            logvar.append(logvar_)
-        return mu, logvar
-
-    def reparameterise(self, mu, logvar):
-        z = []
-        for i in range(len(mu)):
-            std = torch.exp(0.5 * logvar[i])
-            eps = torch.randn_like(mu[i])
-            z.append(mu[i] + eps * std)
-        return z
-
-    def decode(self, z):
-        x_recon = []
-        for i in range(self.n_views):
-            temp_recon = [self.decoders[i](z[j]) for j in range(self.n_views)]
-            x_recon.append(temp_recon)
-            del temp_recon
-        return x_recon
+            px_z = [self.decoders[i](qz_x.rsample()) for qz_x in qz_xs]
+            px_zs.append(px_z)
+            del px_z
+        return px_zs
 
     def forward(self, x):
-        mu, logvar = self.encode(x)
-        z = self.reparameterise(mu, logvar)
-        x_recon = self.decode(z)
-        fwd_rtn = {"x_recon": x_recon, "mu": mu, "logvar": logvar}
+        qz_xs = self.encode(x)
+        px_zs = self.decode(qz_xs)
+        fwd_rtn = {"px_zs": px_zs, "qz_xs": qz_xs}
         return fwd_rtn
 
     def dropout(self):
@@ -142,36 +136,36 @@ class mcVAE(BaseModel):
             del _
         return z_keep
 
-    def calc_kl(self, mu, logvar):
+    def calc_kl(self, pz_xs):
         """
         VAE: Implementation from: https://arxiv.org/abs/1312.6114
         sparse-VAE: Implementation from: https://github.com/senya-ashukha/variational-dropout-sparsifies-dnn/blob/master/KL%20approximation.ipynb
 
         """
         kl = 0
-        for i in range(self.n_views):
+        prior = Normal(0, 1) #TODO - flexible prior
+        for pz_x in pz_xs:
             if self.sparse:
-                kl += compute_kl_sparse(mu[i], logvar[i])
+                kl += compute_kl_sparse(pz_x) #make func of dist
             else:
-                kl += compute_kl(mu[i], logvar[i])
+                kl += pz_x.kl_divergence(prior).sum(1, keepdims=True).mean(0)
         return self.beta * kl
 
     def calc_ll(self, x, x_recon):
         ll = 0
         for i in range(self.n_views):
             for j in range(self.n_views):
-                ll += compute_ll(x[i], x_recon[i][j], dist=self.dist)
+                ll += compute_ll(x[i], x_recon[i][j], dist=self.dec_dist.dist)
         return ll
 
     def sample_from_normal(self, normal):
         return normal.loc
 
     def loss_function(self, x, fwd_rtn):
-        x_recon = fwd_rtn["x_recon"]
-        mu = fwd_rtn["mu"]
-        logvar = fwd_rtn["logvar"]
-        kl = self.calc_kl(mu, logvar)
-        recon = self.calc_ll(x, x_recon)
-        total = kl - recon
-        losses = {"loss": total, "kl": kl, "ll": recon}
+        px_zs = fwd_rtn["px_zs"]
+        qz_xs = fwd_rtn["qz_xs"]
+        kl = self.calc_kl(qz_xs)
+        ll = self.calc_ll(x, px_zs)
+        total = kl - ll
+        losses = {"loss": total, "kl": kl, "ll": ll}
         return losses

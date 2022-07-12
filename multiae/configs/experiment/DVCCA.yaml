@@ -13,6 +13,12 @@ model:
   beta: 1
   threshold: 0
   dist: "gaussian"
+  enc_dist:
+    _target_: multiae.utils.distributions.Normal
+    dist: "gaussian"
+  dec_dist:
+    _target_: multiae.utils.distributions.Normal
+    dist: "gaussian"
   variational: True
   private: True
 out_dir: ${original_work_dir}/${model_name}/${now:%Y_%m_%d}

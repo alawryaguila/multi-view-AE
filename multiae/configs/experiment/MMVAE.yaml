@@ -9,10 +9,16 @@ defaults:
 model_name: "MMVAE"
 
 model:
+  dist: "gaussian"
   non_linear: False
   beta: 1
   threshold: 0
-  dist: "gaussian"
+  enc_dist:
+    _target_: multiae.utils.distributions.Normal
+    dist: "gaussian"
+  dec_dist:
+    _target_: multiae.utils.distributions.Normal
+    dist: "gaussian"
   variational: True
   joint_representation: True
   log_alpha: null

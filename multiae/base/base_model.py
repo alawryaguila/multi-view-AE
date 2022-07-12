@@ -57,27 +57,23 @@ class BaseModel(pl.LightningModule, Plotting):
                     if isinstance(local_batch, (list, tuple))
                     else local_batch.to(self.device)
                 )
-                if self.variational:
-                    mu, logvar = self.encode(local_batch)
-                    pred = self.reparameterise(mu, logvar)
-                else:
-                    pred = self.encode(local_batch)
+                pred = self.encode(local_batch)
                 if self.sparse:
                     pred = self.apply_threshold(pred)
                 if batch_idx == 0:
-                    predictions = self.process_output(pred, data_type="latent")
+                    predictions = self.process_output(pred)
                 else:
                     predictions = self.process_output(
-                        pred, pred=predictions, data_type="latent"
+                        pred, pred=predictions
                     )
         return predictions
 
-    def process_output(self, data, pred=None, data_type=None):
+    def process_output(self, data, pred=None):
         if pred is not None:
-            if self.cfg.model.variational and data_type is None and self.cfg.model.dist == "gaussian":
+            if self.cfg.model.variational and self.cfg.model.dist == "gaussian":
                 if isinstance(data, (list, tuple)):
                     return [
-                        self.process_output(data_, pred=pred_, data_type=data_type)
+                        self.process_output(data_, pred=pred_)
                         if isinstance(data_, list)
                         else np.append(pred_, self.sample_from_normal(data_), axis=0)
                         for pred_, data_ in zip(pred, data)
@@ -85,17 +81,17 @@ class BaseModel(pl.LightningModule, Plotting):
                 return np.append(pred, self.sample_from_normal(data), axis=0)
             if isinstance(data, (list, tuple)):
                 return [
-                    self.process_output(data_, pred=pred_, data_type=data_type)
+                    self.process_output(data_, pred=pred_)
                     if isinstance(data_, list)
                     else np.append(pred_, data_, axis=0)
                     for pred_, data_ in zip(pred, data)
                 ]
             return np.append(pred, data, axis=0)
         else:
-            if self.cfg.model.variational and data_type is None and self.cfg.model.dist == "gaussian":
+            if self.cfg.model.variational and self.cfg.model.dist == "gaussian":
                 if isinstance(data, (list, tuple)):
                     return [
-                        self.process_output(data_, data_type=data_type)
+                        self.process_output(data_)
                         if isinstance(data_, list)
                         else self.sample_from_normal(data_).cpu().detach().numpy()
                         for data_ in data
@@ -103,7 +99,7 @@ class BaseModel(pl.LightningModule, Plotting):
                 return self.sample_from_normal(data).cpu().detach().numpy()
             if isinstance(data, (list, tuple)):
                 return [
-                    self.process_output(data_, data_type=data_type)
+                    self.process_output(data_)
                     if isinstance(data_, list)
                     else data_.cpu().detach().numpy()
                     for data_ in data
@@ -118,11 +114,7 @@ class BaseModel(pl.LightningModule, Plotting):
                 local_batch = [
                     local_batch_.to(self.device) for local_batch_ in local_batch
                 ]
-                if self.variational:
-                    mu, logvar = self.encode(local_batch)
-                    z = self.reparameterise(mu, logvar)
-                else:
-                    z = self.encode(local_batch)
+                z = self.encode(local_batch)
                 if self.sparse:
                     z = self.apply_threshold(z)
                 x_recon = self.decode(z)
