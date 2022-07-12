@@ -151,11 +151,11 @@ class mcVAE(BaseModel):
                 kl += pz_x.kl_divergence(prior).sum(1, keepdims=True).mean(0)
         return self.beta * kl
 
-    def calc_ll(self, x, x_recon):
+    def calc_ll(self, x, px_zs):
         ll = 0
         for i in range(self.n_views):
             for j in range(self.n_views):
-                ll += compute_ll(x[i], x_recon[i][j], dist=self.dec_dist.dist)
+                ll += px_zs[i][j].log_likelihood(x[i])
         return ll
 
     def sample_from_normal(self, normal):

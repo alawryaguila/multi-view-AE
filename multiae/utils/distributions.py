@@ -17,17 +17,20 @@ class MultivariateNormal(MultivariateNormal):
         super().__init__(loc, torch.diag_embed(scale))
 
 class Normal(Normal):
-	def __init__(
-			self,
-			loc,
-			scale,
-			*args, **kwargs,
-	):
-		super().__init__(loc, scale)
+    def __init__(
+        self,
+        loc,
+        scale,
+        *args, **kwargs,
+        ):
+        super().__init__(loc, scale)
 
-	@property
-	def variance(self):
-		return self.scale.pow(2)
+    @property
+    def variance(self):
+        return self.scale.pow(2)
 
-	def kl_divergence(self, other):
-		return kl_divergence(Normal(loc=self.loc, scale=self.stddev), other)
+    def kl_divergence(self, other):
+        return kl_divergence(Normal(loc=self.loc, scale=self.stddev), other)
+    
+    def log_likelihood(self, x):
+        return self.log_prob(x)
