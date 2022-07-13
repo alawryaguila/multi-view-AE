@@ -68,24 +68,45 @@ class MVTCAE(BaseModel):
         return optimizers
 
     def encode(self, x):
-        qz_xs = []
-        for i in range(self.n_views):
-            mu, logvar = self.encoders[i](x[i])
-            qz_x = hydra.utils.instantiate(self.enc_dist, loc=mu, scale=logvar.exp().pow(0.5))
-            qz_xs.append(qz_x)
-        return qz_xs
+        if self._training:
+            qz_xs = []
+            for i in range(self.n_views):
+                mu, logvar = self.encoders[i](x[i])
+                qz_x = hydra.utils.instantiate(self.enc_dist, loc=mu, scale=logvar.exp().pow(0.5))
+                qz_xs.append(qz_x)
+            return qz_xs
+        else:
+            mu = []
+            var = []
+            for i in range(self.n_views):
+                mu_, logvar_ = self.encoders[i](x[i])
+                mu.append(mu_)
+                var_ = logvar_.exp()
+                var.append(var_)
+            mu = torch.stack(mu)
+            var = torch.stack(var)
+            mu, var = ProductOfExperts()(mu, var)
+            qz_x = hydra.utils.instantiate(self.enc_dist, loc=mu, scale=var.pow(0.5))
+            return qz_x
 
     def decode(self, qz_xs):
-        mu = [qz_x.loc for qz_x in qz_xs]
-        var = [qz_x.variance for qz_x in qz_xs]
-        mu = torch.stack(mu)
-        var = torch.stack(var)
-        mu, var = ProductOfExperts()(mu, var)
-        px_zs = []
-        for i in range(self.n_views):
-            px_z = self.decoders[i](hydra.utils.instantiate(self.enc_dist, loc=mu, scale=var.pow(0.5)).rsample())
-            px_zs.append(px_z)
-        return px_zs
+        if self._training:
+            mu = [qz_x.loc for qz_x in qz_xs]
+            var = [qz_x.variance for qz_x in qz_xs]
+            mu = torch.stack(mu)
+            var = torch.stack(var)
+            mu, var = ProductOfExperts()(mu, var)
+            px_zs = []
+            for i in range(self.n_views):
+                px_z = self.decoders[i](hydra.utils.instantiate(self.enc_dist, loc=mu, scale=var.pow(0.5)).rsample())
+                px_zs.append(px_z)
+            return px_zs
+        else:
+            px_zs = []
+            for i in range(self.n_views):
+                px_z = self.decoders[i](qz_xs.loc)
+                px_zs.append(px_z)
+            return px_zs
 
     def forward(self, x):
         qz_xs = self.encode(x)

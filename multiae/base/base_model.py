@@ -22,6 +22,7 @@ class BaseModel(pl.LightningModule, Plotting):
                 self.cfg = compose(config_name="run", return_hydra_config=True)
 
     def fit(self, *data, labels=None, **kwargs):
+        self._training = True
         self.data = data
         self.labels = labels
         self.val_set = False
@@ -48,8 +49,15 @@ class BaseModel(pl.LightningModule, Plotting):
 
     def predict_latents(self, *data, val_set=False):
         self.val_set = val_set
+        self._training = False
+        print(self._training)
         dataset = MultiviewDataModule.dataset(*data, labels=None)
-        generator = DataLoader(dataset, batch_size=self.cfg.datamodule.batch_size, shuffle=False)
+        if self.cfg.datamodule.batch_size is None: #TODO - change to utils func
+            batch_size =data[0].shape[0] if (type(data) == list or type(data) == tuple) else data.shape[0]
+        else:
+            batch_size = self.cfg.datamodule.batch_size
+        
+        generator = DataLoader(dataset, batch_size=batch_size, shuffle=False)
         with torch.no_grad():
             for batch_idx, local_batch in enumerate(generator):
                 local_batch = (
@@ -107,8 +115,13 @@ class BaseModel(pl.LightningModule, Plotting):
             return data.cpu().detach().numpy()
 
     def predict_reconstruction(self, *data):
+        self._training = False
         dataset = MultiviewDataModule.dataset(*data, labels=None)
-        generator = DataLoader(dataset, batch_size=self.cfg.datamodule.batch_size, shuffle=False)
+        if self.cfg.datamodule.batch_size is None: #TODO - change to utils func
+            batch_size =data[0].shape[0] if (type(data) == list or type(data) == tuple) else data.shape[0]
+        else:
+            batch_size = self.cfg.datamodule.batch_size
+        generator = DataLoader(dataset, batch_size=batch_size, shuffle=False)
         with torch.no_grad():
             for batch_idx, (local_batch) in enumerate(generator):
                 local_batch = [
@@ -126,26 +139,6 @@ class BaseModel(pl.LightningModule, Plotting):
                         x_recon, pred=x_reconstruction
                     )
             return x_reconstruction
-
-    def predict_labels(self, *data):
-        dataset = MultiviewDataModule.dataset(*data, labels=None)
-        generator = DataLoader(dataset, batch_size=self.cfg.datamodule.batch_size, shuffle=False)
-        with torch.no_grad():
-            for batch_idx, (local_batch) in enumerate(generator):
-                local_batch = [
-                    local_batch_.to(self.device) for local_batch_ in local_batch
-                ]
-                mu, logvar = self.encode(local_batch)
-                z = self.reparameterise(mu, logvar)
-                output = self.classify(z)
-                pred = [torch.argmax(output_, dim=1) for output_ in output]
-                if batch_idx == 0:
-                    predictions = self.process_output(pred, data_type="prediction")
-                else:
-                    predictions = self.process_output(
-                        pred, pred=predictions, data_type="prediction"
-                    )
-            return predictions
 
     def _step(self, batch, batch_idx, stage):
         fwd_return = self.forward(batch)
