@@ -155,7 +155,7 @@ class mcVAE(BaseModel):
         ll = 0
         for i in range(self.n_views):
             for j in range(self.n_views):
-                ll += px_zs[i][j].log_likelihood(x[i])
+                ll += px_zs[i][j].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
         return ll
 
     def sample_from_normal(self, normal):

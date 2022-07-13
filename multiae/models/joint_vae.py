@@ -158,7 +158,7 @@ class MVAE(BaseModel):
     def calc_ll(self, x, px_zs):
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[i].log_likelihood(x[i])
+            ll += px_zs[i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
         return ll
 
     def sample_from_normal(self, normal):
