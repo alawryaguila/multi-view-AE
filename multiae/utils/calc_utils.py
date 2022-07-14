@@ -51,3 +51,15 @@ def compute_logvar(mu, log_alpha):
 
 def compute_mse(x, y):
     return torch.mean(((x - y) ** 2).sum(dim=-1))
+
+def update_dict(orig_dict, update_dict):
+    for key, val in update_dict.items():
+        if key in orig_dict.keys():
+            orig_dict[key] = val
+    return orig_dict
+
+def check_batch_size(batch_size, x):
+    if batch_size is None:
+        return x[0].shape[0] if (type(x) == list or type(x) == tuple) else x.shape[0]
+    else:
+        return batch_size

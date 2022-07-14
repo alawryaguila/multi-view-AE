@@ -108,7 +108,7 @@ class MVAE(BaseModel):
     def decode(self, qz_x):
         x_recon = []
         for i in range(self.n_views):
-            mu_out = self.decoders[i](qz_x.rsample())
+            mu_out = self.decoders[i](qz_x._sample(training=self._training))
             x_recon.append(mu_out)
         return x_recon
 
@@ -133,12 +133,16 @@ class MVAE(BaseModel):
         """
         Implementation from: https://github.com/ggbioing/mcvae
         """
+    
         assert self.threshold <= 1.0
-        dropout = self.dropout()
-        keep = (dropout < self.threshold).squeeze().cpu()
-        if self.joint_representation:
-            z[:, ~keep] = 0
-        return z
+        keep = (self.dropout() < self.threshold).squeeze().cpu()
+        z_keep = []
+        for _ in z:
+            _ = _._sample()
+            _[:, ~keep] = 0
+            z_keep.append(_)
+            del _
+        return hydra.utils.instantiate(self.enc_dist, loc=z_keep)
 
     def calc_kl(self, qz_x):
         """

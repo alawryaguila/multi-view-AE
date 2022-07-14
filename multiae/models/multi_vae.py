@@ -100,7 +100,7 @@ class mcVAE(BaseModel):
     def decode(self, qz_xs):
         px_zs = []
         for i in range(self.n_views):
-            px_z = [self.decoders[i](qz_x.rsample()) for qz_x in qz_xs]
+            px_z = [self.decoders[i](qz_x._sample(training=self._training)) for qz_x in qz_xs]
             px_zs.append(px_z)
             del px_z
         return px_zs
@@ -125,14 +125,16 @@ class mcVAE(BaseModel):
         """
         Implementation from: https://github.com/ggbioing/mcvae
         """
+    
         assert self.threshold <= 1.0
         keep = (self.dropout() < self.threshold).squeeze().cpu()
         z_keep = []
         for _ in z:
+            _ = _._sample()
             _[:, ~keep] = 0
             z_keep.append(_)
             del _
-        return z_keep
+        return hydra.utils.instantiate(self.enc_dist, loc=z_keep)
 
     def calc_kl(self, qz_xs):
         """

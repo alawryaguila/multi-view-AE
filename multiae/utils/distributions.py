@@ -39,7 +39,9 @@ class MultivariateNormal(MultivariateNormal):
     def log_likelihood(self, x):
         return self.log_prob(x) 
 
-    def _sample(self):
+    def _sample(self, training=False):
+        if training:
+            return self.rsample()
         return self.loc 
 
 class Normal(Normal):
@@ -74,7 +76,9 @@ class Normal(Normal):
     def log_likelihood(self, x):
         return self.log_prob(x)
 
-    def _sample(self):
+    def _sample(self, training=False):
+        if training:
+            return self.rsample()
         return self.loc 
 
 class Bernoulli():
@@ -86,7 +90,7 @@ class Bernoulli():
         self.x = x
 
     def log_likelihood(self, x):
-        return F.binary_cross_entropy(torch.sigmoid(self.x), x, reduction="none")
+        return F.binary_cross_entropy(torch.sigmoid(self.x), x, reduction="none") #check right way around
     
     def rsample(self):
         raise NotImplementedError

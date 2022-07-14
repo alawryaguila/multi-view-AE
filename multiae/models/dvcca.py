@@ -105,9 +105,9 @@ class DVCCA(BaseModel):
         px_zs = []
         for i in range(self.n_views):
             if self.private:
-                x_out = self.decoders[i](qz_x[i].rsample())
+                x_out = self.decoders[i](qz_x[i]._sample(training=self._training))
             else:
-                x_out = self.decoders[i](qz_x.rsample())
+                x_out = self.decoders[i](qz_x._sample(training=self._training))
             px_zs.append(x_out)
         return px_zs
 
@@ -117,6 +117,31 @@ class DVCCA(BaseModel):
         px_zs = self.decode(qz_x)
         fwd_rtn = {"px_zs": px_zs, "qz_x": qz_x}
         return fwd_rtn
+
+    def dropout(self):
+        """
+        Implementation from: https://github.com/ggbioing/mcvae
+        """
+        if self.sparse:
+            alpha = torch.exp(self.log_alpha.detach())
+            return alpha / (alpha + 1)
+        else:
+            raise NotImplementedError
+
+    def apply_threshold(self, z):
+        """
+        Implementation from: https://github.com/ggbioing/mcvae
+        """
+    
+        assert self.threshold <= 1.0
+        keep = (self.dropout() < self.threshold).squeeze().cpu()
+        z_keep = []
+        for _ in z:
+            _ = _._sample()
+            _[:, ~keep] = 0
+            z_keep.append(_)
+            del _
+        return hydra.utils.instantiate(self.enc_dist, loc=z_keep)
 
     def calc_kl(self, qz_x):
         prior = Normal(0, 1) #TODO - flexible prior

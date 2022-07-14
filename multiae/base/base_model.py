@@ -1,6 +1,6 @@
 from torch.utils.data.dataloader import DataLoader
 from ..utils.dataloaders import MultiviewDataModule
-from ..utils.utils import update_dict
+from ..utils.calc_utils import update_dict, check_batch_size
 import numpy as np
 import torch
 from ..plot.plotting import Plotting
@@ -52,10 +52,7 @@ class BaseModel(pl.LightningModule, Plotting):
         self._training = False
         print(self._training)
         dataset = MultiviewDataModule.dataset(*data, labels=None)
-        if self.cfg.datamodule.batch_size is None: #TODO - change to utils func
-            batch_size =data[0].shape[0] if (type(data) == list or type(data) == tuple) else data.shape[0]
-        else:
-            batch_size = self.cfg.datamodule.batch_size
+        batch_size = check_batch_size(self.cfg.datamodule.batch_size, data)
         
         generator = DataLoader(dataset, batch_size=batch_size, shuffle=False)
         with torch.no_grad():
@@ -117,11 +114,9 @@ class BaseModel(pl.LightningModule, Plotting):
     def predict_reconstruction(self, *data):
         self._training = False
         dataset = MultiviewDataModule.dataset(*data, labels=None)
-        if self.cfg.datamodule.batch_size is None: #TODO - change to utils func
-            batch_size =data[0].shape[0] if (type(data) == list or type(data) == tuple) else data.shape[0]
-        else:
-            batch_size = self.cfg.datamodule.batch_size
+        batch_size = check_batch_size(self.cfg.datamodule.batch_size, data)
         generator = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+        
         with torch.no_grad():
             for batch_idx, (local_batch) in enumerate(generator):
                 local_batch = [
