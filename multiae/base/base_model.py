@@ -78,15 +78,15 @@ class BaseModel(pl.LightningModule, Plotting):
 
     def process_output(self, data, pred=None):
         if pred is not None:
-            if self.cfg.model.variational and self.cfg.model.dist == "gaussian":
+            if self.cfg.model.variational:
                 if isinstance(data, (list, tuple)):
                     return [
                         self.process_output(data_, pred=pred_)
                         if isinstance(data_, list)
-                        else np.append(pred_, self.sample_from_normal(data_), axis=0)
+                        else np.append(pred_, self.sample_from_dist(data_), axis=0)
                         for pred_, data_ in zip(pred, data)
                     ]
-                return np.append(pred, self.sample_from_normal(data), axis=0)
+                return np.append(pred, self.sample_from_dist(data), axis=0)
             if isinstance(data, (list, tuple)):
                 return [
                     self.process_output(data_, pred=pred_)
@@ -96,15 +96,15 @@ class BaseModel(pl.LightningModule, Plotting):
                 ]
             return np.append(pred, data, axis=0)
         else:
-            if self.cfg.model.variational and self.cfg.model.dist == "gaussian":
+            if self.cfg.model.variational:
                 if isinstance(data, (list, tuple)):
                     return [
                         self.process_output(data_)
                         if isinstance(data_, list)
-                        else self.sample_from_normal(data_).cpu().detach().numpy()
+                        else self.sample_from_dist(data_).cpu().detach().numpy()
                         for data_ in data
                     ]
-                return self.sample_from_normal(data).cpu().detach().numpy()
+                return self.sample_from_dist(data).cpu().detach().numpy()
             if isinstance(data, (list, tuple)):
                 return [
                     self.process_output(data_)

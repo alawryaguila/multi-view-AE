@@ -1,11 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from multiae.utils.distributions import Normal
-from torch.distributions.multivariate_normal import MultivariateNormal
+from multiae.utils.distributions import Normal, Bernoulli, MultivariateNormal
 from ..utils.calc_utils import compute_logvar
 from torch.nn import Parameter
-
 
 class Encoder(nn.Module):
     def __init__(
@@ -182,9 +180,8 @@ class Decoder(nn.Module):
             tmp_noise_par = torch.FloatTensor(1, self.input_size).fill_(
                 self.init_logvar
             )
-            if self.dist == "gaussian":
-                tmp_noise_par = torch.FloatTensor(1, input_dim).fill_(init_logvar)
-                self.logvar_out = Parameter(data=tmp_noise_par, requires_grad=True)
+            tmp_noise_par = torch.FloatTensor(1, input_dim).fill_(init_logvar)
+            self.logvar_out = Parameter(data=tmp_noise_par, requires_grad=True)
         else:
             self.decoder_layers = nn.Sequential(*lin_layers)
 
@@ -199,14 +196,8 @@ class Decoder(nn.Module):
             if self.dist == "gaussian":
                 return Normal(loc=x_rec, scale=torch.exp(0.5 * self.logvar_out))
             elif self.dist == "bernoulli":
-                return torch.sigmoid(x_rec)
+                return Bernoulli(x_rec)
             elif self.dist == "MultivariateGaussian":
-                return MultivariateNormal(
-                    x_rec,
-                    torch.broadcast_to(
-                        torch.eye(x_rec.size()[1]),
-                        (x_rec.size()[0], x_rec.size()[1], x_rec.size()[1]),
-                    ),
-                )
+                return MultivariateNormal(loc=x_rec, scale=torch.exp(0.5 * self.logvar_out))
                 # check this works
         return x_rec

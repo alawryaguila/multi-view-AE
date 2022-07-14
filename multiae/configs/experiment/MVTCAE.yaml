@@ -15,10 +15,8 @@ model:
   dist: "gaussian"
   enc_dist:
     _target_: multiae.utils.distributions.Normal
-    dist: "gaussian"
   dec_dist:
     _target_: multiae.utils.distributions.Normal
-    dist: "gaussian"
   variational: True
   sparse: False
 

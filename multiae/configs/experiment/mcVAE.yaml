@@ -9,16 +9,14 @@ defaults:
 model_name: "mcVAE"
 
 model:
-  dist: "gaussian" #TODO get rid of
+  dist: "bernoulli" #TODO get rid of
   non_linear: False
   beta: 1
   threshold: 0
   enc_dist:
     _target_: multiae.utils.distributions.Normal
-    dist: "gaussian"
   dec_dist:
     _target_: multiae.utils.distributions.Normal
-    dist: "gaussian"
   variational: True
   joint_representation: False
   sparse: True

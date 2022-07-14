@@ -121,8 +121,8 @@ class mmVAE(BaseModel):
             self.log_mean_exp(torch.stack(lws), dim=1).mean(0).sum()
         )  # looser iwae bound where have
 
-    def sample_from_normal(self, normal):
-        return normal.loc
+    def sample_from_dist(self, dist):
+        return dist._sample()
 
     def log_mean_exp(self, value, dim=0, keepdim=False):
         return torch.logsumexp(value, dim, keepdim=keepdim) - math.log(value.size(dim))

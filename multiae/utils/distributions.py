@@ -1,6 +1,5 @@
-import numpy as np
 import torch
-import torch.nn as nn
+import torch.nn.functional as F
 from scipy import stats
 from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions import Normal, kl_divergence
@@ -38,7 +37,10 @@ class MultivariateNormal(MultivariateNormal):
         return -neg_KL
         
     def log_likelihood(self, x):
-        return self.log_prob(x)  
+        return self.log_prob(x) 
+
+    def _sample(self):
+        return self.loc 
 
 class Normal(Normal):
     def __init__(
@@ -71,3 +73,29 @@ class Normal(Normal):
         
     def log_likelihood(self, x):
         return self.log_prob(x)
+
+    def _sample(self):
+        return self.loc 
+
+class Bernoulli():
+    def __init__(
+        self,
+        x,
+        *args, **kwargs,
+        ):
+        self.x = x
+
+    def log_likelihood(self, x):
+        return F.binary_cross_entropy(torch.sigmoid(self.x), x, reduction="none")
+    
+    def rsample(self):
+        raise NotImplementedError
+    
+    def kl_divergence(self):
+        raise NotImplementedError
+
+    def sparse_kl_divergence(self):
+        raise NotImplementedError
+    
+    def _sample(self):
+        return torch.distributions.bernoulli.Bernoulli(torch.sigmoid(self.x)).sample()

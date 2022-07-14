@@ -63,7 +63,7 @@ class mcVAE(BaseModel):
                     input_dim=input_dim,
                     hidden_layer_dims=hidden_layer_dims,
                     variational=True,
-                    dist=self.dec_dist.dist,
+                    dist=self.dist,
                     non_linear=self.non_linear,
                 )
                 for input_dim in self.input_dims
@@ -156,8 +156,8 @@ class mcVAE(BaseModel):
                 ll += px_zs[i][j].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
         return ll
 
-    def sample_from_normal(self, normal):
-        return normal.loc
+    def sample_from_dist(self, dist):
+        return dist._sample()
 
     def loss_function(self, x, fwd_rtn):
         px_zs = fwd_rtn["px_zs"]
