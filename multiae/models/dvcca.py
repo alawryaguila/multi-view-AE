@@ -1,13 +1,9 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 from torch.distributions import Normal
 from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
-import numpy as np
-from ..utils.kl_utils import compute_kl, compute_kl_sparse, compute_ll
 import hydra 
-from omegaconf import DictConfig
+
 class DVCCA(BaseModel):
     def __init__(
         self,
@@ -122,20 +118,20 @@ class DVCCA(BaseModel):
         fwd_rtn = {"px_zs": px_zs, "qz_x": qz_x}
         return fwd_rtn
 
-    def calc_kl(self, pz_x):
+    def calc_kl(self, qz_x):
         prior = Normal(0, 1) #TODO - flexible prior
         kl = 0
         if self.private:
             for i in range(self.n_views):
                 if self.sparse:
-                    kl += compute_kl_sparse(pz_x[i])
+                    kl += qz_x[i].sparse_kl_divergence().sum(1, keepdims=True).mean(0) 
                 else:
-                    kl += pz_x[i].kl_divergence(prior).sum(1, keepdims=True).mean(0)
+                    kl += qz_x[i].kl_divergence(prior).sum(1, keepdims=True).mean(0)
         else:
             if self.sparse:
-                kl += compute_kl_sparse(pz_x)
+                kl += qz_x.sparse_kl_divergence().sum(1, keepdims=True).mean(0) 
             else:
-                kl += pz_x.kl_divergence(prior).sum(1, keepdims=True).mean(0)
+                kl += qz_x.kl_divergence(prior).sum(1, keepdims=True).mean(0)
         return self.beta * kl
 
     def calc_ll(self, x, px_zs):

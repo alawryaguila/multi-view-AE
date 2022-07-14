@@ -1,11 +1,8 @@
 import torch
 from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
-import numpy as np
-from ..utils.kl_utils import compute_logvar, compute_kl, compute_kl_sparse, compute_ll
 from ..utils.calc_utils import ProductOfExperts, MeanRepresentation
 import hydra 
-from omegaconf import DictConfig
 from torch.distributions import Normal
 
 class MVAE(BaseModel):
@@ -143,16 +140,16 @@ class MVAE(BaseModel):
             z[:, ~keep] = 0
         return z
 
-    def calc_kl(self, pz_x):
+    def calc_kl(self, qz_x):
         """
         VAE: Implementation from: https://arxiv.org/abs/1312.6114
         sparse-VAE: Implementation from: https://github.com/senya-ashukha/variational-dropout-sparsifies-dnn/blob/master/KL%20approximation.ipynb
         """
         prior = Normal(0, 1) #TODO - flexible prior
         if self.sparse:
-            kl = compute_kl_sparse(pz_x)
+            kl = qz_x.sparse_kl_divergence().sum(1, keepdims=True).mean(0) 
         else:
-            kl = pz_x.kl_divergence(prior).sum(1, keepdims=True).mean(0)
+            kl = qz_x.kl_divergence(prior).sum(1, keepdims=True).mean(0)
         return self.beta * kl
 
     def calc_ll(self, x, px_zs):

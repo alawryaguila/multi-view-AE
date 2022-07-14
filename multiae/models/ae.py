@@ -1,13 +1,7 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.distributions import Normal
 from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
-import numpy as np
-from ..utils.kl_utils import compute_mse
-import pytorch_lightning as pl
-from os.path import join
+from ..utils.calc_utils import compute_mse
 
 
 class AE(BaseModel):

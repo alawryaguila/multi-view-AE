@@ -1,10 +1,8 @@
 import torch
 from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
-from ..utils.kl_utils import compute_kl, compute_ll
 from ..utils.calc_utils import ProductOfExperts
 import hydra 
-from omegaconf import DictConfig
 from torch.distributions import Normal
 
 class MVTCAE(BaseModel):

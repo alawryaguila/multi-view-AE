@@ -3,9 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from multiae.utils.distributions import Normal
 from torch.distributions.multivariate_normal import MultivariateNormal
-from ..utils.kl_utils import compute_logvar
-from ..utils.datasets import MyDataset
-import numpy as np
+from ..utils.calc_utils import compute_logvar
 from torch.nn import Parameter
 
 

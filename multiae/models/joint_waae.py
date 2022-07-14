@@ -1,12 +1,8 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.distributions import Normal
 from .layers import Encoder, Decoder, Discriminator
 from ..base.base_model import BaseModelAAE
-import numpy as np
 from torch.autograd import Variable
-
+from ..utils.calc_utils import compute_mse
 
 class wAAE(BaseModelAAE):
     def __init__(
@@ -118,7 +114,7 @@ class wAAE(BaseModelAAE):
     def forward_recon(self, x):
         z = self.encode(x)
         x_out = self.decode(z)
-        fwd_rtn = {"x_out": x_out, "z": z}
+        fwd_rtn = {"x_recon": x_out, "z": z}
         return fwd_rtn
 
     def forward_discrim(self, x):
@@ -137,11 +133,11 @@ class wAAE(BaseModelAAE):
         return fwd_rtn
 
     def recon_loss(self, x, fwd_rtn):
-        x_out = fwd_rtn["x_out"]
-        recon_loss = 0
+        x_recon = fwd_rtn["x_recon"]
+        recon = 0
         for i in range(self.n_views):
-            recon_loss += torch.mean(((x_out[i] - x[i]) ** 2).sum(dim=-1))
-        return recon_loss / self.n_views
+            recon += compute_mse(x[i], x_recon[i])
+        return recon / self.n_views
 
     def generator_loss(self, fwd_rtn):
         z = fwd_rtn["z"]

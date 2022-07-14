@@ -1,11 +1,8 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.distributions import Normal
 from .layers import Encoder, Decoder, Discriminator
 from ..base.base_model import BaseModelAAE
 import numpy as np
-from ..utils.kl_utils import compute_mse
+from ..utils.calc_utils import compute_mse
 from torch.autograd import Variable
 
 class AAE(BaseModelAAE):

@@ -39,3 +39,15 @@ class MeanRepresentation(nn.Module):
         mean_mu = torch.mean(mu, axis=0)
         mean_var = torch.mean(var, axis=0)
         return mean_mu, mean_var
+
+def compute_log_alpha(mu, logvar):
+    # clamp because dropout rate p in 0-99%, where p = alpha/(alpha+1)
+    return (logvar - 2 * torch.log(torch.abs(mu) + 1e-8)).clamp(min=-8, max=8)
+
+
+def compute_logvar(mu, log_alpha):
+    return log_alpha + 2 * torch.log(torch.abs(mu) + 1e-8)
+
+
+def compute_mse(x, y):
+    return torch.mean(((x - y) ** 2).sum(dim=-1))
