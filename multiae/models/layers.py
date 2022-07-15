@@ -75,19 +75,14 @@ class Discriminator(nn.Module):
     def __init__(
         self,
         input_dim,
-        hidden_layer_dims,
-        output_dim,
-        dropout=0,
-        non_linear=True,
-        wasserstein=False,
+        **kwargs,
     ):
         super().__init__()
-        self.input_dim = input_dim
-        self.hidden_dims = hidden_layer_dims
-        self.dropout = dropout
-        self.layer_sizes = [input_dim] + hidden_layer_dims + [output_dim]
-        self.non_linear = non_linear
-        self.wasserstein = wasserstein
+        self.input_size = input_dim
+        self.__dict__.update(kwargs)
+        hidden_layer_dims = self.hidden_layer_dims.copy()  
+        self.layer_sizes = [input_dim] + hidden_layer_dims + [self.output_dim]
+
         lin_layers = [
             nn.Linear(dim0, dim1)
             for dim0, dim1 in zip(self.layer_sizes[:-1], self.layer_sizes[1:])

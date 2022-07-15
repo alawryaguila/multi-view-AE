@@ -48,13 +48,12 @@ class wAAE(BaseModelAAE):
             ]
         )
 
-        self.discriminator = Discriminator(
-            input_dim=self.z_dim,
-            hidden_layer_dims=self.discriminator_layer_dims,
-            wasserstein=True,
-            output_dim=1,
-        )
-
+        self.discriminator =  hydra.utils.instantiate(self.cfg.discriminator,
+                    _recursive_=False,
+                    input_dim=self.z_dim,
+                    output_dim=1,
+                )
+                
     def configure_optimizers(self):
         optimizers = []
         [

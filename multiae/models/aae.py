@@ -53,11 +53,12 @@ class AAE(BaseModelAAE):
                 for input_dim in self.input_dims
             ]
         )
-        self.discriminator = Discriminator(
-            input_dim=self.z_dim,
-            hidden_layer_dims=self.discriminator_layer_dims,
-            output_dim=(self.n_views + 1),
-        )
+        self.discriminator =  hydra.utils.instantiate(self.cfg.discriminator,
+                    _recursive_=False,
+                    input_dim=self.z_dim,
+                    output_dim=(self.n_views + 1),
+                )
+                
         # TO DO - check discriminator dimensionality is correct (nviews + 1?) and for joint model too
 
     def configure_optimizers(self):

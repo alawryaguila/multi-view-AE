@@ -9,10 +9,19 @@ defaults:
 model_name: "wAAE"
 
 model:
-  discriminator_layer_dims: []
   variational: False
   joint_representation: True
   wasserstein: True
   sparse: False
+
+discriminator:
+  _target_: multiae.models.layers.Discriminator
+
+  hidden_layer_dims: []
+  bias: True
+  non_linear: False
+  output_dim: 1
+  dropout: 0
+  wasserstein: True
 
 out_dir: ${original_work_dir}/${model_name}/${now:%Y_%m_%d}
