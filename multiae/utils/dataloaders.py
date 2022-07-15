@@ -14,6 +14,7 @@ class MultiviewDataModule(pl.LightningDataModule):
             self.batch_size =data[0].shape[0] if (type(data) == list or type(data) == tuple) else data.shape[0]
         else:
             self.batch_size = batch_size
+        
         self.val = val
         self.labels = labels
 

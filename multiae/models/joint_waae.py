@@ -1,12 +1,9 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.distributions import Normal
 from .layers import Encoder, Decoder, Discriminator
 from ..base.base_model import BaseModelAAE
-import numpy as np
 from torch.autograd import Variable
-
+from ..utils.calc_utils import compute_mse, update_dict
+import hydra 
 
 class wAAE(BaseModelAAE):
     def __init__(
@@ -19,34 +16,33 @@ class wAAE(BaseModelAAE):
 
         self.save_hyperparameters()
         self.automatic_optimization = False
+
         self.__dict__.update(self.cfg.model)
         self.__dict__.update(kwargs)
+        
+        self.cfg.encoder = update_dict(self.cfg.encoder, kwargs)
+        self.cfg.decoder = update_dict(self.cfg.decoder, kwargs)
 
         self.model_type = expt
         self.input_dims = input_dims
-        hidden_layer_dims = self.hidden_layer_dims.copy()  
-        hidden_layer_dims.append(self.z_dim)
-        self.hidden_layer_dims = hidden_layer_dims
         self.n_views = len(input_dims)
-
+        
         self.encoders = torch.nn.ModuleList(
             [
-                Encoder(
+                hydra.utils.instantiate(self.cfg.encoder,
+                    _recursive_=False,
                     input_dim=input_dim,
-                    hidden_layer_dims=self.hidden_layer_dims,
-                    variational=False,
-                    non_linear=self.non_linear,
+                    z_dim=self.z_dim,
                 )
                 for input_dim in self.input_dims
             ]
         )
         self.decoders = torch.nn.ModuleList(
             [
-                Decoder(
+                hydra.utils.instantiate(self.cfg.decoder,
+                    _recursive_=False,
                     input_dim=input_dim,
-                    hidden_layer_dims=self.hidden_layer_dims,
-                    variational=False,
-                    non_linear=self.non_linear,
+                    z_dim=self.z_dim,
                 )
                 for input_dim in self.input_dims
             ]
@@ -118,7 +114,7 @@ class wAAE(BaseModelAAE):
     def forward_recon(self, x):
         z = self.encode(x)
         x_out = self.decode(z)
-        fwd_rtn = {"x_out": x_out, "z": z}
+        fwd_rtn = {"x_recon": x_out, "z": z}
         return fwd_rtn
 
     def forward_discrim(self, x):
@@ -137,11 +133,11 @@ class wAAE(BaseModelAAE):
         return fwd_rtn
 
     def recon_loss(self, x, fwd_rtn):
-        x_out = fwd_rtn["x_out"]
-        recon_loss = 0
+        x_recon = fwd_rtn["x_recon"]
+        recon = 0
         for i in range(self.n_views):
-            recon_loss += torch.mean(((x_out[i] - x[i]) ** 2).sum(dim=-1))
-        return recon_loss / self.n_views
+            recon += compute_mse(x[i], x_recon[i])
+        return recon / self.n_views
 
     def generator_loss(self, fwd_rtn):
         z = fwd_rtn["z"]

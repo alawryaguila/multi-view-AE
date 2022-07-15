@@ -1,7 +1,6 @@
 import torch
 import torch.nn.functional as F
 
-
 def compute_log_alpha(mu, logvar):
     # clamp because dropout rate p in 0-99%, where p = alpha/(alpha+1)
     return (logvar - 2 * torch.log(torch.abs(mu) + 1e-8)).clamp(min=-8, max=8)
@@ -13,7 +12,6 @@ def compute_logvar(mu, log_alpha):
 
 def compute_mse(x, y):
     return torch.mean(((x - y) ** 2).sum(dim=-1))
-
 
 def compute_kl(mu0, logvar0, mu1=None, logvar1=None):
     if mu1 is None or logvar1 is None:
@@ -30,7 +28,9 @@ def compute_kl(mu0, logvar0, mu1=None, logvar1=None):
         ).mean(0)
 
 
-def compute_kl_sparse(mu, logvar):
+def compute_kl_sparse(dist):
+    mu = dist.loc
+    logvar = torch.log(dist.variance)
     log_alpha = compute_log_alpha(mu, logvar)
     k1, k2, k3 = 0.63576, 1.8732, 1.48695
     neg_KL = (

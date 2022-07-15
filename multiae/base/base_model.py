@@ -1,6 +1,6 @@
 from torch.utils.data.dataloader import DataLoader
 from ..utils.dataloaders import MultiviewDataModule
-from ..utils.utils import update_dict
+from ..utils.calc_utils import update_dict, check_batch_size
 import numpy as np
 import torch
 from ..plot.plotting import Plotting
@@ -22,6 +22,7 @@ class BaseModel(pl.LightningModule, Plotting):
                 self.cfg = compose(config_name="run", return_hydra_config=True)
 
     def fit(self, *data, labels=None, **kwargs):
+        self._training = True
         self.data = data
         self.labels = labels
         self.val_set = False
@@ -48,8 +49,12 @@ class BaseModel(pl.LightningModule, Plotting):
 
     def predict_latents(self, *data, val_set=False):
         self.val_set = val_set
+        self._training = False
+        print(self._training)
         dataset = MultiviewDataModule.dataset(*data, labels=None)
-        generator = DataLoader(dataset, batch_size=self.cfg.datamodule.batch_size, shuffle=False)
+        batch_size = check_batch_size(self.cfg.datamodule.batch_size, data)
+        
+        generator = DataLoader(dataset, batch_size=batch_size, shuffle=False)
         with torch.no_grad():
             for batch_idx, local_batch in enumerate(generator):
                 local_batch = (
@@ -57,53 +62,49 @@ class BaseModel(pl.LightningModule, Plotting):
                     if isinstance(local_batch, (list, tuple))
                     else local_batch.to(self.device)
                 )
-                if self.variational:
-                    mu, logvar = self.encode(local_batch)
-                    pred = self.reparameterise(mu, logvar)
-                else:
-                    pred = self.encode(local_batch)
+                pred = self.encode(local_batch)
                 if self.sparse:
                     pred = self.apply_threshold(pred)
                 if batch_idx == 0:
-                    predictions = self.process_output(pred, data_type="latent")
+                    predictions = self.process_output(pred)
                 else:
                     predictions = self.process_output(
-                        pred, pred=predictions, data_type="latent"
+                        pred, pred=predictions
                     )
         return predictions
 
-    def process_output(self, data, pred=None, data_type=None):
+    def process_output(self, data, pred=None):
         if pred is not None:
-            if self.cfg.model.variational and data_type is None and self.cfg.model.dist == "gaussian":
+            if self.cfg.model.variational:
                 if isinstance(data, (list, tuple)):
                     return [
-                        self.process_output(data_, pred=pred_, data_type=data_type)
+                        self.process_output(data_, pred=pred_)
                         if isinstance(data_, list)
-                        else np.append(pred_, self.sample_from_normal(data_), axis=0)
+                        else np.append(pred_, self.sample_from_dist(data_), axis=0)
                         for pred_, data_ in zip(pred, data)
                     ]
-                return np.append(pred, self.sample_from_normal(data), axis=0)
+                return np.append(pred, self.sample_from_dist(data), axis=0)
             if isinstance(data, (list, tuple)):
                 return [
-                    self.process_output(data_, pred=pred_, data_type=data_type)
+                    self.process_output(data_, pred=pred_)
                     if isinstance(data_, list)
                     else np.append(pred_, data_, axis=0)
                     for pred_, data_ in zip(pred, data)
                 ]
             return np.append(pred, data, axis=0)
         else:
-            if self.cfg.model.variational and data_type is None and self.cfg.model.dist == "gaussian":
+            if self.cfg.model.variational:
                 if isinstance(data, (list, tuple)):
                     return [
-                        self.process_output(data_, data_type=data_type)
+                        self.process_output(data_)
                         if isinstance(data_, list)
-                        else self.sample_from_normal(data_).cpu().detach().numpy()
+                        else self.sample_from_dist(data_).cpu().detach().numpy()
                         for data_ in data
                     ]
-                return self.sample_from_normal(data).cpu().detach().numpy()
+                return self.sample_from_dist(data).cpu().detach().numpy()
             if isinstance(data, (list, tuple)):
                 return [
-                    self.process_output(data_, data_type=data_type)
+                    self.process_output(data_)
                     if isinstance(data_, list)
                     else data_.cpu().detach().numpy()
                     for data_ in data
@@ -111,18 +112,17 @@ class BaseModel(pl.LightningModule, Plotting):
             return data.cpu().detach().numpy()
 
     def predict_reconstruction(self, *data):
+        self._training = False
         dataset = MultiviewDataModule.dataset(*data, labels=None)
-        generator = DataLoader(dataset, batch_size=self.cfg.datamodule.batch_size, shuffle=False)
+        batch_size = check_batch_size(self.cfg.datamodule.batch_size, data)
+        generator = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+        
         with torch.no_grad():
             for batch_idx, (local_batch) in enumerate(generator):
                 local_batch = [
                     local_batch_.to(self.device) for local_batch_ in local_batch
                 ]
-                if self.variational:
-                    mu, logvar = self.encode(local_batch)
-                    z = self.reparameterise(mu, logvar)
-                else:
-                    z = self.encode(local_batch)
+                z = self.encode(local_batch)
                 if self.sparse:
                     z = self.apply_threshold(z)
                 x_recon = self.decode(z)
@@ -134,26 +134,6 @@ class BaseModel(pl.LightningModule, Plotting):
                         x_recon, pred=x_reconstruction
                     )
             return x_reconstruction
-
-    def predict_labels(self, *data):
-        dataset = MultiviewDataModule.dataset(*data, labels=None)
-        generator = DataLoader(dataset, batch_size=self.cfg.datamodule.batch_size, shuffle=False)
-        with torch.no_grad():
-            for batch_idx, (local_batch) in enumerate(generator):
-                local_batch = [
-                    local_batch_.to(self.device) for local_batch_ in local_batch
-                ]
-                mu, logvar = self.encode(local_batch)
-                z = self.reparameterise(mu, logvar)
-                output = self.classify(z)
-                pred = [torch.argmax(output_, dim=1) for output_ in output]
-                if batch_idx == 0:
-                    predictions = self.process_output(pred, data_type="prediction")
-                else:
-                    predictions = self.process_output(
-                        pred, pred=predictions, data_type="prediction"
-                    )
-            return predictions
 
     def _step(self, batch, batch_idx, stage):
         fwd_return = self.forward(batch)

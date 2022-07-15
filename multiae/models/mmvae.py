@@ -1,17 +1,10 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-# import pytorch_lightning as pl
 from torch.distributions import Normal
 from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
-import numpy as np
-from ..utils.kl_utils import compute_kl, compute_kl_sparse, compute_ll
-from os.path import join
-import pytorch_lightning as pl
+from ..utils.calc_utils import update_dict
 import math
-
+import hydra 
 
 class mmVAE(BaseModel):
     """
@@ -34,19 +27,19 @@ class mmVAE(BaseModel):
         self.__dict__.update(self.cfg.model)
         self.__dict__.update(kwargs)
 
+        self.cfg.encoder = update_dict(self.cfg.encoder, kwargs)
+        self.cfg.decoder = update_dict(self.cfg.decoder, kwargs)
+
         self.model_type = expt
         self.input_dims = input_dims
-        hidden_layer_dims = self.hidden_layer_dims.copy()
-        hidden_layer_dims.append(self.z_dim)
         self.n_views = len(input_dims)
 
         self.encoders = torch.nn.ModuleList(
             [
-                Encoder(
+                hydra.utils.instantiate(self.cfg.encoder,
+                    _recursive_=False,
                     input_dim=input_dim,
-                    hidden_layer_dims=hidden_layer_dims,
-                    variational=True,
-                    non_linear=self.non_linear,
+                    z_dim=self.z_dim,
                     sparse=self.sparse,
                     log_alpha=self.log_alpha,
                 )
@@ -55,12 +48,10 @@ class mmVAE(BaseModel):
         )
         self.decoders = torch.nn.ModuleList(
             [
-                Decoder(
+                hydra.utils.instantiate(self.cfg.decoder,
+                    _recursive_=False,
                     input_dim=input_dim,
-                    hidden_layer_dims=hidden_layer_dims,
-                    variational=True,
-                    dist=self.dist,
-                    non_linear=self.non_linear,
+                    z_dim=self.z_dim,
                 )
                 for input_dim in self.input_dims
             ]
@@ -78,47 +69,42 @@ class mmVAE(BaseModel):
         return optimizers
 
     def encode(self, x):
-        mu = []
-        logvar = []
+        qz_xs = []
         for i in range(self.n_views):
-            mu_, logvar_ = self.encoders[i](x[i])
-            mu.append(mu_)
-            logvar.append(logvar_)
-        return mu, logvar
+            mu, logvar = self.encoders[i](x[i])
+            qz_x = hydra.utils.instantiate(self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5))
+            qz_xs.append(qz_x)
+        return qz_xs
 
-    def reparameterise(self, mu, logvar):
-        z = []
-        for i in range(len(mu)):
-            std = torch.exp(0.5 * logvar[i])
-            eps = torch.randn_like(mu[i])
-            z.append(mu[i] + eps * std)
-        return z
-
-    def decode(self, z):
-        x_recon = []
+    def decode(self, qz_xs):
+        px_zs = []
         for i in range(self.n_views):
-            temp_recon = [
-                self.decoders[j](z[i]) for j in range(self.n_views)
-            ]  # NOTE: this is other way around to other multiautoencoder models
-            x_recon.append(temp_recon)
-            del temp_recon
-        return x_recon
+            px_z = [self.decoders[j](qz_xs[i].rsample(torch.Size([self.K]))) for j in range(self.n_views)]
+            px_zs.append(px_z) # NOTE: this is other way around to other multiautoencoder models - FIX
+            del px_z
+        return px_zs
 
     def forward(self, x):
-        qz_xs, zss = [], []
-        mu, logvar = self.encode(x)
-        for i in range(self.n_views):
-            qz_x = Normal(loc=mu[i], scale=logvar[i].exp().pow(0.5))
-            zs = qz_x.rsample(torch.Size([self.K]))
-            qz_xs.append(qz_x)
-            zss.append(zs)
-        px_zs = self.decode(zss)
-        return {"qz_xs": qz_xs, "px_zs": px_zs, "zss": zss}
+        qz_xs = self.encode(x)
+        px_zs = self.decode(qz_xs)
+        return {"qz_xs": qz_xs, "px_zs": px_zs}
 
-    def moe_iwae(self, x, qz_xs, px_zs, zss):
+    def sample_loc_variance(self, qz_xs):
+        mu = []
+        var = []
+        for qz_x in qz_xs:
+            mu.append(qz_x.loc)
+            var.append(qz_x.variance)
+        return mu, var
+
+    def moe_iwae(self, x, qz_xs, px_zs):
         lws = []
+        zss = []
+        for i in range(self.n_views):
+            zs = qz_xs[i].rsample(torch.Size([self.K]))
+            zss.append(zs)
         for r, qz_x in enumerate(qz_xs):
-            lpz = Normal(loc=0, scale=1).log_prob(zss[r]).sum(-1)
+            lpz = Normal(loc=0, scale=1).log_prob(zss[r]).sum(-1) #TODO flexible prior
             lqz_x = self.log_mean_exp(
                 torch.stack([qz_x.log_prob(zss[r]).sum(-1) for qz_x in qz_xs])
             )  # summing over M modalities for each z to create q(z|x1:M)
@@ -133,14 +119,14 @@ class mmVAE(BaseModel):
             self.log_mean_exp(torch.stack(lws), dim=1).mean(0).sum()
         )  # looser iwae bound where have
 
-    def sample_from_normal(self, normal):
-        return normal.loc
+    def sample_from_dist(self, dist):
+        return dist._sample()
 
     def log_mean_exp(self, value, dim=0, keepdim=False):
         return torch.logsumexp(value, dim, keepdim=keepdim) - math.log(value.size(dim))
 
     def loss_function(self, x, fwd_rtn):
-        qz_xs, px_zs, zss = fwd_rtn["qz_xs"], fwd_rtn["px_zs"], fwd_rtn["zss"]
-        total = -self.moe_iwae(x, qz_xs, px_zs, zss)
+        qz_xs, px_zs = fwd_rtn["qz_xs"], fwd_rtn["px_zs"]
+        total = -self.moe_iwae(x, qz_xs, px_zs)
         losses = {"loss": total}
         return losses

@@ -1,14 +1,9 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.distributions import Normal
 from .layers import Encoder, Decoder, Discriminator
 from ..base.base_model import BaseModelAAE
-from ..utils.kl_utils import compute_mse
-import numpy as np
+from ..utils.calc_utils import compute_mse, update_dict
 from torch.autograd import Variable
-import pytorch_lightning as pl
-
+import hydra
 
 class jointAAE(BaseModelAAE):
     """
@@ -30,6 +25,9 @@ class jointAAE(BaseModelAAE):
         self.__dict__.update(self.cfg.model)
         self.__dict__.update(kwargs)
 
+        self.cfg.encoder = update_dict(self.cfg.encoder, kwargs)
+        self.cfg.decoder = update_dict(self.cfg.decoder, kwargs)
+
         self.model_type = expt
         self.input_dims = input_dims
         hidden_layer_dims = self.hidden_layer_dims.copy()  
@@ -37,28 +35,28 @@ class jointAAE(BaseModelAAE):
         self.hidden_layer_dims = hidden_layer_dims
         self.n_views = len(input_dims)
         
+        
         self.encoders = torch.nn.ModuleList(
             [
-                Encoder(
+                hydra.utils.instantiate(self.cfg.encoder,
+                    _recursive_=False,
                     input_dim=input_dim,
-                    hidden_layer_dims=self.hidden_layer_dims,
-                    variational=False,
-                    non_linear=self.non_linear,
+                    z_dim=self.z_dim,
                 )
                 for input_dim in self.input_dims
             ]
         )
         self.decoders = torch.nn.ModuleList(
             [
-                Decoder(
+                hydra.utils.instantiate(self.cfg.decoder,
+                    _recursive_=False,
                     input_dim=input_dim,
-                    hidden_layer_dims=self.hidden_layer_dims,
-                    variational=False,
-                    non_linear=self.non_linear,
+                    z_dim=self.z_dim,
                 )
                 for input_dim in self.input_dims
             ]
         )
+
         self.discriminator = Discriminator(
             input_dim=self.z_dim,
             hidden_layer_dims=self.discriminator_layer_dims,

@@ -1,13 +1,9 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.distributions import Normal
-from os.path import join
 from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
-import numpy as np
-from ..utils.kl_utils import compute_logvar, compute_kl, compute_kl_sparse, compute_ll
-from ..utils.calc_utils import ProductOfExperts, MeanRepresentation
+from ..utils.calc_utils import ProductOfExperts, MeanRepresentation, update_dict
+import hydra 
+from torch.distributions import Normal
 
 class MVAE(BaseModel):
     """
@@ -33,6 +29,9 @@ class MVAE(BaseModel):
 
         self.__dict__.update(self.cfg.model)
         self.__dict__.update(kwargs)
+
+        self.cfg.encoder = update_dict(self.cfg.encoder, kwargs)
+        self.cfg.decoder = update_dict(self.cfg.decoder, kwargs)
 
         self.model_type = expt
         self.input_dims = input_dims
@@ -60,11 +59,10 @@ class MVAE(BaseModel):
         self.n_views = len(input_dims)
         self.encoders = torch.nn.ModuleList(
             [
-                Encoder(
+                hydra.utils.instantiate(self.cfg.encoder,
+                    _recursive_=False,
                     input_dim=input_dim,
-                    hidden_layer_dims=hidden_layer_dims,
-                    variational=True,
-                    non_linear=self.non_linear,
+                    z_dim=self.z_dim,
                     sparse=self.sparse,
                     log_alpha=self.log_alpha,
                 )
@@ -73,12 +71,10 @@ class MVAE(BaseModel):
         )
         self.decoders = torch.nn.ModuleList(
             [
-                Decoder(
+                hydra.utils.instantiate(self.cfg.decoder,
+                    _recursive_=False,
                     input_dim=input_dim,
-                    hidden_layer_dims=hidden_layer_dims,
-                    variational=True,
-                    dist=self.dist,
-                    non_linear=self.non_linear,
+                    z_dim=self.z_dim,
                 )
                 for input_dim in self.input_dims
             ]
@@ -97,33 +93,31 @@ class MVAE(BaseModel):
 
     def encode(self, x):
         mu = []
-        logvar = []
+        var = []
         for i in range(self.n_views):
+            print('X SHAPE: ', x[i].shape)
+            print(self.encoders[i])
             mu_, logvar_ = self.encoders[i](x[i])
             mu.append(mu_)
-            logvar.append(logvar_)
+            var_ = logvar_.exp()
+            var.append(var_)
         mu = torch.stack(mu)
-        logvar = torch.stack(logvar)
-        mu, logvar = self.join_z(mu, logvar)
-        return mu, logvar
+        var = torch.stack(var)
+        mu, var = self.join_z(mu, var)
+        qz_x = hydra.utils.instantiate(self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5))
+        return qz_x
 
-    def reparameterise(self, mu, logvar):
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(mu)
-        return mu + eps * std
-
-    def decode(self, z):
+    def decode(self, qz_x):
         x_recon = []
         for i in range(self.n_views):
-            mu_out = self.decoders[i](z)
+            mu_out = self.decoders[i](qz_x._sample(training=self._training))
             x_recon.append(mu_out)
         return x_recon
 
     def forward(self, x):
-        mu, logvar = self.encode(x)
-        z = self.reparameterise(mu, logvar)
-        x_recon = self.decode(z)
-        fwd_rtn = {"x_recon": x_recon, "mu": mu, "logvar": logvar}
+        qz_x = self.encode(x)
+        px_zs = self.decode(qz_x)
+        fwd_rtn = {"px_zs": px_zs, "qz_x": qz_x}
         return fwd_rtn
 
     def dropout(self):
@@ -141,41 +135,44 @@ class MVAE(BaseModel):
         """
         Implementation from: https://github.com/ggbioing/mcvae
         """
+    
         assert self.threshold <= 1.0
-        dropout = self.dropout()
-        keep = (dropout < self.threshold).squeeze().cpu()
-        if self.joint_representation:
-            z[:, ~keep] = 0
-        return z
+        keep = (self.dropout() < self.threshold).squeeze().cpu()
+        z_keep = []
+        for _ in z:
+            _ = _._sample()
+            _[:, ~keep] = 0
+            z_keep.append(_)
+            del _
+        return hydra.utils.instantiate(self.enc_dist, loc=z_keep)
 
-    def calc_kl(self, mu, logvar):
+    def calc_kl(self, qz_x):
         """
         VAE: Implementation from: https://arxiv.org/abs/1312.6114
         sparse-VAE: Implementation from: https://github.com/senya-ashukha/variational-dropout-sparsifies-dnn/blob/master/KL%20approximation.ipynb
         """
-        kl = 0
+        prior = Normal(0, 1) #TODO - flexible prior
         if self.sparse:
-            kl += compute_kl_sparse(mu, logvar)
+            kl = qz_x.sparse_kl_divergence().sum(1, keepdims=True).mean(0) 
         else:
-            kl += compute_kl(mu, logvar)
+            kl = qz_x.kl_divergence(prior).sum(1, keepdims=True).mean(0)
         return self.beta * kl
 
-    def calc_ll(self, x, x_recon):
+    def calc_ll(self, x, px_zs):
         ll = 0
         for i in range(self.n_views):
-            ll += compute_ll(x[i], x_recon[i], dist=self.dist)
+            ll += px_zs[i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
         return ll
 
-    def sample_from_normal(self, normal):
-        return normal.loc
+    def sample_from_dist(self, dist):
+        return dist._sample()
 
     def loss_function(self, x, fwd_rtn):
-        x_recon = fwd_rtn["x_recon"]
-        mu = fwd_rtn["mu"]
-        logvar = fwd_rtn["logvar"]
+        px_zs = fwd_rtn["px_zs"] 
+        qz_x = fwd_rtn["qz_x"]
 
-        kl = self.calc_kl(mu, logvar)
-        recon = self.calc_ll(x, x_recon)
+        kl = self.calc_kl(qz_x)
+        recon = self.calc_ll(x, px_zs)
 
         total = kl - recon
         losses = {"loss": total, "kl": kl, "ll": recon}

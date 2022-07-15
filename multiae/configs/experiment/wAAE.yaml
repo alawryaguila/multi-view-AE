@@ -10,9 +10,9 @@ model_name: "wAAE"
 
 model:
   discriminator_layer_dims: []
-  non_linear: False
   variational: False
   joint_representation: True
   wasserstein: True
   sparse: False
+
 out_dir: ${original_work_dir}/${model_name}/${now:%Y_%m_%d}
