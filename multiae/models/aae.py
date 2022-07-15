@@ -2,8 +2,9 @@ import torch
 from .layers import Encoder, Decoder, Discriminator
 from ..base.base_model import BaseModelAAE
 import numpy as np
-from ..utils.calc_utils import compute_mse
+from ..utils.calc_utils import compute_mse, update_dict
 from torch.autograd import Variable
+import hydra 
 
 class AAE(BaseModelAAE):
     """
@@ -25,30 +26,29 @@ class AAE(BaseModelAAE):
         self.__dict__.update(self.cfg.model)
         self.__dict__.update(kwargs)
         
+
+        self.cfg.encoder = update_dict(self.cfg.encoder, kwargs)
+        self.cfg.decoder = update_dict(self.cfg.decoder, kwargs)
+
         self.input_dims = input_dims
-        hidden_layer_dims = self.hidden_layer_dims.copy()  
-        hidden_layer_dims.append(self.z_dim)
-        self.hidden_layer_dims = hidden_layer_dims
         self.n_views = len(input_dims)
         
         self.encoders = torch.nn.ModuleList(
             [
-                Encoder(
+                hydra.utils.instantiate(self.cfg.encoder,
+                    _recursive_=False,
                     input_dim=input_dim,
-                    hidden_layer_dims=self.hidden_layer_dims,
-                    variational=False,
-                    non_linear=self.non_linear,
+                    z_dim=self.z_dim,
                 )
                 for input_dim in self.input_dims
             ]
         )
         self.decoders = torch.nn.ModuleList(
             [
-                Decoder(
+                hydra.utils.instantiate(self.cfg.decoder,
+                    _recursive_=False,
                     input_dim=input_dim,
-                    hidden_layer_dims=self.hidden_layer_dims,
-                    variational=False,
-                    non_linear=self.non_linear,
+                    z_dim=self.z_dim,
                 )
                 for input_dim in self.input_dims
             ]

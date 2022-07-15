@@ -103,3 +103,6 @@ class Bernoulli():
     
     def _sample(self):
         return torch.distributions.bernoulli.Bernoulli(torch.sigmoid(self.x)).sample()
+
+def nodist(x):
+    return x

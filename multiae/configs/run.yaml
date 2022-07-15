@@ -5,6 +5,8 @@ defaults:
   - _self_
   - datamodule: base.yaml
   - model: base.yaml
+  - encoder: base.yaml
+  - decoder: base.yaml
   - callbacks: base.yaml
   - trainer: base.yaml
   - logger: base.yaml

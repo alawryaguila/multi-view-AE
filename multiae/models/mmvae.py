@@ -2,9 +2,9 @@ import torch
 from torch.distributions import Normal
 from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
+from ..utils.calc_utils import update_dict
 import math
 import hydra 
-from omegaconf import DictConfig
 
 class mmVAE(BaseModel):
     """
@@ -27,19 +27,19 @@ class mmVAE(BaseModel):
         self.__dict__.update(self.cfg.model)
         self.__dict__.update(kwargs)
 
+        self.cfg.encoder = update_dict(self.cfg.encoder, kwargs)
+        self.cfg.decoder = update_dict(self.cfg.decoder, kwargs)
+
         self.model_type = expt
         self.input_dims = input_dims
-        hidden_layer_dims = self.hidden_layer_dims.copy()
-        hidden_layer_dims.append(self.z_dim)
         self.n_views = len(input_dims)
 
         self.encoders = torch.nn.ModuleList(
             [
-                Encoder(
+                hydra.utils.instantiate(self.cfg.encoder,
+                    _recursive_=False,
                     input_dim=input_dim,
-                    hidden_layer_dims=hidden_layer_dims,
-                    variational=True,
-                    non_linear=self.non_linear,
+                    z_dim=self.z_dim,
                     sparse=self.sparse,
                     log_alpha=self.log_alpha,
                 )
@@ -48,12 +48,10 @@ class mmVAE(BaseModel):
         )
         self.decoders = torch.nn.ModuleList(
             [
-                Decoder(
+                hydra.utils.instantiate(self.cfg.decoder,
+                    _recursive_=False,
                     input_dim=input_dim,
-                    hidden_layer_dims=hidden_layer_dims,
-                    variational=True,
-                    dist=self.dist,
-                    non_linear=self.non_linear,
+                    z_dim=self.z_dim,
                 )
                 for input_dim in self.input_dims
             ]
@@ -74,7 +72,7 @@ class mmVAE(BaseModel):
         qz_xs = []
         for i in range(self.n_views):
             mu, logvar = self.encoders[i](x[i])
-            qz_x = hydra.utils.instantiate(self.enc_dist, loc=mu, scale=logvar.exp().pow(0.5))
+            qz_x = hydra.utils.instantiate(self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5))
             qz_xs.append(qz_x)
         return qz_xs
 

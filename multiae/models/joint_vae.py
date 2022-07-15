@@ -1,7 +1,7 @@
 import torch
 from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
-from ..utils.calc_utils import ProductOfExperts, MeanRepresentation
+from ..utils.calc_utils import ProductOfExperts, MeanRepresentation, update_dict
 import hydra 
 from torch.distributions import Normal
 
@@ -30,6 +30,9 @@ class MVAE(BaseModel):
         self.__dict__.update(self.cfg.model)
         self.__dict__.update(kwargs)
 
+        self.cfg.encoder = update_dict(self.cfg.encoder, kwargs)
+        self.cfg.decoder = update_dict(self.cfg.decoder, kwargs)
+
         self.model_type = expt
         self.input_dims = input_dims
         hidden_layer_dims = self.hidden_layer_dims.copy()
@@ -56,11 +59,10 @@ class MVAE(BaseModel):
         self.n_views = len(input_dims)
         self.encoders = torch.nn.ModuleList(
             [
-                Encoder(
+                hydra.utils.instantiate(self.cfg.encoder,
+                    _recursive_=False,
                     input_dim=input_dim,
-                    hidden_layer_dims=hidden_layer_dims,
-                    variational=True,
-                    non_linear=self.non_linear,
+                    z_dim=self.z_dim,
                     sparse=self.sparse,
                     log_alpha=self.log_alpha,
                 )
@@ -69,12 +71,10 @@ class MVAE(BaseModel):
         )
         self.decoders = torch.nn.ModuleList(
             [
-                Decoder(
+                hydra.utils.instantiate(self.cfg.decoder,
+                    _recursive_=False,
                     input_dim=input_dim,
-                    hidden_layer_dims=hidden_layer_dims,
-                    variational=True,
-                    dist=self.dist,
-                    non_linear=self.non_linear,
+                    z_dim=self.z_dim,
                 )
                 for input_dim in self.input_dims
             ]
@@ -95,6 +95,8 @@ class MVAE(BaseModel):
         mu = []
         var = []
         for i in range(self.n_views):
+            print('X SHAPE: ', x[i].shape)
+            print(self.encoders[i])
             mu_, logvar_ = self.encoders[i](x[i])
             mu.append(mu_)
             var_ = logvar_.exp()
@@ -102,7 +104,7 @@ class MVAE(BaseModel):
         mu = torch.stack(mu)
         var = torch.stack(var)
         mu, var = self.join_z(mu, var)
-        qz_x = hydra.utils.instantiate(self.enc_dist, loc=mu, scale=var.pow(0.5))
+        qz_x = hydra.utils.instantiate(self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5))
         return qz_x
 
     def decode(self, qz_x):

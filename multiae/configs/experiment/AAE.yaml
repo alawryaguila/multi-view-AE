@@ -10,9 +10,6 @@ model_name: "AAE"
 
 model:
   discriminator_layer_dims: []
-  non_linear: False
-  beta: 1
-  threshold: 0
   variational: False
   eps: 1e-15
   joint_representation: False

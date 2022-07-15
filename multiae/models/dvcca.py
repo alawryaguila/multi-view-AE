@@ -2,8 +2,9 @@ import torch
 from torch.distributions import Normal
 from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
+from ..utils.calc_utils import update_dict
 import hydra 
-
+import multiae
 class DVCCA(BaseModel):
     def __init__(
         self,
@@ -19,11 +20,11 @@ class DVCCA(BaseModel):
         self.__dict__.update(self.cfg.model)
         self.__dict__.update(kwargs)
 
+        self.cfg.encoder = update_dict(self.cfg.encoder, kwargs)
+        self.cfg.decoder = update_dict(self.cfg.decoder, kwargs)
+
         self.model_type = expt
         self.input_dims = input_dims
-        hidden_layer_dims = self.hidden_layer_dims.copy()  
-        hidden_layer_dims.append(self.z_dim)
-        self.hidden_layer_dims = hidden_layer_dims
         self.n_views = len(input_dims)
 
         if self.threshold != 0:
@@ -37,35 +38,35 @@ class DVCCA(BaseModel):
 
         self.encoder = torch.nn.ModuleList(
             [
-                Encoder(
-                    input_dim=self.input_dims[0],
-                    hidden_layer_dims=self.hidden_layer_dims,
+                    hydra.utils.instantiate(self.cfg.encoder,
+                    _recursive_=False,
+                    input_dim=input_dims[0],
+                    z_dim=self.z_dim,
                     sparse=self.sparse,
-                    variational=True,
+                
                 )
             ]
         )
         if self.private:
             self.private_encoders = torch.nn.ModuleList(
                 [
-                    Encoder(
-                        input_dim=input_dim,
-                        hidden_layer_dims=self.hidden_layer_dims,
-                        sparse=self.sparse,
-                        variational=True,
-                    )
+                    hydra.utils.instantiate(self.cfg.encoder,
+                    _recursive_=False,
+                    input_dim=input_dim,
+                    z_dim=self.z_dim,
+                    sparse=self.sparse,
+                )
                     for input_dim in self.input_dims
                 ]
             )
-            self.hidden_layer_dims[-1] = self.z_dim + self.z_dim
+            self.z_dim = self.z_dim + self.z_dim
 
         self.decoders = torch.nn.ModuleList(
             [
-                Decoder(
+                hydra.utils.instantiate(self.cfg.decoder,
+                    _recursive_=False,
                     input_dim=input_dim,
-                    hidden_layer_dims=self.hidden_layer_dims,
-                    dist=self.dist,
-                    variational=True,
+                    z_dim=self.z_dim,
                 )
                 for input_dim in self.input_dims
             ]
@@ -94,11 +95,11 @@ class DVCCA(BaseModel):
                 mu_p, logvar_p = self.private_encoders[i](x[i])
                 mu_ = torch.cat((mu, mu_p), 1)
                 logvar_ = torch.cat((logvar, logvar_p), 1)
-                qz_x = hydra.utils.instantiate(self.enc_dist, loc=mu_, scale=logvar_.exp().pow(0.5))
+                qz_x = hydra.utils.instantiate(self.cfg.encoder.enc_dist, loc=mu_, scale=logvar_.exp().pow(0.5))
                 qz_xs.append(qz_x)
             return qz_xs
         else:
-            qz_x = hydra.utils.instantiate(self.enc_dist, loc=mu, scale=logvar.exp().pow(0.5))
+            qz_x = hydra.utils.instantiate(self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5))
             return qz_x
 
     def decode(self, qz_x):
@@ -141,7 +142,7 @@ class DVCCA(BaseModel):
             _[:, ~keep] = 0
             z_keep.append(_)
             del _
-        return hydra.utils.instantiate(self.enc_dist, loc=z_keep)
+        return hydra.utils.instantiate(self.cfg.encoder.enc_dist, loc=z_keep, scale=1) #check this works
 
     def calc_kl(self, qz_x):
         prior = Normal(0, 1) #TODO - flexible prior
