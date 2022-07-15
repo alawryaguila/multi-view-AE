@@ -1,5 +1,4 @@
 import torch
-from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
 from ..utils.calc_utils import ProductOfExperts
 import hydra

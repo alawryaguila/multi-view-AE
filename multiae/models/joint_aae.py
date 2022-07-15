@@ -1,10 +1,8 @@
 import torch
-from .layers import Encoder, Decoder, Discriminator
 from ..base.base_model import BaseModelAAE
 from ..utils.calc_utils import compute_mse, update_dict
 from torch.autograd import Variable
 import hydra
-
 
 class jointAAE(BaseModelAAE):
     """

@@ -1,5 +1,4 @@
 import torch
-from .layers import Encoder, Decoder, Discriminator
 from ..base.base_model import BaseModelAAE
 import numpy as np
 from ..utils.calc_utils import compute_mse, update_dict

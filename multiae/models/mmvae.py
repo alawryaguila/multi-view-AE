@@ -1,6 +1,5 @@
 import torch
 from torch.distributions import Normal
-from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
 from ..utils.calc_utils import update_dict
 import math

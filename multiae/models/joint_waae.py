@@ -1,5 +1,4 @@
 import torch
-from .layers import Encoder, Decoder, Discriminator
 from ..base.base_model import BaseModelAAE
 from torch.autograd import Variable
 from ..utils.calc_utils import compute_mse, update_dict

@@ -1,9 +1,7 @@
 import torch
-from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
 from ..utils.calc_utils import compute_mse, update_dict
 import hydra
-
 
 class AE(BaseModel):
     def __init__(

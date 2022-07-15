@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from multiae.utils.distributions import Normal, Bernoulli, MultivariateNormal
 from ..utils.calc_utils import compute_logvar
 from torch.nn import Parameter
 import hydra
