@@ -3,13 +3,15 @@ from torch.distributions import Normal
 from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
 from ..utils.calc_utils import update_dict
-import hydra 
+import hydra
 import multiae
+
+
 class DVCCA(BaseModel):
     def __init__(
         self,
         input_dims,
-        expt='DVCCA',
+        expt="DVCCA",
         **kwargs,
     ):
 
@@ -38,24 +40,25 @@ class DVCCA(BaseModel):
 
         self.encoder = torch.nn.ModuleList(
             [
-                    hydra.utils.instantiate(self.cfg.encoder,
+                hydra.utils.instantiate(
+                    self.cfg.encoder,
                     _recursive_=False,
                     input_dim=input_dims[0],
                     z_dim=self.z_dim,
                     sparse=self.sparse,
-                
                 )
             ]
         )
         if self.private:
             self.private_encoders = torch.nn.ModuleList(
                 [
-                    hydra.utils.instantiate(self.cfg.encoder,
-                    _recursive_=False,
-                    input_dim=input_dim,
-                    z_dim=self.z_dim,
-                    sparse=self.sparse,
-                )
+                    hydra.utils.instantiate(
+                        self.cfg.encoder,
+                        _recursive_=False,
+                        input_dim=input_dim,
+                        z_dim=self.z_dim,
+                        sparse=self.sparse,
+                    )
                     for input_dim in self.input_dims
                 ]
             )
@@ -63,7 +66,8 @@ class DVCCA(BaseModel):
 
         self.decoders = torch.nn.ModuleList(
             [
-                hydra.utils.instantiate(self.cfg.decoder,
+                hydra.utils.instantiate(
+                    self.cfg.decoder,
                     _recursive_=False,
                     input_dim=input_dim,
                     z_dim=self.z_dim,
@@ -74,15 +78,21 @@ class DVCCA(BaseModel):
 
     def configure_optimizers(self):
         if self.private:
-            optimizers = [torch.optim.Adam(self.encoder.parameters(), lr=self.learning_rate)] + [
+            optimizers = [
+                torch.optim.Adam(self.encoder.parameters(), lr=self.learning_rate)
+            ] + [
                 torch.optim.Adam(
                     list(self.decoders[i].parameters()), lr=self.learning_rate
                 )
                 for i in range(self.n_views)
             ]
         else:
-            optimizers = [torch.optim.Adam(self.encoder.parameters(), lr=self.learning_rate)] + [
-                torch.optim.Adam(list(self.decoders[i].parameters()), lr=self.learning_rate)
+            optimizers = [
+                torch.optim.Adam(self.encoder.parameters(), lr=self.learning_rate)
+            ] + [
+                torch.optim.Adam(
+                    list(self.decoders[i].parameters()), lr=self.learning_rate
+                )
                 for i in range(self.n_views)
             ]
         return optimizers
@@ -95,11 +105,15 @@ class DVCCA(BaseModel):
                 mu_p, logvar_p = self.private_encoders[i](x[i])
                 mu_ = torch.cat((mu, mu_p), 1)
                 logvar_ = torch.cat((logvar, logvar_p), 1)
-                qz_x = hydra.utils.instantiate(self.cfg.encoder.enc_dist, loc=mu_, scale=logvar_.exp().pow(0.5))
+                qz_x = hydra.utils.instantiate(
+                    self.cfg.encoder.enc_dist, loc=mu_, scale=logvar_.exp().pow(0.5)
+                )
                 qz_xs.append(qz_x)
             return qz_xs
         else:
-            qz_x = hydra.utils.instantiate(self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5))
+            qz_x = hydra.utils.instantiate(
+                self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
+            )
             return qz_x
 
     def decode(self, qz_x):
@@ -133,7 +147,7 @@ class DVCCA(BaseModel):
         """
         Implementation from: https://github.com/ggbioing/mcvae
         """
-    
+
         assert self.threshold <= 1.0
         keep = (self.dropout() < self.threshold).squeeze().cpu()
         z_keep = []
@@ -142,20 +156,22 @@ class DVCCA(BaseModel):
             _[:, ~keep] = 0
             z_keep.append(_)
             del _
-        return hydra.utils.instantiate(self.cfg.encoder.enc_dist, loc=z_keep, scale=1) #check this works
+        return hydra.utils.instantiate(
+            self.cfg.encoder.enc_dist, loc=z_keep, scale=1
+        )  # check this works
 
     def calc_kl(self, qz_x):
-        prior = Normal(0, 1) #TODO - flexible prior
+        prior = Normal(0, 1)  # TODO - flexible prior
         kl = 0
         if self.private:
             for i in range(self.n_views):
                 if self.sparse:
-                    kl += qz_x[i].sparse_kl_divergence().sum(1, keepdims=True).mean(0) 
+                    kl += qz_x[i].sparse_kl_divergence().sum(1, keepdims=True).mean(0)
                 else:
                     kl += qz_x[i].kl_divergence(prior).sum(1, keepdims=True).mean(0)
         else:
             if self.sparse:
-                kl += qz_x.sparse_kl_divergence().sum(1, keepdims=True).mean(0) 
+                kl += qz_x.sparse_kl_divergence().sum(1, keepdims=True).mean(0)
             else:
                 kl += qz_x.kl_divergence(prior).sum(1, keepdims=True).mean(0)
         return self.beta * kl

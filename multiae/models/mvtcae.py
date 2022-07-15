@@ -2,8 +2,9 @@ import torch
 from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
 from ..utils.calc_utils import ProductOfExperts
-import hydra 
+import hydra
 from torch.distributions import Normal
+
 
 class MVTCAE(BaseModel):
     """
@@ -13,10 +14,10 @@ class MVTCAE(BaseModel):
     def __init__(
         self,
         input_dims,
-        expt='MVTCAE',
+        expt="MVTCAE",
         **kwargs,
     ):
-    
+
         super().__init__(expt=expt)
         self.save_hyperparameters()
 
@@ -29,7 +30,8 @@ class MVTCAE(BaseModel):
 
         self.encoders = torch.nn.ModuleList(
             [
-                hydra.utils.instantiate(self.cfg.encoder,
+                hydra.utils.instantiate(
+                    self.cfg.encoder,
                     _recursive_=False,
                     input_dim=input_dim,
                     z_dim=self.z_dim,
@@ -40,7 +42,8 @@ class MVTCAE(BaseModel):
         )
         self.decoders = torch.nn.ModuleList(
             [
-                hydra.utils.instantiate(self.cfg.decoder,
+                hydra.utils.instantiate(
+                    self.cfg.decoder,
                     _recursive_=False,
                     input_dim=input_dim,
                     z_dim=self.z_dim,
@@ -48,7 +51,6 @@ class MVTCAE(BaseModel):
                 for input_dim in self.input_dims
             ]
         )
-
 
     def configure_optimizers(self):
         optimizers = [
@@ -66,7 +68,9 @@ class MVTCAE(BaseModel):
             qz_xs = []
             for i in range(self.n_views):
                 mu, logvar = self.encoders[i](x[i])
-                qz_x = hydra.utils.instantiate(self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5))
+                qz_x = hydra.utils.instantiate(
+                    self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
+                )
                 qz_xs.append(qz_x)
             return qz_xs
         else:
@@ -80,7 +84,9 @@ class MVTCAE(BaseModel):
             mu = torch.stack(mu)
             var = torch.stack(var)
             mu, var = ProductOfExperts()(mu, var)
-            qz_x = hydra.utils.instantiate(self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5))
+            qz_x = hydra.utils.instantiate(
+                self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
+            )
             return qz_x
 
     def decode(self, qz_xs):
@@ -92,7 +98,11 @@ class MVTCAE(BaseModel):
             mu, var = ProductOfExperts()(mu, var)
             px_zs = []
             for i in range(self.n_views):
-                px_z = self.decoders[i](hydra.utils.instantiate(self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)).rsample())
+                px_z = self.decoders[i](
+                    hydra.utils.instantiate(
+                        self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
+                    ).rsample()
+                )
                 px_zs.append(px_z)
             return px_zs
         else:
@@ -116,7 +126,14 @@ class MVTCAE(BaseModel):
         mu, var = ProductOfExperts()(mu, var)
         kl = 0
         for i in range(self.n_views):
-            kl += hydra.utils.instantiate(self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)).kl_divergence(qz_xs[i]).sum(1, keepdims=True).mean(0)
+            kl += (
+                hydra.utils.instantiate(
+                    self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
+                )
+                .kl_divergence(qz_xs[i])
+                .sum(1, keepdims=True)
+                .mean(0)
+            )
         return kl
 
     def calc_kl_groupwise(self, qz_xs):
@@ -125,8 +142,15 @@ class MVTCAE(BaseModel):
         mu = torch.stack(mu)
         var = torch.stack(var)
         mu, var = ProductOfExperts()(mu, var)
-        prior = Normal(0, 1) #TODO - flexible prior
-        return hydra.utils.instantiate(self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)).kl_divergence(prior).sum(1, keepdims=True).mean(0)
+        prior = Normal(0, 1)  # TODO - flexible prior
+        return (
+            hydra.utils.instantiate(
+                self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
+            )
+            .kl_divergence(prior)
+            .sum(1, keepdims=True)
+            .mean(0)
+        )
 
     def calc_ll(self, x, px_zs):
         ll = 0

@@ -4,7 +4,8 @@ from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
 from ..utils.calc_utils import update_dict
 import math
-import hydra 
+import hydra
+
 
 class mmVAE(BaseModel):
     """
@@ -16,7 +17,7 @@ class mmVAE(BaseModel):
     def __init__(
         self,
         input_dims,
-        expt='MMVAE',
+        expt="MMVAE",
         **kwargs,
     ):
 
@@ -36,7 +37,8 @@ class mmVAE(BaseModel):
 
         self.encoders = torch.nn.ModuleList(
             [
-                hydra.utils.instantiate(self.cfg.encoder,
+                hydra.utils.instantiate(
+                    self.cfg.encoder,
                     _recursive_=False,
                     input_dim=input_dim,
                     z_dim=self.z_dim,
@@ -48,7 +50,8 @@ class mmVAE(BaseModel):
         )
         self.decoders = torch.nn.ModuleList(
             [
-                hydra.utils.instantiate(self.cfg.decoder,
+                hydra.utils.instantiate(
+                    self.cfg.decoder,
                     _recursive_=False,
                     input_dim=input_dim,
                     z_dim=self.z_dim,
@@ -72,15 +75,22 @@ class mmVAE(BaseModel):
         qz_xs = []
         for i in range(self.n_views):
             mu, logvar = self.encoders[i](x[i])
-            qz_x = hydra.utils.instantiate(self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5))
+            qz_x = hydra.utils.instantiate(
+                self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
+            )
             qz_xs.append(qz_x)
         return qz_xs
 
     def decode(self, qz_xs):
         px_zs = []
         for i in range(self.n_views):
-            px_z = [self.decoders[j](qz_xs[i].rsample(torch.Size([self.K]))) for j in range(self.n_views)]
-            px_zs.append(px_z) # NOTE: this is other way around to other multiautoencoder models - FIX
+            px_z = [
+                self.decoders[j](qz_xs[i].rsample(torch.Size([self.K])))
+                for j in range(self.n_views)
+            ]
+            px_zs.append(
+                px_z
+            )  # NOTE: this is other way around to other multiautoencoder models - FIX
             del px_z
         return px_zs
 
@@ -104,7 +114,7 @@ class mmVAE(BaseModel):
             zs = qz_xs[i].rsample(torch.Size([self.K]))
             zss.append(zs)
         for r, qz_x in enumerate(qz_xs):
-            lpz = Normal(loc=0, scale=1).log_prob(zss[r]).sum(-1) #TODO flexible prior
+            lpz = Normal(loc=0, scale=1).log_prob(zss[r]).sum(-1)  # TODO flexible prior
             lqz_x = self.log_mean_exp(
                 torch.stack([qz_x.log_prob(zss[r]).sum(-1) for qz_x in qz_xs])
             )  # summing over M modalities for each z to create q(z|x1:M)

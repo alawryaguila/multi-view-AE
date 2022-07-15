@@ -4,7 +4,8 @@ import torch.nn.functional as F
 from multiae.utils.distributions import Normal, Bernoulli, MultivariateNormal
 from ..utils.calc_utils import compute_logvar
 from torch.nn import Parameter
-import hydra 
+import hydra
+
 
 class Encoder(nn.Module):
     def __init__(
@@ -20,7 +21,7 @@ class Encoder(nn.Module):
         self.input_size = input_dim
         self.z_dim = z_dim
         self.__dict__.update(kwargs)
-        hidden_layer_dims = self.hidden_layer_dims.copy()  
+        hidden_layer_dims = self.hidden_layer_dims.copy()
         hidden_layer_dims.append(self.z_dim)
         self.layer_sizes_encoder = [input_dim] + hidden_layer_dims
         self.sparse = sparse
@@ -35,7 +36,9 @@ class Encoder(nn.Module):
         if self.variational:
             self.encoder_layers = nn.Sequential(*lin_layers[0:-1])
             self.enc_mean_layer = nn.Linear(
-                self.layer_sizes_encoder[-2], self.layer_sizes_encoder[-1], bias=self.bias
+                self.layer_sizes_encoder[-2],
+                self.layer_sizes_encoder[-1],
+                bias=self.bias,
             )
             if not self.sparse:
                 self.enc_logvar_layer = nn.Linear(
@@ -71,6 +74,7 @@ class Encoder(nn.Module):
             h1 = self.encoder_layers[-1](h1)
             return h1
 
+
 class Discriminator(nn.Module):
     def __init__(
         self,
@@ -80,7 +84,7 @@ class Discriminator(nn.Module):
         super().__init__()
         self.input_size = input_dim
         self.__dict__.update(kwargs)
-        hidden_layer_dims = self.hidden_layer_dims.copy()  
+        hidden_layer_dims = self.hidden_layer_dims.copy()
         self.layer_sizes = [input_dim] + hidden_layer_dims + [self.output_dim]
 
         lin_layers = [
@@ -104,6 +108,7 @@ class Discriminator(nn.Module):
                     x = torch.sigmoid(x)
         return x
 
+
 class Decoder(nn.Module):
     def __init__(
         self,
@@ -117,7 +122,7 @@ class Decoder(nn.Module):
         self.input_size = input_dim
         self.z_dim = z_dim
         self.__dict__.update(kwargs)
-        hidden_layer_dims = self.hidden_layer_dims.copy()  
+        hidden_layer_dims = self.hidden_layer_dims.copy()
         hidden_layer_dims.append(self.z_dim)
         self.init_logvar = init_logvar
         self.layer_sizes_decoder = hidden_layer_dims[::-1] + [input_dim]
@@ -131,7 +136,9 @@ class Decoder(nn.Module):
         if self.variational:
             self.decoder_layers = nn.Sequential(*lin_layers[0:-1])
             self.decoder_mean_layer = nn.Linear(
-                self.layer_sizes_decoder[-2], self.layer_sizes_decoder[-1], bias=self.bias
+                self.layer_sizes_decoder[-2],
+                self.layer_sizes_decoder[-1],
+                bias=self.bias,
             )
             tmp_noise_par = torch.FloatTensor(1, self.input_size).fill_(
                 self.init_logvar
@@ -149,7 +156,9 @@ class Decoder(nn.Module):
                 x_rec = F.relu(x_rec)
         if self.variational:
             x_rec = self.decoder_mean_layer(x_rec)
-            x_rec = hydra.utils.instantiate(self.dec_dist, loc=x_rec, scale=torch.exp(0.5 * self.logvar_out))
+            x_rec = hydra.utils.instantiate(
+                self.dec_dist, loc=x_rec, scale=torch.exp(0.5 * self.logvar_out)
+            )
         else:
             x_rec = hydra.utils.instantiate(self.dec_dist, x_rec)
         return x_rec

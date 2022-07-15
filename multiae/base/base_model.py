@@ -6,18 +6,24 @@ import torch
 from ..plot.plotting import Plotting
 from os.path import join, exists
 import pytorch_lightning as pl
-import hydra 
+import hydra
 from hydra import compose, initialize
 from omegaconf import DictConfig
 
+
 class BaseModel(pl.LightningModule, Plotting):
-    def __init__(self,
+    def __init__(
+        self,
         expt=None,
-        ):
+    ):
         super().__init__()
         with initialize(version_base=None, config_path="../configs"):
             if expt:
-                self.cfg = compose(config_name="run", return_hydra_config=True, overrides=["experiment={0}.yaml".format(expt)])
+                self.cfg = compose(
+                    config_name="run",
+                    return_hydra_config=True,
+                    overrides=["experiment={0}.yaml".format(expt)],
+                )
             else:
                 self.cfg = compose(config_name="run", return_hydra_config=True)
 
@@ -30,7 +36,7 @@ class BaseModel(pl.LightningModule, Plotting):
         torch.manual_seed(42)
         torch.cuda.manual_seed(42)
         self.cfg.callbacks = update_dict(self.cfg.callbacks, kwargs)
-        callbacks =  []
+        callbacks = []
         for _, cb_conf in self.cfg.callbacks.items():
             callbacks.append(hydra.utils.instantiate(cb_conf))
 
@@ -40,10 +46,14 @@ class BaseModel(pl.LightningModule, Plotting):
         self.cfg.trainer = update_dict(self.cfg.trainer, kwargs)
         if not exists(self.cfg.trainer.resume_from_checkpoint):
             self.cfg.trainer.resume_from_checkpoint = None
-        py_trainer =  hydra.utils.instantiate(self.cfg.trainer, callbacks=callbacks, logger=logger)
+        py_trainer = hydra.utils.instantiate(
+            self.cfg.trainer, callbacks=callbacks, logger=logger
+        )
 
         self.cfg.datamodule = update_dict(self.cfg.datamodule, kwargs)
-        datamodule = hydra.utils.instantiate(self.cfg.datamodule, *data, labels=self.labels) 
+        datamodule = hydra.utils.instantiate(
+            self.cfg.datamodule, *data, labels=self.labels
+        )
 
         py_trainer.fit(self, datamodule)
 
@@ -53,7 +63,7 @@ class BaseModel(pl.LightningModule, Plotting):
         print(self._training)
         dataset = MultiviewDataModule.dataset(*data, labels=None)
         batch_size = check_batch_size(self.cfg.datamodule.batch_size, data)
-        
+
         generator = DataLoader(dataset, batch_size=batch_size, shuffle=False)
         with torch.no_grad():
             for batch_idx, local_batch in enumerate(generator):
@@ -68,9 +78,7 @@ class BaseModel(pl.LightningModule, Plotting):
                 if batch_idx == 0:
                     predictions = self.process_output(pred)
                 else:
-                    predictions = self.process_output(
-                        pred, pred=predictions
-                    )
+                    predictions = self.process_output(pred, pred=predictions)
         return predictions
 
     def process_output(self, data, pred=None):
@@ -116,7 +124,7 @@ class BaseModel(pl.LightningModule, Plotting):
         dataset = MultiviewDataModule.dataset(*data, labels=None)
         batch_size = check_batch_size(self.cfg.datamodule.batch_size, data)
         generator = DataLoader(dataset, batch_size=batch_size, shuffle=False)
-        
+
         with torch.no_grad():
             for batch_idx, (local_batch) in enumerate(generator):
                 local_batch = [
@@ -137,26 +145,26 @@ class BaseModel(pl.LightningModule, Plotting):
 
     def _step(self, batch, batch_idx, stage):
         fwd_return = self.forward(batch)
-        loss = self.loss_function(batch, fwd_return)     
+        loss = self.loss_function(batch, fwd_return)
         for loss_n, loss_val in loss.items():
             self.log(
                 f"{stage}_{loss_n}", loss_val, on_epoch=True, prog_bar=True, logger=True
-            ) 
-        return loss['loss']         
+            )
+        return loss["loss"]
 
     def training_step(self, batch, batch_idx, optimizer_idx):
-        return self._step(batch, batch_idx, stage='train')
+        return self._step(batch, batch_idx, stage="train")
 
     def validation_step(self, batch, batch_idx):
-        return self._step(batch, batch_idx, stage='val')
+        return self._step(batch, batch_idx, stage="val")
 
     def on_train_end(self):
         self.trainer.save_checkpoint(join(self.cfg.out_dir, "model.ckpt"))
         torch.save(self, join(self.cfg.out_dir, "model.pkl"))
 
+
 class BaseModelAAE(BaseModel):
-    def __init__(self,
-                expt=None):
+    def __init__(self, expt=None):
         super().__init__(expt=expt)
 
     def validate_batch(self, local_batch):
@@ -218,7 +226,7 @@ class BaseModelAAE(BaseModel):
         for loss_n, loss_val in loss.items():
             self.log(
                 f"train_{loss_n}", loss_val, on_epoch=True, prog_bar=True, logger=True
-            ) 
+            )
         return loss["loss"]
 
     def validation_step(self, batch, batch_idx):
@@ -226,5 +234,5 @@ class BaseModelAAE(BaseModel):
         for loss_n, loss_val in loss.items():
             self.log(
                 f"val_{loss_n}", loss_val, on_epoch=True, prog_bar=True, logger=True
-            ) 
+            )
         return loss["loss"]

@@ -4,7 +4,8 @@ from ..base.base_model import BaseModelAAE
 import numpy as np
 from ..utils.calc_utils import compute_mse, update_dict
 from torch.autograd import Variable
-import hydra 
+import hydra
+
 
 class AAE(BaseModelAAE):
     """
@@ -15,7 +16,7 @@ class AAE(BaseModelAAE):
     def __init__(
         self,
         input_dims,
-        expt='AAE',
+        expt="AAE",
         **kwargs,
     ):
 
@@ -25,17 +26,17 @@ class AAE(BaseModelAAE):
         self.automatic_optimization = False
         self.__dict__.update(self.cfg.model)
         self.__dict__.update(kwargs)
-        
 
         self.cfg.encoder = update_dict(self.cfg.encoder, kwargs)
         self.cfg.decoder = update_dict(self.cfg.decoder, kwargs)
 
         self.input_dims = input_dims
         self.n_views = len(input_dims)
-        
+
         self.encoders = torch.nn.ModuleList(
             [
-                hydra.utils.instantiate(self.cfg.encoder,
+                hydra.utils.instantiate(
+                    self.cfg.encoder,
                     _recursive_=False,
                     input_dim=input_dim,
                     z_dim=self.z_dim,
@@ -45,7 +46,8 @@ class AAE(BaseModelAAE):
         )
         self.decoders = torch.nn.ModuleList(
             [
-                hydra.utils.instantiate(self.cfg.decoder,
+                hydra.utils.instantiate(
+                    self.cfg.decoder,
                     _recursive_=False,
                     input_dim=input_dim,
                     z_dim=self.z_dim,
@@ -53,12 +55,13 @@ class AAE(BaseModelAAE):
                 for input_dim in self.input_dims
             ]
         )
-        self.discriminator =  hydra.utils.instantiate(self.cfg.discriminator,
-                    _recursive_=False,
-                    input_dim=self.z_dim,
-                    output_dim=(self.n_views + 1),
-                )
-                
+        self.discriminator = hydra.utils.instantiate(
+            self.cfg.discriminator,
+            _recursive_=False,
+            input_dim=self.z_dim,
+            output_dim=(self.n_views + 1),
+        )
+
         # TO DO - check discriminator dimensionality is correct (nviews + 1?) and for joint model too
 
     def configure_optimizers(self):

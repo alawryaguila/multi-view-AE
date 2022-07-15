@@ -5,15 +5,10 @@ from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions import Normal, kl_divergence
 from .calc_utils import compute_log_alpha
 
+
 class MultivariateNormal(MultivariateNormal):
-    def __init__(
-        self,
-        loc,
-        scale,
-        *args, 
-        **kwargs
-        ):
-    
+    def __init__(self, loc, scale, *args, **kwargs):
+
         super().__init__(loc, torch.diag_embed(scale))
 
     @property
@@ -23,7 +18,9 @@ class MultivariateNormal(MultivariateNormal):
     def kl_divergence(self, other):
         return kl_divergence(MultivariateNormal(loc=self.loc, scale=self.stddev), other)
 
-    def sparse_kl_divergence(self): #check this is also the case for multivariate gauss
+    def sparse_kl_divergence(
+        self,
+    ):  # check this is also the case for multivariate gauss
         mu = self.loc
         logvar = torch.log(self.variance)
         log_alpha = compute_log_alpha(mu, logvar)
@@ -35,22 +32,24 @@ class MultivariateNormal(MultivariateNormal):
         )
         neg_KL = neg_KL.mean(1, keepdims=True).mean(0)
         return -neg_KL
-        
+
     def log_likelihood(self, x):
-        return self.log_prob(x) 
+        return self.log_prob(x)
 
     def _sample(self, training=False):
         if training:
             return self.rsample()
-        return self.loc 
+        return self.loc
+
 
 class Normal(Normal):
     def __init__(
         self,
         loc,
         scale,
-        *args, **kwargs,
-        ):
+        *args,
+        **kwargs,
+    ):
         super().__init__(loc, scale)
 
     @property
@@ -59,7 +58,7 @@ class Normal(Normal):
 
     def kl_divergence(self, other):
         return kl_divergence(Normal(loc=self.loc, scale=self.stddev), other)
-    
+
     def sparse_kl_divergence(self):
         mu = self.loc
         logvar = torch.log(self.variance)
@@ -72,37 +71,42 @@ class Normal(Normal):
         )
         neg_KL = neg_KL.mean(1, keepdims=True).mean(0)
         return -neg_KL
-        
+
     def log_likelihood(self, x):
         return self.log_prob(x)
 
     def _sample(self, training=False):
         if training:
             return self.rsample()
-        return self.loc 
+        return self.loc
 
-class Bernoulli():
+
+class Bernoulli:
     def __init__(
         self,
         x,
-        *args, **kwargs,
-        ):
+        *args,
+        **kwargs,
+    ):
         self.x = x
 
     def log_likelihood(self, x):
-        return F.binary_cross_entropy(torch.sigmoid(self.x), x, reduction="none") #check right way around
-    
+        return F.binary_cross_entropy(
+            torch.sigmoid(self.x), x, reduction="none"
+        )  # check right way around
+
     def rsample(self):
         raise NotImplementedError
-    
+
     def kl_divergence(self):
         raise NotImplementedError
 
     def sparse_kl_divergence(self):
         raise NotImplementedError
-    
+
     def _sample(self):
         return torch.distributions.bernoulli.Bernoulli(torch.sigmoid(self.x)).sample()
+
 
 def nodist(x):
     return x

@@ -4,11 +4,12 @@ from ..base.base_model import BaseModel
 from ..utils.calc_utils import compute_mse, update_dict
 import hydra
 
+
 class AE(BaseModel):
     def __init__(
         self,
         input_dims,
-        expt='AE',
+        expt="AE",
         **kwargs,
     ):
 
@@ -24,11 +25,12 @@ class AE(BaseModel):
 
         self.model_type = expt
         self.input_dims = input_dims
-        self.n_views = len(input_dims)       
-        
+        self.n_views = len(input_dims)
+
         self.encoders = torch.nn.ModuleList(
             [
-                hydra.utils.instantiate(self.cfg.encoder,
+                hydra.utils.instantiate(
+                    self.cfg.encoder,
                     _recursive_=False,
                     input_dim=input_dim,
                     z_dim=self.z_dim,
@@ -38,7 +40,8 @@ class AE(BaseModel):
         )
         self.decoders = torch.nn.ModuleList(
             [
-                hydra.utils.instantiate(self.cfg.decoder,
+                hydra.utils.instantiate(
+                    self.cfg.decoder,
                     _recursive_=False,
                     input_dim=input_dim,
                     z_dim=self.z_dim,
@@ -92,4 +95,3 @@ class AE(BaseModel):
         recon = self.recon_loss(x, x_recon)
         losses = {"loss": recon}
         return losses
-

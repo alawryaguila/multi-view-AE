@@ -3,13 +3,14 @@ from .layers import Encoder, Decoder, Discriminator
 from ..base.base_model import BaseModelAAE
 from torch.autograd import Variable
 from ..utils.calc_utils import compute_mse, update_dict
-import hydra 
+import hydra
+
 
 class wAAE(BaseModelAAE):
     def __init__(
         self,
         input_dims,
-        expt='wAAE',
+        expt="wAAE",
         **kwargs,
     ):
         super().__init__(expt=expt)
@@ -19,17 +20,18 @@ class wAAE(BaseModelAAE):
 
         self.__dict__.update(self.cfg.model)
         self.__dict__.update(kwargs)
-        
+
         self.cfg.encoder = update_dict(self.cfg.encoder, kwargs)
         self.cfg.decoder = update_dict(self.cfg.decoder, kwargs)
 
         self.model_type = expt
         self.input_dims = input_dims
         self.n_views = len(input_dims)
-        
+
         self.encoders = torch.nn.ModuleList(
             [
-                hydra.utils.instantiate(self.cfg.encoder,
+                hydra.utils.instantiate(
+                    self.cfg.encoder,
                     _recursive_=False,
                     input_dim=input_dim,
                     z_dim=self.z_dim,
@@ -39,7 +41,8 @@ class wAAE(BaseModelAAE):
         )
         self.decoders = torch.nn.ModuleList(
             [
-                hydra.utils.instantiate(self.cfg.decoder,
+                hydra.utils.instantiate(
+                    self.cfg.decoder,
                     _recursive_=False,
                     input_dim=input_dim,
                     z_dim=self.z_dim,
@@ -48,12 +51,13 @@ class wAAE(BaseModelAAE):
             ]
         )
 
-        self.discriminator =  hydra.utils.instantiate(self.cfg.discriminator,
-                    _recursive_=False,
-                    input_dim=self.z_dim,
-                    output_dim=1,
-                )
-                
+        self.discriminator = hydra.utils.instantiate(
+            self.cfg.discriminator,
+            _recursive_=False,
+            input_dim=self.z_dim,
+            output_dim=1,
+        )
+
     def configure_optimizers(self):
         optimizers = []
         [
@@ -86,6 +90,7 @@ class wAAE(BaseModelAAE):
             )
         )
         return optimizers
+
     def encode(self, x):
         z = []
         for i in range(self.n_views):

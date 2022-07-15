@@ -3,7 +3,7 @@ from .layers import Encoder, Decoder
 from ..base.base_model import BaseModel
 from torch.distributions import Normal
 from ..utils.calc_utils import update_dict
-import hydra 
+import hydra
 
 
 class mcVAE(BaseModel):
@@ -17,7 +17,7 @@ class mcVAE(BaseModel):
     def __init__(
         self,
         input_dims,
-        expt='mcVAE',
+        expt="mcVAE",
         **kwargs,
     ):
 
@@ -49,7 +49,8 @@ class mcVAE(BaseModel):
 
         self.encoders = torch.nn.ModuleList(
             [
-                hydra.utils.instantiate(self.cfg.encoder,
+                hydra.utils.instantiate(
+                    self.cfg.encoder,
                     _recursive_=False,
                     input_dim=input_dim,
                     z_dim=self.z_dim,
@@ -61,7 +62,8 @@ class mcVAE(BaseModel):
         )
         self.decoders = torch.nn.ModuleList(
             [
-                hydra.utils.instantiate(self.cfg.decoder,
+                hydra.utils.instantiate(
+                    self.cfg.decoder,
                     _recursive_=False,
                     input_dim=input_dim,
                     z_dim=self.z_dim,
@@ -85,7 +87,9 @@ class mcVAE(BaseModel):
         qz_xs = []
         for i in range(self.n_views):
             mu, logvar = self.encoders[i](x[i])
-            qz_x = hydra.utils.instantiate(self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5))
+            qz_x = hydra.utils.instantiate(
+                self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
+            )
             qz_xs.append(qz_x)
         return qz_xs
 
@@ -96,11 +100,14 @@ class mcVAE(BaseModel):
             mu.append(qz_x.loc)
             var.append(qz_x.variance)
         return mu, var
-        
+
     def decode(self, qz_xs):
         px_zs = []
         for i in range(self.n_views):
-            px_z = [self.decoders[i](qz_x._sample(training=self._training)) for qz_x in qz_xs]
+            px_z = [
+                self.decoders[i](qz_x._sample(training=self._training))
+                for qz_x in qz_xs
+            ]
             px_zs.append(px_z)
             del px_z
         return px_zs
@@ -125,7 +132,7 @@ class mcVAE(BaseModel):
         """
         Implementation from: https://github.com/ggbioing/mcvae
         """
-    
+
         assert self.threshold <= 1.0
         keep = (self.dropout() < self.threshold).squeeze().cpu()
         z_keep = []
@@ -143,10 +150,10 @@ class mcVAE(BaseModel):
 
         """
         kl = 0
-        prior = Normal(0, 1) #TODO - flexible prior
+        prior = Normal(0, 1)  # TODO - flexible prior
         for qz_x in qz_xs:
             if self.sparse:
-                kl += qz_x.sparse_kl_divergence().sum(1, keepdims=True).mean(0) 
+                kl += qz_x.sparse_kl_divergence().sum(1, keepdims=True).mean(0)
             else:
                 kl += qz_x.kl_divergence(prior).sum(1, keepdims=True).mean(0)
         return self.beta * kl

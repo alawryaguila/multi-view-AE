@@ -11,10 +11,14 @@ class MultiviewDataModule(pl.LightningDataModule):
     def __init__(self, *data, labels=None, batch_size=None, val=False):
         self.data = data
         if batch_size is None:
-            self.batch_size =data[0].shape[0] if (type(data) == list or type(data) == tuple) else data.shape[0]
+            self.batch_size = (
+                data[0].shape[0]
+                if (type(data) == list or type(data) == tuple)
+                else data.shape[0]
+            )
         else:
             self.batch_size = batch_size
-        
+
         self.val = val
         self.labels = labels
 
@@ -39,7 +43,6 @@ class MultiviewDataModule(pl.LightningDataModule):
             labels_1, labels_2 = self.labels_split(labels, idx_1, idx_2)
             return [data_1, data_2, labels_1, labels_2]
         return [data_1, data_2, None, None]
-
 
     def list_split(self, idx_list, labels, split):
         N = len(idx_list)

@@ -5,6 +5,7 @@ from ..utils.calc_utils import compute_mse, update_dict
 from torch.autograd import Variable
 import hydra
 
+
 class jointAAE(BaseModelAAE):
     """
     Multi-view Adversarial Autoencoder model with a joint latent representation.
@@ -14,7 +15,7 @@ class jointAAE(BaseModelAAE):
     def __init__(
         self,
         input_dims,
-        expt='jointAAE',
+        expt="jointAAE",
         **kwargs,
     ):
 
@@ -30,15 +31,15 @@ class jointAAE(BaseModelAAE):
 
         self.model_type = expt
         self.input_dims = input_dims
-        hidden_layer_dims = self.hidden_layer_dims.copy()  
+        hidden_layer_dims = self.hidden_layer_dims.copy()
         hidden_layer_dims.append(self.z_dim)
         self.hidden_layer_dims = hidden_layer_dims
         self.n_views = len(input_dims)
-        
-        
+
         self.encoders = torch.nn.ModuleList(
             [
-                hydra.utils.instantiate(self.cfg.encoder,
+                hydra.utils.instantiate(
+                    self.cfg.encoder,
                     _recursive_=False,
                     input_dim=input_dim,
                     z_dim=self.z_dim,
@@ -48,7 +49,8 @@ class jointAAE(BaseModelAAE):
         )
         self.decoders = torch.nn.ModuleList(
             [
-                hydra.utils.instantiate(self.cfg.decoder,
+                hydra.utils.instantiate(
+                    self.cfg.decoder,
                     _recursive_=False,
                     input_dim=input_dim,
                     z_dim=self.z_dim,
@@ -57,12 +59,13 @@ class jointAAE(BaseModelAAE):
             ]
         )
 
-        self.discriminator =  hydra.utils.instantiate(self.cfg.discriminator,
-                    _recursive_=False,
-                    input_dim=self.z_dim,
-                    output_dim=(self.n_views + 1),
-                )
-                
+        self.discriminator = hydra.utils.instantiate(
+            self.cfg.discriminator,
+            _recursive_=False,
+            input_dim=self.z_dim,
+            output_dim=(self.n_views + 1),
+        )
+
     def configure_optimizers(self):
         optimizers = []
         [

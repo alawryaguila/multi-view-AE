@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 from scipy import stats
 
+
 def calc_corr(x1, x2, corr_type="pearson"):
     # TODO - write test
     if corr_type == "pearson":
@@ -40,6 +41,7 @@ class MeanRepresentation(nn.Module):
         mean_var = torch.mean(var, axis=0)
         return mean_mu, mean_var
 
+
 def compute_log_alpha(mu, logvar):
     # clamp because dropout rate p in 0-99%, where p = alpha/(alpha+1)
     return (logvar - 2 * torch.log(torch.abs(mu) + 1e-8)).clamp(min=-8, max=8)
@@ -52,11 +54,13 @@ def compute_logvar(mu, log_alpha):
 def compute_mse(x, y):
     return torch.mean(((x - y) ** 2).sum(dim=-1))
 
+
 def update_dict(orig_dict, update_dict):
     for key, val in update_dict.items():
         if key in orig_dict.keys():
             orig_dict[key] = val
     return orig_dict
+
 
 def check_batch_size(batch_size, x):
     if batch_size is None:
