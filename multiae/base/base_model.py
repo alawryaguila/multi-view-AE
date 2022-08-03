@@ -7,17 +7,18 @@ from ..plot.plotting import Plotting
 from os.path import join, exists
 import pytorch_lightning as pl
 import hydra
-from hydra import compose, initialize
+from hydra import compose, initialize_config_dir
 from omegaconf import DictConfig
-
+import os
 
 class BaseModel(pl.LightningModule, Plotting):
     def __init__(
         self,
         expt=None,
     ):
+        config_dir = os.path.abspath(join(os.path.dirname( __file__ ), '..', 'configs')) #TODO - temp hacky solution
         super().__init__()
-        with initialize(version_base=None, config_path="../configs"):
+        with initialize_config_dir(version_base=None, config_dir=config_dir):
             if expt:
                 self.cfg = compose(
                     config_name="run",
@@ -26,7 +27,6 @@ class BaseModel(pl.LightningModule, Plotting):
                 )
             else:
                 self.cfg = compose(config_name="run", return_hydra_config=True)
-
     def fit(self, *data, labels=None, **kwargs):
         self._training = True
         self.data = data
@@ -60,7 +60,6 @@ class BaseModel(pl.LightningModule, Plotting):
     def predict_latents(self, *data, val_set=False):
         self.val_set = val_set
         self._training = False
-        print(self._training)
         dataset = MultiviewDataModule.dataset(*data, labels=None)
         batch_size = check_batch_size(self.cfg.datamodule.batch_size, data)
 
