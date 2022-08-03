@@ -12,7 +12,7 @@ def setup_package():
         url="https://github.com/alawryaguila/multiAE",
         install_requires=[
             "pytest",
-            "numpy>=1.22",
+            "numpy>=1.16",
             "scikit-learn~=0.24.1",
             "scipy~=1.7.1",
             "pandas",

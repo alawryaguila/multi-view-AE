@@ -44,8 +44,6 @@ frozenlist==1.2.0
     #   aiosignal
 fsspec[http]==2021.11.1
     # via pytorch-lightning
-future==0.18.2
-    # via pytorch-lightning
 google-auth==2.3.3
     # via
     #   google-auth-oauthlib
@@ -146,7 +144,7 @@ python-dateutil==2.8.2
     # via
     #   matplotlib
     #   pandas
-pytorch-lightning==1.5.8
+pytorch-lightning==1.7.0
     # via multiae (setup.py)
 pytz==2021.3
     # via pandas
@@ -165,6 +163,7 @@ rsa==4.8
     # via google-auth
 scikit-learn==0.24.2
     # via
+    #   multiae (setup.py)
     #   pynndescent
     #   umap-learn
 scipy==1.7.3
@@ -179,7 +178,7 @@ six==1.16.0
     #   google-auth
     #   grpcio
     #   python-dateutil
-tensorboard==2.7.0
+tensorboard==2.9.1
     # via pytorch-lightning
 tensorboard-data-server==0.6.1
     # via tensorboard
@@ -195,7 +194,7 @@ torch==1.10.2
     #   pytorch-lightning
     #   torchmetrics
     #   torchvision
-torchmetrics==0.6.2
+torchmetrics==0.9.3
     # via pytorch-lightning
 torchvision==0.11.3
     # via multiae (setup.py)
@@ -210,6 +209,7 @@ typing-extensions==4.0.1
     #   importlib-metadata
     #   pytorch-lightning
     #   torch
+    #   torchmetrics
     #   yarl
 umap-learn==0.5.2
     # via multiae (setup.py)
