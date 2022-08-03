@@ -175,8 +175,7 @@ class MVAE(BaseModel):
         qz_x = fwd_rtn["qz_x"]
 
         kl = self.calc_kl(qz_x)
-        recon = self.calc_ll(x, px_zs)
-
-        total = kl - recon
-        losses = {"loss": total, "kl": kl, "ll": recon}
+        ll = self.calc_ll(x, px_zs)
+        total = kl - ll
+        losses = {"loss": total, "kl": kl, "ll": ll}
         return losses

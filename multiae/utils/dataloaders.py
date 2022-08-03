@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytorch_lightning as pl
 import random
-
+import torch
 
 class MultiviewDataModule(pl.LightningDataModule):
     def __init__(self, *data, labels=None, batch_size=None, val=False):
@@ -24,7 +24,7 @@ class MultiviewDataModule(pl.LightningDataModule):
 
     def split(self, *data, labels=None, split=0.9):
         random.seed(42)
-        if isinstance(data, (list, tuple)) and isinstance(data[0], (np.ndarray)):
+        if isinstance(data, (list, tuple)) and isinstance(data[0], (np.ndarray, torch.Tensor)):
             return self.data_split(data, labels, split)
         return self.list_split(data, labels, split)
 

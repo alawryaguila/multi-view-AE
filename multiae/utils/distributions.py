@@ -81,20 +81,17 @@ class Normal(Normal):
         return self.loc
 
 
-class Bernoulli:
+class Bernoulli():
     def __init__(
         self,
         x,
         *args,
         **kwargs,
     ):
-        self.x = x
-
+        self.x = torch.sigmoid(x)
     def log_likelihood(self, x):
-        return F.binary_cross_entropy(
-            torch.sigmoid(self.x), x, reduction="none"
+        return  -1 * F.binary_cross_entropy(self.x, x, reduction="none"
         )  # check right way around
-
     def rsample(self):
         raise NotImplementedError
 

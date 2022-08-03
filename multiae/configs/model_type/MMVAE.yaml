@@ -39,4 +39,4 @@ decoder:
   dec_dist:
     _target_: multiae.utils.distributions.Normal
 
-out_dir: ${original_work_dir}/${model_name}/${now:%Y_%m_%d}
+out_dir: ${original_work_dir}/${model_name}/${now:%Y_%m_%d_%H%M}

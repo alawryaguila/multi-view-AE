@@ -116,10 +116,10 @@ class mmVAE(BaseModel):
         for r, qz_x in enumerate(qz_xs):
             lpz = Normal(loc=0, scale=1).log_prob(zss[r]).sum(-1)  # TODO flexible prior
             lqz_x = self.log_mean_exp(
-                torch.stack([qz_x.log_prob(zss[r]).sum(-1) for qz_x in qz_xs])
+                torch.stack([qz_x.log_likelihood(zss[r]).sum(-1) for qz_x in qz_xs])
             )  # summing over M modalities for each z to create q(z|x1:M)
             lpx_z = [
-                px_z.log_prob(x[d]).view(*px_z.batch_shape[:2], -1).sum(-1)
+                px_z.log_likelihood(x[d]).view(*px_z.batch_shape[:2], -1).sum(-1) #check this works - changed log_prob --> log_likelihood
                 for d, px_z in enumerate(px_zs[r])
             ]  # summing over each decoder
             lpx_z = torch.stack(lpx_z).sum(0)

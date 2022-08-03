@@ -25,4 +25,4 @@ discriminator:
   dropout: 0
   wasserstein: False
 
-out_dir: ${original_work_dir}/${model_name}/${now:%Y_%m_%d}
+out_dir: ${original_work_dir}/${model_name}/${now:%Y_%m_%d_%H%M}

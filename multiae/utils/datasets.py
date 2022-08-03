@@ -14,6 +14,7 @@ import pandas as pd
 
 class MyDataset(Dataset):
     def __init__(self, data, indices=False, transform=None):
+        
         self.data = data
         if isinstance(data, (list, tuple)):
             self.data = [
@@ -31,7 +32,7 @@ class MyDataset(Dataset):
         self.indices = indices
 
     def __getitem__(self, index):
-        if isinstance(self.data, list):
+        if isinstance(self.data, (list, tuple)):
             x = [d[index] for d in self.data]
         else:
             x = self.data[index]

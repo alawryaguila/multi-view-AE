@@ -24,4 +24,4 @@ original_work_dir: ${hydra.runtime.cwd}
 #disable hydras output subdir
 hydra.output_subdir: null
 
-out_dir: ${original_work_dir}/base/${now:%Y_%m_%d}
+out_dir: ${original_work_dir}/base/${now:%Y_%m_%d_%H%M}
