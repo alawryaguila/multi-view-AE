@@ -19,11 +19,12 @@ class MVAE(BaseModel):
     def __init__(
         self,
         input_dims,
-        expt="MVAE",
+        model="MVAE",
+        network=None,
         **kwargs,
     ):
 
-        super().__init__(expt=expt)
+        super().__init__(model=model, network=network)
 
         self.save_hyperparameters()
 
@@ -33,7 +34,7 @@ class MVAE(BaseModel):
         self.cfg.encoder = update_dict(self.cfg.encoder, kwargs)
         self.cfg.decoder = update_dict(self.cfg.decoder, kwargs)
 
-        self.model_type = expt
+        self.model_type = model
         self.input_dims = input_dims
         hidden_layer_dims = self.hidden_layer_dims.copy()
         hidden_layer_dims.append(self.z_dim)
@@ -97,8 +98,6 @@ class MVAE(BaseModel):
         mu = []
         var = []
         for i in range(self.n_views):
-            print("X SHAPE: ", x[i].shape)
-            print(self.encoders[i])
             mu_, logvar_ = self.encoders[i](x[i])
             mu.append(mu_)
             var_ = logvar_.exp()

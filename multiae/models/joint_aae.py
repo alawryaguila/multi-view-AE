@@ -13,11 +13,12 @@ class jointAAE(BaseModelAAE):
     def __init__(
         self,
         input_dims,
-        expt="jointAAE",
+        model="jointAAE",
+        network=None,
         **kwargs,
     ):
 
-        super().__init__(expt=expt)
+        super().__init__(model=model, network=network)
 
         self.save_hyperparameters()
         self.automatic_optimization = False
@@ -27,7 +28,7 @@ class jointAAE(BaseModelAAE):
         self.cfg.encoder = update_dict(self.cfg.encoder, kwargs)
         self.cfg.decoder = update_dict(self.cfg.decoder, kwargs)
 
-        self.model_type = expt
+        self.model_type = model
         self.input_dims = input_dims
         hidden_layer_dims = self.hidden_layer_dims.copy()
         hidden_layer_dims.append(self.z_dim)

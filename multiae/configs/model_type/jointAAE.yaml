@@ -1,0 +1,28 @@
+# @package _global_
+
+defaults:
+  - override /model: base.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+# default parameters for joint AAE model
+model_name: "jointAAE"
+
+model:
+  variational: False
+  joint_representation: True
+  wasserstein: False
+  sparse: False
+  eps: 1e-15
+
+discriminator:
+  _target_: multiae.models.layers.Discriminator
+
+  hidden_layer_dims: []
+  bias: True
+  non_linear: False
+  output_dim: 1
+  dropout: 0
+  wasserstein: False
+
+out_dir: ${original_work_dir}/${model_name}/${now:%Y_%m_%d}

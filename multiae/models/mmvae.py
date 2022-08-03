@@ -16,11 +16,12 @@ class mmVAE(BaseModel):
     def __init__(
         self,
         input_dims,
-        expt="MMVAE",
+        model="MMVAE",
+        network=None,
         **kwargs,
     ):
 
-        super().__init__(expt=expt)
+        super().__init__(model=model, network=network)
 
         self.save_hyperparameters()
 
@@ -30,7 +31,7 @@ class mmVAE(BaseModel):
         self.cfg.encoder = update_dict(self.cfg.encoder, kwargs)
         self.cfg.decoder = update_dict(self.cfg.decoder, kwargs)
 
-        self.model_type = expt
+        self.model_type = model
         self.input_dims = input_dims
         self.n_views = len(input_dims)
 

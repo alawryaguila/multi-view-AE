@@ -1,0 +1,40 @@
+# @package _global_
+
+defaults:
+  - override /model: base.yaml
+  - override /encoder: base.yaml
+  - override /decoder: base.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+# default parameters for mcVAE model
+model_name: "mcVAE"
+
+model:
+  beta: 1
+  threshold: 0
+  variational: True
+  joint_representation: False
+  sparse: True
+
+encoder:
+  _target_: multiae.models.layers.Encoder
+
+  hidden_layer_dims: []
+  bias: True
+  non_linear: False
+  variational: True
+  enc_dist:
+    _target_: multiae.utils.distributions.Normal
+
+decoder:
+  _target_: multiae.models.layers.Decoder
+
+  hidden_layer_dims: []
+  bias: True
+  non_linear: False
+  variational: True
+  dec_dist:
+    _target_: multiae.utils.distributions.Normal
+
+out_dir: ${original_work_dir}/${model_name}/${now:%Y_%m_%d}

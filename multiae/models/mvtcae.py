@@ -13,17 +13,18 @@ class MVTCAE(BaseModel):
     def __init__(
         self,
         input_dims,
-        expt="MVTCAE",
+        model="MVTCAE",
+        network=None,
         **kwargs,
     ):
 
-        super().__init__(expt=expt)
+        super().__init__(model=model, network=network)
         self.save_hyperparameters()
 
         self.__dict__.update(self.cfg.model)
         self.__dict__.update(kwargs)
 
-        self.model_type = expt
+        self.model_type = model
         self.input_dims = input_dims
         self.n_views = len(input_dims)
 

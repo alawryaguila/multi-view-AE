@@ -11,9 +11,10 @@ defaults:
   - trainer: base.yaml
   - logger: base.yaml
 
-  # experiment configs allows for changing parameters for specific model
-  # and configuration
-  - experiment: null
+  # model_type configs allows for changing parameters for specific model
+  # network config allows specific encoder decoder network changes
+  - model_type: null
+  - network: null
 
 # path to original working directory
 # hydra hijacks working directory by changing it to the new log directory

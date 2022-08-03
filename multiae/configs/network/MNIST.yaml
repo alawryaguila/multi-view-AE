@@ -1,0 +1,19 @@
+# @package _global_
+
+defaults:
+  - override /decoder: base.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+# default parameters for MVAE model
+model_name: "MVAE"
+
+decoder:
+  _target_: multiae.models.layers.Decoder
+
+  hidden_layer_dims: [100, 10]
+  bias: True
+  non_linear: True
+  variational: False
+  dec_dist:
+    _target_: multiae.utils.distributions.Bernoulli

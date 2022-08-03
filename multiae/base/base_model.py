@@ -14,19 +14,28 @@ import os
 class BaseModel(pl.LightningModule, Plotting):
     def __init__(
         self,
-        expt=None,
+        model=None,
+        network=None,
     ):
         config_dir = os.path.abspath(join(os.path.dirname( __file__ ), '..', 'configs')) #TODO - temp hacky solution
         super().__init__()
+
+        overrides = []
+        if model:#TODO - fix hacky solution
+            overrides.append("model_type={0}.yaml".format(model))
+        if network:
+            overrides.append("network={0}.yaml".format(network))
+
         with initialize_config_dir(version_base=None, config_dir=config_dir):
-            if expt:
+            if overrides: 
                 self.cfg = compose(
                     config_name="run",
                     return_hydra_config=True,
-                    overrides=["experiment={0}.yaml".format(expt)],
+                    overrides=overrides,
                 )
             else:
                 self.cfg = compose(config_name="run", return_hydra_config=True)
+
     def fit(self, *data, labels=None, **kwargs):
         self._training = True
         self.data = data
@@ -35,6 +44,7 @@ class BaseModel(pl.LightningModule, Plotting):
 
         torch.manual_seed(42)
         torch.cuda.manual_seed(42)
+        
         self.cfg.callbacks = update_dict(self.cfg.callbacks, kwargs)
         callbacks = []
         for _, cb_conf in self.cfg.callbacks.items():
@@ -163,8 +173,12 @@ class BaseModel(pl.LightningModule, Plotting):
 
 
 class BaseModelAAE(BaseModel):
-    def __init__(self, expt=None):
-        super().__init__(expt=expt)
+    def __init__(
+        self,
+        model=None,
+        network=None,
+    ):
+        super().__init__(model=model, network=network)
 
     def validate_batch(self, local_batch):
         with torch.no_grad():
