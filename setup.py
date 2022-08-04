@@ -19,7 +19,7 @@ def setup_package():
             "matplotlib~=3.4.1",
             "torch>=1.10.2",
             "torchvision~=0.11.3",
-            "pytorch-lightning>=1.6.0",
+            "pytorch-lightning~=1.5.5",
             "umap-learn~=0.5.2",
             "hydra-core~=1.2.0",
         ],
