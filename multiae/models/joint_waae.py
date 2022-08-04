@@ -98,7 +98,7 @@ class wAAE(BaseModelAAE):
 
         z = torch.stack(z)
         mean_z = torch.mean(z, axis=0)
-        return z
+        return mean_z
 
     def decode(self, z):
         x_out = []
@@ -135,11 +135,14 @@ class wAAE(BaseModelAAE):
         fwd_rtn = {"d_fake": d_fake, "z": z}
         return fwd_rtn
 
+    def sample_from_dist(self, dist):
+        return dist._sample()
+        
     def recon_loss(self, x, fwd_rtn):
         x_recon = fwd_rtn["x_recon"]
         recon = 0
         for i in range(self.n_views):
-            recon += compute_mse(x[i], x_recon[i])
+            recon += x_recon[i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
         return recon / self.n_views
 
     def generator_loss(self, fwd_rtn):

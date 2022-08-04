@@ -122,7 +122,9 @@ class MVTCAE(BaseModel):
         mu = [qz_x.loc for qz_x in qz_xs]
         var = [qz_x.variance for qz_x in qz_xs]
         mu = torch.stack(mu)
+        print('mu: ', mu)
         var = torch.stack(var)
+        print('var: ', var)
         mu, var = ProductOfExperts()(mu, var)
         kl = 0
         for i in range(self.n_views):

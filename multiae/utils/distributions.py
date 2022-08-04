@@ -1,9 +1,12 @@
+from re import L
 import torch
 import torch.nn.functional as F
 from scipy import stats
 from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions import Normal, kl_divergence
 from .calc_utils import compute_log_alpha
+from torch.distributions.utils import broadcast_all
+from torch.nn.functional import binary_cross_entropy_with_logits
 
 
 class MultivariateNormal(MultivariateNormal):
@@ -88,10 +91,12 @@ class Bernoulli():
         *args,
         **kwargs,
     ):
-        self.x = torch.sigmoid(x)
-    def log_likelihood(self, x):
-        return  -1 * F.binary_cross_entropy(self.x, x, reduction="none"
-        )  # check right way around
+        self.x = x 
+        
+    def log_likelihood(self, x):        
+        logits, x = broadcast_all(self.x, x) 
+        return -binary_cross_entropy_with_logits(logits, x, reduction='none')
+
     def rsample(self):
         raise NotImplementedError
 
@@ -105,5 +110,28 @@ class Bernoulli():
         return torch.distributions.bernoulli.Bernoulli(torch.sigmoid(self.x)).sample()
 
 
-def nodist(x):
-    return x
+class Default():
+    def __init__(
+        self,
+        x,
+        *args,
+        **kwargs,
+    ):
+        self.x = x 
+
+        
+    def log_likelihood(self, x):        
+        logits, x = broadcast_all(self.x, x) 
+        return - (logits - x)**2
+
+    def rsample(self):
+        raise NotImplementedError
+
+    def kl_divergence(self):
+        raise NotImplementedError
+
+    def sparse_kl_divergence(self):
+        raise NotImplementedError
+
+    def _sample(self):
+        return self.x

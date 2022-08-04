@@ -5,4 +5,4 @@ bias: True
 non_linear: False
 variational: False
 dec_dist:
-  _target_: multiae.utils.distributions.nodist
+  _target_: multiae.utils.distributions.Default

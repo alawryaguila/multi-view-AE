@@ -113,6 +113,9 @@ class AAE(BaseModelAAE):
             del temp_recon
         return x_recon
 
+    def sample_from_dist(self, dist):
+        return dist._sample()
+        
     def disc(self, z):
         z_real = Variable(torch.randn(z[0].size()[0], self.z_dim) * 1.0).to(self.device)
         d_real = self.discriminator(z_real)
@@ -148,7 +151,7 @@ class AAE(BaseModelAAE):
         recon = 0
         for i in range(self.n_views):
             for j in range(self.n_views):
-                recon += compute_mse(x[i], x_recon[i][j])
+                recon += x_recon[i][j].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
         return recon / self.n_views / self.n_views
 
     def generator_loss(self, fwd_rtn):

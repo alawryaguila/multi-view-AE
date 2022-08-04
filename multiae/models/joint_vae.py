@@ -71,6 +71,7 @@ class MVAE(BaseModel):
                 for input_dim in self.input_dims
             ]
         )
+
         self.decoders = torch.nn.ModuleList(
             [
                 hydra.utils.instantiate(
@@ -104,9 +105,9 @@ class MVAE(BaseModel):
             var.append(var_)
         mu = torch.stack(mu)
         var = torch.stack(var)
-        mu, var = self.join_z(mu, var)
+        mu_out, var_out = self.join_z(mu, var)
         qz_x = hydra.utils.instantiate(
-            self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
+            self.cfg.encoder.enc_dist, loc=mu_out, scale=var_out.pow(0.5)
         )
         return qz_x
 
@@ -155,6 +156,7 @@ class MVAE(BaseModel):
         sparse-VAE: Implementation from: https://github.com/senya-ashukha/variational-dropout-sparsifies-dnn/blob/master/KL%20approximation.ipynb
         """
         prior = Normal(0, 1)  # TODO - flexible prior
+
         if self.sparse:
             kl = qz_x.sparse_kl_divergence().sum(1, keepdims=True).mean(0)
         else:
