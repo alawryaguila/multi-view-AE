@@ -12,18 +12,18 @@ def setup_package():
         url="https://github.com/alawryaguila/multiAE",
         install_requires=[
             "pytest",
-            "numpy>=1.16",
-            "scikit-learn~=0.24.1",
-            "scipy~=1.7.1",
+            "numpy",
+            "scikit-learn",
+            "scipy",
             "pandas",
-            "matplotlib~=3.4.1",
-            "torch>=1.10.2",
-            "torchvision~=0.11.3",
+            "matplotlib",
+            "torch~=1.10.2",
+            "torchvision",
             "pytorch-lightning~=1.5.5",
-            "umap-learn~=0.5.2",
-            "hydra-core~=1.2.0",
+            "umap-learn",
+            "hydra-core==1.2.0",
         ],
-        description="A library for running multiview autoencoder models on medical imaging data",
+        description="A library for running multiview autoencoder models",
     )
     setup(**data)
 
