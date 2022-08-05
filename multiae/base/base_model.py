@@ -3,7 +3,6 @@ from ..utils.dataloaders import MultiviewDataModule
 from ..utils.calc_utils import update_dict, check_batch_size
 import numpy as np
 import torch
-from ..plot.plotting import Plotting
 from os.path import join, exists
 import pytorch_lightning as pl
 import hydra
