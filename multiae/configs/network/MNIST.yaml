@@ -25,4 +25,4 @@ decoder:
   non_linear: True
   variational: False
   dec_dist:
-    _target_: multiae.utils.distributions.Bernoulli
+    _target_: multiae.utils.distributions.Default
