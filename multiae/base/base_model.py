@@ -11,7 +11,7 @@ from omegaconf import DictConfig
 import os
 import torch
 
-class BaseModel(pl.LightningModule, Plotting):
+class BaseModel(pl.LightningModule):
     def __init__(
         self,
         model=None,

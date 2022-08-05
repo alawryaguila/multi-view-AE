@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 from scipy import stats
 
-
 def calc_corr(x1, x2, corr_type="pearson"):
     # TODO - write test
     if corr_type == "pearson":
