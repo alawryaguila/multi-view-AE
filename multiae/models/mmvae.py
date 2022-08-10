@@ -1,12 +1,12 @@
-import torch
-from torch.distributions import Normal
-from ..base.base_model import BaseModel
-from ..utils.calc_utils import update_dict
 import math
+import torch
 import hydra
 
+from ..base.constants import MODEL_MMVAE
+from ..base.base_model import BaseModelVAE
+from ..base.distributions import Normal
 
-class mmVAE(BaseModel):
+class mmVAE(BaseModelVAE):
     """
     Multi-view Variational Autoencoder model using Mixture of Experts approach (https://arxiv.org/abs/1911.03393).
     Code is based on: https://github.com/iffsid/mmvae
@@ -15,61 +15,14 @@ class mmVAE(BaseModel):
 
     def __init__(
         self,
-        input_dims,
-        model="MMVAE",
-        network=None,
-        **kwargs,
+        cfg = None,
+        input_dim = None,
+        z_dim = None
     ):
-
-        super().__init__(model=model, network=network)
-
-        self.save_hyperparameters()
-
-        self.__dict__.update(self.cfg.model)
-        self.__dict__.update(kwargs)
-
-        self.cfg.encoder = update_dict(self.cfg.encoder, kwargs)
-        self.cfg.decoder = update_dict(self.cfg.decoder, kwargs)
-
-        self.model_type = model
-        self.input_dims = input_dims
-        self.n_views = len(input_dims)
-
-        self.encoders = torch.nn.ModuleList(
-            [
-                hydra.utils.instantiate(
-                    self.cfg.encoder,
-                    _recursive_=False,
-                    input_dim=input_dim,
-                    z_dim=self.z_dim,
-                    sparse=self.sparse,
-                    log_alpha=self.log_alpha,
-                )
-                for input_dim in self.input_dims
-            ]
-        )
-        self.decoders = torch.nn.ModuleList(
-            [
-                hydra.utils.instantiate(
-                    self.cfg.decoder,
-                    _recursive_=False,
-                    input_dim=input_dim,
-                    z_dim=self.z_dim,
-                )
-                for input_dim in self.input_dims
-            ]
-        )
-
-    def configure_optimizers(self):
-        optimizers = [
-            torch.optim.Adam(
-                list(self.encoders[i].parameters())
-                + list(self.decoders[i].parameters()),
-                lr=self.learning_rate,
-            )
-            for i in range(self.n_views)
-        ]
-        return optimizers
+        super().__init__(model_name=MODEL_MMVAE,
+                        cfg=cfg,
+                        input_dim=input_dim,
+                        z_dim=z_dim)
 
     def encode(self, x):
         qz_xs = []
@@ -99,13 +52,11 @@ class mmVAE(BaseModel):
         px_zs = self.decode(qz_xs)
         return {"qz_xs": qz_xs, "px_zs": px_zs}
 
-    def sample_loc_variance(self, qz_xs):
-        mu = []
-        var = []
-        for qz_x in qz_xs:
-            mu.append(qz_x.loc)
-            var.append(qz_x.variance)
-        return mu, var
+    def loss_function(self, x, fwd_rtn):
+        qz_xs, px_zs = fwd_rtn["qz_xs"], fwd_rtn["px_zs"]
+        total = -self.moe_iwae(x, qz_xs, px_zs)
+        losses = {"loss": total}
+        return losses
 
     def moe_iwae(self, x, qz_xs, px_zs):
         lws = []
@@ -114,12 +65,12 @@ class mmVAE(BaseModel):
             zs = qz_xs[i].rsample(torch.Size([self.K]))
             zss.append(zs)
         for r, qz_x in enumerate(qz_xs):
-            lpz = Normal(loc=0, scale=1).log_prob(zss[r]).sum(-1)  # TODO flexible prior
+            lpz = Normal(loc=0, scale=1).log_likelihood(zss[r]).sum(-1)
             lqz_x = self.log_mean_exp(
-                torch.stack([qz_x.log_likelihood(zss[r]).sum(-1) for qz_x in qz_xs])
+                torch.stack([qz_x.log_prob(zss[r]).sum(-1) for qz_x in qz_xs])
             )  # summing over M modalities for each z to create q(z|x1:M)
-            lpx_z = [
-                px_z.log_likelihood(x[d]).view(*px_z.batch_shape[:2], -1).sum(-1) #check this works - changed log_prob --> log_likelihood
+            lpx_z = [   # TODO: changed torch.dist.Normal to distributions.Normal
+                px_z.log_likelihood(x[d]).view(*px_z.batch_shape[:2], -1).sum(-1)   #TODO: check this works - changed log_prob --> log_likelihood
                 for d, px_z in enumerate(px_zs[r])
             ]  # summing over each decoder
             lpx_z = torch.stack(lpx_z).sum(0)
@@ -127,16 +78,16 @@ class mmVAE(BaseModel):
             lws.append(lw)
         return (
             self.log_mean_exp(torch.stack(lws), dim=1).mean(0).sum()
-        )  # looser iwae bound where have
-
-    def sample_from_dist(self, dist):
-        return dist._sample()
+        )  # looser iwae bound where have #TODO: what does this comment mean?
 
     def log_mean_exp(self, value, dim=0, keepdim=False):
         return torch.logsumexp(value, dim, keepdim=keepdim) - math.log(value.size(dim))
 
-    def loss_function(self, x, fwd_rtn):
-        qz_xs, px_zs = fwd_rtn["qz_xs"], fwd_rtn["px_zs"]
-        total = -self.moe_iwae(x, qz_xs, px_zs)
-        losses = {"loss": total}
-        return losses
+    # TODO: this is never used - what is it for?
+    # def sample_loc_variance(self, qz_xs):
+    #     mu = []
+    #     var = []
+    #     for qz_x in qz_xs:
+    #         mu.append(qz_x.loc)
+    #         var.append(qz_x.variance)
+    #     return mu, var

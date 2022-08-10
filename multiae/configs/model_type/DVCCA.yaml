@@ -1,39 +1,26 @@
 # @package _global_
 
-defaults:
-  - override /model: base.yaml
-  - override /encoder: base.yaml
-  - override /decoder: base.yaml
-
-# all parameters below will be merged with parameters from default configurations set above
-# this allows you to overwrite only specified parameters
 # default parameters for DVCCA model
 model_name: "DVCCA"
 
 model:
   beta: 1
-  threshold: 0
-  variational: True
-  private: True
+  private: False  #TODO: private=True and sparse=True does not work
+
+  sparse: False
 
 encoder:
-  _target_: multiae.models.layers.Encoder
+  _target_: multiae.models.layers.VariationalEncoder
 
-  hidden_layer_dims: []
-  bias: True
   non_linear: False
-  variational: True
   enc_dist:
-    _target_: multiae.utils.distributions.Normal
+    _target_: multiae.base.distributions.Normal
 
 decoder:
-  _target_: multiae.models.layers.Decoder
+  _target_: multiae.models.layers.VariationalDecoder
 
-  hidden_layer_dims: []
-  bias: True
   non_linear: False
-  variational: True
-  dec_dist:
-    _target_: multiae.utils.distributions.Normal
+  init_logvar: -3
 
-out_dir: ${original_work_dir}/${model_name}/${now:%Y_%m_%d_%H%M}
+  dec_dist:
+    _target_: multiae.base.distributions.Normal

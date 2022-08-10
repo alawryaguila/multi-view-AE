@@ -1,8 +1,0 @@
-use_GPU: True
-save_model: True
-
-z_dim: 5
-hidden_layer_dims: []
-non_linear: False
-learning_rate: 0.001
-variational: False

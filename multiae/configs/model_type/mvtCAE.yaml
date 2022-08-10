@@ -1,12 +1,11 @@
 # @package _global_
 
-# default parameters for mcVAE model
-model_name: "mcVAE"
+# default parameters for MVTCAE model
+model_name: "mvtCAE"
 
 model:
   beta: 1
-
-  sparse: False 
+  alpha: 0.5
 
 encoder:
   _target_: multiae.models.layers.VariationalEncoder
@@ -23,4 +22,4 @@ decoder:
   init_logvar: -3
 
   dec_dist:
-    _target_: multiae.base.distributions.Normal #TODO: this should work with Default too?
+    _target_: multiae.base.distributions.Normal

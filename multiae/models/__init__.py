@@ -1,10 +1,14 @@
-from .joint_vae import *
 from .ae import *
-from .joint_aae import *
+
 from .aae import *
-from .joint_waae import *
-from .dvcca import *
-from .layers import *
-from .multi_vae import *
+from .joint_aae import *
+from .waae import *
+
+from .mcvae import *
+from .mvae import *
 from .mmvae import *
 from .mvtcae import *
+from .dvcca import *
+
+# TODO: change name of this file
+from .layers import *

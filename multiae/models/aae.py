@@ -1,10 +1,10 @@
 import torch
-from ..base.base_model import BaseModelAAE
 import numpy as np
-from ..utils.calc_utils import compute_mse, update_dict
-from torch.autograd import Variable
-import hydra
 
+from torch.autograd import Variable
+
+from ..base.constants import MODEL_AAE
+from ..base.base_model import BaseModelAAE
 
 class AAE(BaseModelAAE):
     """
@@ -14,89 +14,15 @@ class AAE(BaseModelAAE):
 
     def __init__(
         self,
-        input_dims,
-        model="AAE",
-        network=None,
-        **kwargs,
+        cfg = None,
+        input_dim = None,
+        z_dim = None
     ):
 
-        super().__init__(model=model, network=network)
-
-        self.save_hyperparameters()
-        self.automatic_optimization = False
-        self.__dict__.update(self.cfg.model)
-        self.__dict__.update(kwargs)
-
-        self.cfg.encoder = update_dict(self.cfg.encoder, kwargs)
-        self.cfg.decoder = update_dict(self.cfg.decoder, kwargs)
-
-        self.model_type = model
-        self.input_dims = input_dims
-        self.n_views = len(input_dims)
-
-        self.encoders = torch.nn.ModuleList(
-            [
-                hydra.utils.instantiate(
-                    self.cfg.encoder,
-                    _recursive_=False,
-                    input_dim=input_dim,
-                    z_dim=self.z_dim,
-                )
-                for input_dim in self.input_dims
-            ]
-        )
-        self.decoders = torch.nn.ModuleList(
-            [
-                hydra.utils.instantiate(
-                    self.cfg.decoder,
-                    _recursive_=False,
-                    input_dim=input_dim,
-                    z_dim=self.z_dim,
-                )
-                for input_dim in self.input_dims
-            ]
-        )
-        self.discriminator = hydra.utils.instantiate(
-            self.cfg.discriminator,
-            _recursive_=False,
-            input_dim=self.z_dim,
-            output_dim=(self.n_views + 1),
-        )
-
-        # TO DO - check discriminator dimensionality is correct (nviews + 1?) and for joint model too
-
-    def configure_optimizers(self):
-        optimizers = []
-        [
-            optimizers.append(
-                torch.optim.Adam(
-                    list(self.encoders[i].parameters()), lr=self.learning_rate
-                )
-            )
-            for i in range(self.n_views)
-        ]
-        [
-            optimizers.append(
-                torch.optim.Adam(
-                    list(self.decoders[i].parameters()), lr=self.learning_rate
-                )
-            )
-            for i in range(self.n_views)
-        ]
-        [
-            optimizers.append(
-                torch.optim.Adam(
-                    list(self.encoders[i].parameters()), lr=self.learning_rate
-                )
-            )
-            for i in range(self.n_views)
-        ]
-        optimizers.append(
-            torch.optim.Adam(
-                list(self.discriminator.parameters()), lr=self.learning_rate
-            )
-        )
-        return optimizers
+        super().__init__(model_name=MODEL_AAE,
+                cfg=cfg,
+                input_dim=input_dim,
+                z_dim=z_dim)
 
     def encode(self, x):
         z = []
@@ -113,9 +39,6 @@ class AAE(BaseModelAAE):
             del temp_recon
         return x_recon
 
-    def sample_from_dist(self, dist):
-        return dist._sample()
-        
     def disc(self, z):
         z_real = Variable(torch.randn(z[0].size()[0], self.z_dim) * 1.0).to(self.device)
         d_real = self.discriminator(z_real)

@@ -1,11 +1,15 @@
 import torch
-from torch.distributions.multivariate_normal import MultivariateNormal
+
 from torch.distributions import Normal, kl_divergence
-from .calc_utils import compute_log_alpha
+from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions.utils import broadcast_all
 from torch.nn.functional import binary_cross_entropy_with_logits
 
+def compute_log_alpha(mu, logvar):
+    # clamp because dropout rate p in 0-99%, where p = alpha/(alpha+1)
+    return (logvar - 2 * torch.log(torch.abs(mu) + 1e-8)).clamp(min=-8, max=8)
 
+# TODO: test different options
 class MultivariateNormal(MultivariateNormal):
     def __init__(self, loc, scale, *args, **kwargs):
 
@@ -56,9 +60,11 @@ class Normal(Normal):
     def variance(self):
         return self.scale.pow(2)
 
-    def kl_divergence(self, other):
+    def kl_divergence(self, other): # TODO: check if scale = stddev
+        x = kl_divergence(Normal(loc=self.loc, scale=self.stddev), other)
         return kl_divergence(Normal(loc=self.loc, scale=self.stddev), other)
 
+    # TODO: does not return same shape as kl_divergence
     def sparse_kl_divergence(self):
         mu = self.loc
         logvar = torch.log(self.variance)
@@ -80,7 +86,7 @@ class Normal(Normal):
             return self.rsample()
         return self.loc
 
-
+# TODO: test this
 class Bernoulli():
     def __init__(
         self,
@@ -88,10 +94,10 @@ class Bernoulli():
         *args,
         **kwargs,
     ):
-        self.x = x 
-        
-    def log_likelihood(self, x):        
-        logits, x = broadcast_all(self.x, x) 
+        self.x = x
+
+    def log_likelihood(self, x):
+        logits, x = broadcast_all(self.x, x)
         return -binary_cross_entropy_with_logits(logits, x, reduction='none')
 
     def rsample(self):
@@ -114,11 +120,11 @@ class Default():
         *args,
         **kwargs,
     ):
-        self.x = x 
+        self.x = x
 
-        
-    def log_likelihood(self, x):        
-        logits, x = broadcast_all(self.x, x) 
+
+    def log_likelihood(self, x):
+        logits, x = broadcast_all(self.x, x)
         return - (logits - x)**2
 
     def rsample(self):

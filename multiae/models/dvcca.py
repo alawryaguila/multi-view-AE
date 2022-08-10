@@ -1,50 +1,46 @@
 import torch
-from torch.distributions import Normal
-from ..base.base_model import BaseModel
-from ..utils.calc_utils import update_dict
 import hydra
 
-class DVCCA(BaseModel):
+from torch.distributions import Normal
+
+from ..base.constants import MODEL_DVCCA
+from ..base.base_model import BaseModelVAE
+
+class DVCCA(BaseModelVAE):
     def __init__(
         self,
-        input_dims,
-        model="DVCCA",
-        network=None,
-        **kwargs,
+        cfg = None,
+        input_dim = None,
+        z_dim = None
     ):
 
-        super().__init__(model=model, network=network)
+        super().__init__(model_name=MODEL_DVCCA,
+                        cfg=cfg,
+                        input_dim=input_dim,
+                        z_dim=z_dim)
 
-        self.save_hyperparameters()
-
-        self.__dict__.update(self.cfg.model)
-        self.__dict__.update(kwargs)
-
-        self.cfg.encoder = update_dict(self.cfg.encoder, kwargs)
-        self.cfg.decoder = update_dict(self.cfg.decoder, kwargs)
-
-        self.model_type = model
-        self.input_dims = input_dims
-        self.n_views = len(input_dims)
-
-        if self.threshold != 0:
-            self.sparse = True
+    ################################            protected methods
+    def _setencoders(self):
+        if self.sparse and self.threshold != 0.:
+        # if self.threshold != 0: #TODO: threshold takes precedence?
             self.log_alpha = torch.nn.Parameter(
                 torch.FloatTensor(1, self.z_dim).normal_(0, 0.01)
             )
         else:
-            self.log_alpha = None
             self.sparse = False
+            self.log_alpha = None
 
-        self.encoder = torch.nn.ModuleList(
+        self.encoders = torch.nn.ModuleList(
             [
                 hydra.utils.instantiate(
                     self.cfg.encoder,
-                    _recursive_=False,
-                    input_dim=input_dims[0],
+                    input_dim=self.input_dim[0],
                     z_dim=self.z_dim,
                     sparse=self.sparse,
-                )
+                    log_alpha=self.log_alpha,
+                    _recursive_=False,
+                    _convert_="all"
+                ) for i in range(2)
             ]
         )
         if self.private:
@@ -52,41 +48,31 @@ class DVCCA(BaseModel):
                 [
                     hydra.utils.instantiate(
                         self.cfg.encoder,
-                        _recursive_=False,
-                        input_dim=input_dim,
+                        input_dim=d,
                         z_dim=self.z_dim,
                         sparse=self.sparse,
+                        log_alpha=self.log_alpha,
+                        _recursive_=False,
+                        _convert_="all"
                     )
-                    for input_dim in self.input_dims
+                    for d in self.input_dim
                 ]
             )
             self.z_dim = self.z_dim + self.z_dim
 
-        self.decoders = torch.nn.ModuleList(
-            [
-                hydra.utils.instantiate(
-                    self.cfg.decoder,
-                    _recursive_=False,
-                    input_dim=input_dim,
-                    z_dim=self.z_dim,
-                )
-                for input_dim in self.input_dims
-            ]
-        )
-
     def configure_optimizers(self):
-        if self.private:
-            optimizers = [
-                torch.optim.Adam(self.encoder.parameters(), lr=self.learning_rate)
+        if self.private: # TODO: should use self.private_encoders
+            optimizers = [  #TODO: shouldn't this be encoders[0]?
+                torch.optim.Adam(self.encoders.parameters(), lr=self.learning_rate)
             ] + [
                 torch.optim.Adam(
                     list(self.decoders[i].parameters()), lr=self.learning_rate
                 )
                 for i in range(self.n_views)
             ]
-        else:
-            optimizers = [
-                torch.optim.Adam(self.encoder.parameters(), lr=self.learning_rate)
+        else:   # TOD0: this is the same as private=True?
+            optimizers = [  #TODO: shouldn't this be encoders[0]?
+                torch.optim.Adam(self.encoders.parameters(), lr=self.learning_rate)
             ] + [
                 torch.optim.Adam(
                     list(self.decoders[i].parameters()), lr=self.learning_rate
@@ -96,7 +82,7 @@ class DVCCA(BaseModel):
         return optimizers
 
     def encode(self, x):
-        mu, logvar = self.encoder[0](x[0])
+        mu, logvar = self.encoders[0](x[0])
         if self.private:
             qz_xs = []
             for i in range(self.n_views):
@@ -112,7 +98,7 @@ class DVCCA(BaseModel):
             qz_x = hydra.utils.instantiate(
                 self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
             )
-            return qz_x
+            return [qz_x]
 
     def decode(self, qz_x):
         px_zs = []
@@ -120,7 +106,7 @@ class DVCCA(BaseModel):
             if self.private:
                 x_out = self.decoders[i](qz_x[i]._sample(training=self._training))
             else:
-                x_out = self.decoders[i](qz_x._sample(training=self._training))
+                x_out = self.decoders[i](qz_x[0]._sample(training=self._training))
             px_zs.append(x_out)
         return px_zs
 
@@ -131,58 +117,6 @@ class DVCCA(BaseModel):
         fwd_rtn = {"px_zs": px_zs, "qz_x": qz_x}
         return fwd_rtn
 
-    def dropout(self):
-        """
-        Implementation from: https://github.com/ggbioing/mcvae
-        """
-        if self.sparse:
-            alpha = torch.exp(self.log_alpha.detach())
-            return alpha / (alpha + 1)
-        else:
-            raise NotImplementedError
-
-    def apply_threshold(self, z):
-        """
-        Implementation from: https://github.com/ggbioing/mcvae
-        """
-
-        assert self.threshold <= 1.0
-        keep = (self.dropout() < self.threshold).squeeze().cpu()
-        z_keep = []
-        for _ in z:
-            _ = _._sample()
-            _[:, ~keep] = 0
-            z_keep.append(_)
-            del _
-        return hydra.utils.instantiate(
-            self.cfg.encoder.enc_dist, loc=z_keep, scale=1
-        )  # check this works
-
-    def calc_kl(self, qz_x):
-        prior = Normal(0, 1)  # TODO - flexible prior
-        kl = 0
-        if self.private:
-            for i in range(self.n_views):
-                if self.sparse:
-                    kl += qz_x[i].sparse_kl_divergence().sum(1, keepdims=True).mean(0)
-                else:
-                    kl += qz_x[i].kl_divergence(prior).sum(1, keepdims=True).mean(0)
-        else:
-            if self.sparse:
-                kl += qz_x.sparse_kl_divergence().sum(1, keepdims=True).mean(0)
-            else:
-                kl += qz_x.kl_divergence(prior).sum(1, keepdims=True).mean(0)
-        return self.beta * kl
-
-    def calc_ll(self, x, px_zs):
-        ll = 0
-        for i in range(self.n_views):
-            ll += px_zs[i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
-        return ll
-
-    def sample_from_dist(self, dist):
-        return dist._sample()
-
     def loss_function(self, x, fwd_rtn):
         px_zs = fwd_rtn["px_zs"]
         qz_x = fwd_rtn["qz_x"]
@@ -191,3 +125,25 @@ class DVCCA(BaseModel):
         total = kl - ll
         losses = {"loss": total, "kl": kl, "ll": ll}
         return losses
+
+    def calc_kl(self, qz_x):
+        prior = Normal(0, 1)  # TODO - flexible prior
+        kl = 0
+        if self.private:
+            for i in range(self.n_views):
+                if self.sparse:
+                    kl += qz_x[i].sparse_kl_divergence()#.sum(1, keepdims=True).mean(0) # TODO: sparse_kl_divergence does not return same shape as kl_divergence
+                else:
+                    kl += qz_x[i].kl_divergence(prior).sum(1, keepdims=True).mean(0)
+        else:
+            if self.sparse:
+                kl += qz_x[0].sparse_kl_divergence()#.sum(1, keepdims=True).mean(0)  # TODO: sparse_kl_divergence does not return same shape as kl_divergence
+            else:
+                kl += qz_x[0].kl_divergence(prior).sum(1, keepdims=True).mean(0)
+        return self.beta * kl
+
+    def calc_ll(self, x, px_zs):
+        ll = 0
+        for i in range(self.n_views):
+            ll += px_zs[i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+        return ll
