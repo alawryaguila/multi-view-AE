@@ -1,7 +1,5 @@
 # @package _global_
 
-# TODO: some variables are "required" to be present always (regardless of value), how to enforce this?
-# TODO: user can replace variables but cannot remove...
 # TODO: _target_ should not be replaceable except for enc/dec _target_ and enc_dist/dec_dist _target_
 # TODO: user should be able to replace _target_ with classnames and not full classpath
 
@@ -22,9 +20,8 @@ model:
   save_model: True
 
   seed_everything: True
-  seed: 42      # TODO: if not given, randomly choose and save?? needs to be saved in config file
+  seed: 42
 
-  # TODO: does not support single view
   # TODO: support multi-dimensional tuple
   z_dim: 5
   learning_rate: 0.001  # learning rate for both encoder/decoder
@@ -37,7 +34,7 @@ datamodule:
 
   # TODO: specify in docs what happens if batch_size is None
   batch_size: null
-  is_validate: False
+  is_validate: True
 
   train_size: 0.9
 
@@ -46,6 +43,9 @@ encoder:
 
   hidden_layer_dim: []  # TODO: why empty default?
   bias: True
+
+  enc_dist:
+    _target_: multiae.base.distributions.Default
 
 decoder:
   _target_: multiae.models.layers.Decoder
@@ -71,20 +71,18 @@ trainer:
   resume_from_checkpoint: null #${out_dir}/last.ckpt  #TODO: should default be to resume?
 
 callbacks:
-  # TODO: val_loss does not work if is_validation = False
-  # should override this when is_validation = True??
   model_checkpoint:
     _target_: pytorch_lightning.callbacks.ModelCheckpoint
-    monitor: "train_loss"
+    monitor: "val_loss"
     mode: "min"
     save_last: True
     dirpath: ${out_dir}
 
   early_stopping:
     _target_: pytorch_lightning.callbacks.EarlyStopping
-    monitor: "train_loss"
+    monitor: "val_loss"
     mode: "min"
-    patience: 100
+    patience: 10
     min_delta: 0.001
     verbose: True
 

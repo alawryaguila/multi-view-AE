@@ -1,11 +1,10 @@
 import torch
 import hydra
 
-from torch.distributions import Normal
-
 from ..base.constants import MODEL_MVTCAE
 from ..base.base_model import BaseModelVAE
 from ..base.representations import ProductOfExperts
+from ..base.distributions import Normal
 
 class mvtCAE(BaseModelVAE):
     """
@@ -64,13 +63,13 @@ class mvtCAE(BaseModelVAE):
                         self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
                     ).rsample()
                 )
-                px_zs.append(px_z)
+                px_zs.append([px_z])
             return px_zs
         else:
             px_zs = []
             for i in range(self.n_views):
                 px_z = self.decoders[i](qz_xs[0].loc)
-                px_zs.append(px_z)
+                px_zs.append([px_z])
             return px_zs
 
     def forward(self, x):
@@ -109,9 +108,7 @@ class mvtCAE(BaseModelVAE):
                 hydra.utils.instantiate(
                     self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
                 )
-                .kl_divergence(qz_xs[i])
-                .sum(1, keepdims=True)
-                .mean(0)
+                .kl_divergence(qz_xs[i]).sum(1, keepdims=True).mean(0)
             )
         return kl
 
@@ -121,18 +118,24 @@ class mvtCAE(BaseModelVAE):
         mu = torch.stack(mu)
         var = torch.stack(var)
         mu, var = ProductOfExperts()(mu, var)
-        prior = Normal(0, 1)  # TODO - flexible prior
+
+        # prior = Normal(loc=0, scale=1)
+        sh = qz_xs[0].loc.shape
+        if isinstance(qz_xs[0], Normal):    # TODO - flexible prior
+            prior = torch.distributions.normal.Normal(0,1)
+        else:
+            prior = torch.distributions.multivariate_normal.MultivariateNormal( \
+                        loc=torch.zeros(sh), covariance_matrix=torch.diag_embed(torch.ones(sh)))
+
         return (
             hydra.utils.instantiate(
                 self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
             )
-            .kl_divergence(prior)
-            .sum(1, keepdims=True)
-            .mean(0)
+            .kl_divergence(prior).sum(1, keepdims=True).mean(0)
         )
 
     def calc_ll(self, x, px_zs):
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+            ll += px_zs[i][0].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
         return ll

@@ -15,7 +15,8 @@ class Encoder(nn.Module):
         input_dim,
         z_dim,
         hidden_layer_dim,
-        bias
+        bias,
+        enc_dist
     ):
         super().__init__()
 
@@ -23,6 +24,7 @@ class Encoder(nn.Module):
         self.z_dim = z_dim
         self.hidden_layer_dim = hidden_layer_dim
         self.bias = bias
+        self.enc_dist = enc_dist    
 
         self.layer_sizes = [input_dim] + self.hidden_layer_dim + [z_dim]
         lin_layers = [
@@ -48,20 +50,20 @@ class VariationalEncoder(Encoder):
         z_dim,
         hidden_layer_dim,
         bias,
-        sparse,     #TODO: only variational can be sparse?
+        sparse,
         non_linear,
         log_alpha,
-        enc_dist,
+        enc_dist
     ):
         super().__init__(input_dim=input_dim,
                         z_dim=z_dim,
                         hidden_layer_dim=hidden_layer_dim,
-                        bias=bias)
+                        bias=bias,
+                        enc_dist=enc_dist)
 
         self.sparse = sparse
         self.non_linear = non_linear
         self.log_alpha = log_alpha
-        self.enc_dist = enc_dist
 
         self.encoder_layers = self.encoder_layers[:-1]
         self.enc_mean_layer = nn.Linear(
@@ -71,7 +73,7 @@ class VariationalEncoder(Encoder):
         )
 
         if not self.sparse:
-            self.enc_logvar_layer = nn.Linear(  # TODO: this is not set for sparse=True?
+            self.enc_logvar_layer = nn.Linear(
                 self.layer_sizes[-2],
                 self.layer_sizes[-1],
                 bias=self.bias,
@@ -126,7 +128,7 @@ class Decoder(nn.Module):
         x_rec = z
         for it_layer, layer in enumerate(self.decoder_layers):
             x_rec = layer(x_rec)
-        x_rec = hydra.utils.instantiate(self.dec_dist, x_rec)
+        x_rec = hydra.utils.instantiate(self.dec_dist, x=x_rec)
         return x_rec
 
 class VariationalDecoder(Decoder):

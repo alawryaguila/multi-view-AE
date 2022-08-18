@@ -1,10 +1,9 @@
 import torch
 import hydra
 
-from torch.distributions import Normal
-
 from ..base.constants import MODEL_MCVAE
 from ..base.base_model import BaseModelVAE
+from ..base.distributions import Normal
 
 class mcVAE(BaseModelVAE):
     """
@@ -67,11 +66,17 @@ class mcVAE(BaseModelVAE):
         sparse-VAE: Implementation from: https://github.com/senya-ashukha/variational-dropout-sparsifies-dnn/blob/master/KL%20approximation.ipynb
 
         """
+        sh = qz_xs[0].loc.shape
+        if isinstance(qz_xs[0], Normal):    # TODO - flexible prior
+            prior = torch.distributions.normal.Normal(0,1)
+        else:
+            prior = torch.distributions.multivariate_normal.MultivariateNormal( \
+                        loc=torch.zeros(sh), covariance_matrix=torch.diag_embed(torch.ones(sh)))
+
         kl = 0
-        prior = Normal(0, 1)  # TODO - flexible prior
         for qz_x in qz_xs:
             if self.sparse:
-                kl += qz_x.sparse_kl_divergence()#.sum(1, keepdims=True).mean(0)    # TODO: sparse_kl_divergence does not return same shape as kl_divergence
+                kl += qz_x.sparse_kl_divergence().sum(1, keepdims=True).mean(0)
             else:
                 kl += qz_x.kl_divergence(prior).sum(1, keepdims=True).mean(0)
         return self.beta * kl
@@ -80,14 +85,5 @@ class mcVAE(BaseModelVAE):
         ll = 0
         for i in range(self.n_views):
             for j in range(self.n_views):
-                ll += px_zs[i][j].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+                ll += px_zs[i][j].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)   
         return ll
-
-    # TODO: this is never used
-    # def sample_loc_variance(self, qz_xs):
-    #     mu = []
-    #     var = []
-    #     for qz_x in qz_xs:
-    #         mu.append(qz_x.loc)
-    #         var.append(qz_x.variance)
-    #     return mu, var

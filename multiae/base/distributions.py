@@ -9,22 +9,35 @@ def compute_log_alpha(mu, logvar):
     # clamp because dropout rate p in 0-99%, where p = alpha/(alpha+1)
     return (logvar - 2 * torch.log(torch.abs(mu) + 1e-8)).clamp(min=-8, max=8)
 
-# TODO: test different options
+# TODO: test different distributions
 class MultivariateNormal(MultivariateNormal):
-    def __init__(self, loc, scale, *args, **kwargs):
+    def __init__(
+            self,
+            # loc,
+            # scale,
+            # *args,
+            **kwargs
+        ):
 
-        super().__init__(loc, torch.diag_embed(scale))
+        self.loc = kwargs['loc']
+        self.scale = kwargs['scale']
+        if isinstance(self.scale, int): # TODO: dont like this, check loc is always list?
+            self.covariance_matrix = torch.diag_embed(torch.ones(len(self.loc)))
+        else:
+            self.covariance_matrix = torch.diag_embed(self.scale)
+        super().__init__(loc=self.loc, covariance_matrix=self.covariance_matrix)
 
     @property
     def variance(self):
         return self.scale.pow(2)
 
     def kl_divergence(self, other):
-        return kl_divergence(MultivariateNormal(loc=self.loc, scale=self.stddev), other)
+        kl = kl_divergence(torch.distributions.multivariate_normal.MultivariateNormal( \
+                        loc=self.loc, covariance_matrix=self.covariance_matrix), other)
+        sh = kl.shape
+        return kl.reshape((sh[0], 1))   # TODO: hack. kl_dirgence returns (x,) vector here. not the same with Normal.kl_divergence
 
-    def sparse_kl_divergence(
-        self,
-    ):  # check this is also the case for multivariate gauss
+    def sparse_kl_divergence(self):  # TODO: check this is also the case for multivariate gauss
         mu = self.loc
         logvar = torch.log(self.variance)
         log_alpha = compute_log_alpha(mu, logvar)
@@ -34,8 +47,7 @@ class MultivariateNormal(MultivariateNormal):
             - 0.5 * torch.log1p(torch.exp(-log_alpha))
             - k1
         )
-        neg_KL = neg_KL.mean(1, keepdims=True).mean(0)
-        return -neg_KL
+        return -neg_KL  
 
     def log_likelihood(self, x):
         return self.log_prob(x)
@@ -49,22 +61,22 @@ class MultivariateNormal(MultivariateNormal):
 class Normal(Normal):
     def __init__(
         self,
-        loc,
-        scale,
-        *args,
+        # loc,
+        # scale,
+        # *args,
         **kwargs,
     ):
-        super().__init__(loc, scale)
+        self.loc = kwargs['loc']
+        self.scale = kwargs['scale']
+        super().__init__(loc=self.loc, scale=self.scale)
 
     @property
     def variance(self):
         return self.scale.pow(2)
 
-    def kl_divergence(self, other): # TODO: check if scale = stddev
-        x = kl_divergence(Normal(loc=self.loc, scale=self.stddev), other)
-        return kl_divergence(Normal(loc=self.loc, scale=self.stddev), other)
+    def kl_divergence(self, other):
+        return kl_divergence(torch.distributions.normal.Normal(loc=self.loc, scale=self.stddev), other)
 
-    # TODO: does not return same shape as kl_divergence
     def sparse_kl_divergence(self):
         mu = self.loc
         logvar = torch.log(self.variance)
@@ -75,7 +87,6 @@ class Normal(Normal):
             - 0.5 * torch.log1p(torch.exp(-log_alpha))
             - k1
         )
-        neg_KL = neg_KL.mean(1, keepdims=True).mean(0)
         return -neg_KL
 
     def log_likelihood(self, x):
@@ -90,11 +101,11 @@ class Normal(Normal):
 class Bernoulli():
     def __init__(
         self,
-        x,
-        *args,
+        # x,
+        # *args,
         **kwargs,
     ):
-        self.x = x
+        self.x = kwargs['x']
 
     def log_likelihood(self, x):
         logits, x = broadcast_all(self.x, x)
@@ -116,11 +127,11 @@ class Bernoulli():
 class Default():
     def __init__(
         self,
-        x,
-        *args,
+        # x,
+        # *args,
         **kwargs,
     ):
-        self.x = x
+        self.x = kwargs['x']
 
 
     def log_likelihood(self, x):

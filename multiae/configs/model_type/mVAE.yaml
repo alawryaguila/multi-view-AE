@@ -5,7 +5,7 @@ model_name: "mVAE"
 
 model:
   beta: 1
-  join_type: "PoE"  # TODO: set MeanRepresentation, set restrictions with hyrda?
+  join_type: "PoE"  # TODO: test MeanRepresentation, set restrictions with hydra?
 
   sparse: False
 

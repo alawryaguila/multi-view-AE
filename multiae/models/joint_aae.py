@@ -31,19 +31,19 @@ class jointAAE(BaseModelAAE):
 
         z = torch.stack(z)
         mean_z = torch.mean(z, axis=0)
-        return mean_z
+        return [mean_z]
 
     def decode(self, z):
         x_recon = []
         for i in range(self.n_views):
-            x_out = self.decoders[i](z)
-            x_recon.append(x_out)
+            x_out = self.decoders[i](z[0])
+            x_recon.append([x_out])
         return x_recon
 
     def disc(self, z):
-        z_real = Variable(torch.randn(z.size()[0], self.z_dim) * 1.0).to(self.device)
+        z_real = Variable(torch.randn(z[0].size()[0], self.z_dim) * 1.0).to(self.device)
         d_real = self.discriminator(z_real)
-        d_fake = self.discriminator(z)
+        d_fake = self.discriminator(z[0])
         return d_real, d_fake
 
     def forward_recon(self, x):
@@ -71,7 +71,7 @@ class jointAAE(BaseModelAAE):
         x_recon = fwd_rtn["x_recon"]
         recon = 0
         for i in range(self.n_views):
-            recon += x_recon[i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+            recon += x_recon[i][0].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
         return recon / self.n_views
 
     def generator_loss(self, fwd_rtn):

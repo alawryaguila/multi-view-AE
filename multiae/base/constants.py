@@ -35,3 +35,13 @@ SPARSE_MODELS = [
             MODEL_MVAE,
             MODEL_DVCCA
         ]
+
+CONFIG_KEYS = [
+            "model",
+            "datamodule",
+            "encoder",
+            "decoder",
+            "trainer",
+            "callbacks",
+            "logger"
+        ]

@@ -6,6 +6,7 @@ model:
 
   z_dim: 12
   private: True
+  sparse: False
 
 encoder:
   non_linear: True

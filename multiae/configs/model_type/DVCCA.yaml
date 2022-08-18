@@ -5,7 +5,7 @@ model_name: "DVCCA"
 
 model:
   beta: 1
-  private: False  #TODO: private=True and sparse=True does not work
+  private: False
 
   sparse: False
 

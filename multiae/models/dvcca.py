@@ -1,10 +1,9 @@
 import torch
 import hydra
 
-from torch.distributions import Normal
-
 from ..base.constants import MODEL_DVCCA
 from ..base.base_model import BaseModelVAE
+from ..base.distributions import Normal
 
 class DVCCA(BaseModelVAE):
     def __init__(
@@ -22,7 +21,6 @@ class DVCCA(BaseModelVAE):
     ################################            protected methods
     def _setencoders(self):
         if self.sparse and self.threshold != 0.:
-        # if self.threshold != 0: #TODO: threshold takes precedence?
             self.log_alpha = torch.nn.Parameter(
                 torch.FloatTensor(1, self.z_dim).normal_(0, 0.01)
             )
@@ -40,9 +38,10 @@ class DVCCA(BaseModelVAE):
                     log_alpha=self.log_alpha,
                     _recursive_=False,
                     _convert_="all"
-                ) for i in range(2)
+                )
             ]
         )
+
         if self.private:
             self.private_encoders = torch.nn.ModuleList(
                 [
@@ -59,20 +58,29 @@ class DVCCA(BaseModelVAE):
                 ]
             )
             self.z_dim = self.z_dim + self.z_dim
+            if self.sparse and self.threshold != 0.:
+                self.log_alpha = torch.nn.Parameter(    # TODO: is this correct? have to update log_alpha due to z_dim
+                    torch.FloatTensor(1, self.z_dim).normal_(0, 0.01)
+                )
 
     def configure_optimizers(self):
-        if self.private: # TODO: should use self.private_encoders
-            optimizers = [  #TODO: shouldn't this be encoders[0]?
-                torch.optim.Adam(self.encoders.parameters(), lr=self.learning_rate)
+        if self.private:
+            optimizers = [
+                torch.optim.Adam(self.encoders[0].parameters(), lr=self.learning_rate)
+            ] + [
+                torch.optim.Adam(
+                    list(self.private_encoders[i].parameters()), lr=self.learning_rate
+                )
+                for i in range(self.n_views)
             ] + [
                 torch.optim.Adam(
                     list(self.decoders[i].parameters()), lr=self.learning_rate
                 )
                 for i in range(self.n_views)
             ]
-        else:   # TOD0: this is the same as private=True?
-            optimizers = [  #TODO: shouldn't this be encoders[0]?
-                torch.optim.Adam(self.encoders.parameters(), lr=self.learning_rate)
+        else:
+            optimizers = [
+                torch.optim.Adam(self.encoders[0].parameters(), lr=self.learning_rate)
             ] + [
                 torch.optim.Adam(
                     list(self.decoders[i].parameters()), lr=self.learning_rate
@@ -107,7 +115,7 @@ class DVCCA(BaseModelVAE):
                 x_out = self.decoders[i](qz_x[i]._sample(training=self._training))
             else:
                 x_out = self.decoders[i](qz_x[0]._sample(training=self._training))
-            px_zs.append(x_out)
+            px_zs.append([x_out])
         return px_zs
 
     def forward(self, x):
@@ -127,23 +135,27 @@ class DVCCA(BaseModelVAE):
         return losses
 
     def calc_kl(self, qz_x):
-        prior = Normal(0, 1)  # TODO - flexible prior
+        sh = qz_x[0].loc.shape
+        if isinstance(qz_x[0], Normal):    # TODO - flexible prior
+            prior = torch.distributions.normal.Normal(0,1)
+        else:
+            prior = torch.distributions.multivariate_normal.MultivariateNormal( \
+                        loc=torch.zeros(sh), covariance_matrix=torch.diag_embed(torch.ones(sh)))
+
         kl = 0
         if self.private:
-            for i in range(self.n_views):
-                if self.sparse:
-                    kl += qz_x[i].sparse_kl_divergence()#.sum(1, keepdims=True).mean(0) # TODO: sparse_kl_divergence does not return same shape as kl_divergence
-                else:
-                    kl += qz_x[i].kl_divergence(prior).sum(1, keepdims=True).mean(0)
+            n = self.n_views
         else:
+            n = 1
+        for i in range(n):
             if self.sparse:
-                kl += qz_x[0].sparse_kl_divergence()#.sum(1, keepdims=True).mean(0)  # TODO: sparse_kl_divergence does not return same shape as kl_divergence
+                kl += qz_x[i].sparse_kl_divergence().sum(1, keepdims=True).mean(0)
             else:
-                kl += qz_x[0].kl_divergence(prior).sum(1, keepdims=True).mean(0)
+                kl += qz_x[i].kl_divergence(prior).sum(1, keepdims=True).mean(0)
         return self.beta * kl
 
     def calc_ll(self, x, px_zs):
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+            ll += px_zs[i][0].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)   
         return ll

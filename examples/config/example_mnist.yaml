@@ -1,0 +1,16 @@
+# @package _global_
+
+model:
+  z_dim: 2
+  private: True
+
+encoder:
+  hidden_layer_dim: [512, 256]
+  non_linear: True
+
+decoder:
+  non_linear: True
+  hidden_layer_dim: [512, 256]
+
+  # dec_dist:
+  #   _target_: multiae.base.distributions.Default

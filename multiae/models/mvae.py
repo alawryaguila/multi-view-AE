@@ -1,10 +1,9 @@
 import torch
 import hydra
 
-from torch.distributions import Normal
-
 from ..base.constants import MODEL_MVAE
 from ..base.base_model import BaseModelVAE
+from ..base.distributions import Normal
 from ..base.exceptions import ModelInputError
 from ..base.representations import ProductOfExperts, MeanRepresentation
 
@@ -54,11 +53,11 @@ class mVAE(BaseModelVAE):
         )
         return [qz_x]
 
-    def decode(self, qz_x): #TODO: check all encoder()/decode() have the same output type/shape
+    def decode(self, qz_x):
         x_recon = []
         for i in range(self.n_views):
             mu_out = self.decoders[i](qz_x[0]._sample(training=self._training))
-            x_recon.append(mu_out)
+            x_recon.append([mu_out])
         return x_recon
 
     def forward(self, x):
@@ -67,15 +66,20 @@ class mVAE(BaseModelVAE):
         fwd_rtn = {"px_zs": px_zs, "qz_x": qz_x}
         return fwd_rtn
 
-    # TODO: calc losses should probably be made inheritable
     def calc_kl(self, qz_x):
         """
         VAE: Implementation from: https://arxiv.org/abs/1312.6114
         sparse-VAE: Implementation from: https://github.com/senya-ashukha/variational-dropout-sparsifies-dnn/blob/master/KL%20approximation.ipynb
         """
-        prior = Normal(0, 1)  # TODO - flexible prior
+        sh = qz_x[0].loc.shape
+        if isinstance(qz_x[0], Normal):    # TODO - flexible prior
+            prior = torch.distributions.normal.Normal(0,1)
+        else:
+            prior = torch.distributions.multivariate_normal.MultivariateNormal( \
+                        loc=torch.zeros(sh), covariance_matrix=torch.diag_embed(torch.ones(sh)))
+
         if self.sparse:
-            kl = qz_x[0].sparse_kl_divergence()# .sum(1, keepdims=True).mean(0) TODO: sparse_kl_divergence returns a num
+            kl = qz_x[0].sparse_kl_divergence().sum(1, keepdims=True).mean(0)
         else:
             kl = qz_x[0].kl_divergence(prior).sum(1, keepdims=True).mean(0)
         return self.beta * kl
@@ -83,7 +87,7 @@ class mVAE(BaseModelVAE):
     def calc_ll(self, x, px_zs):
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+            ll += px_zs[i][0].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
         return ll
 
     def loss_function(self, x, fwd_rtn):

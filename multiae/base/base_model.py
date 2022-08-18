@@ -13,7 +13,7 @@ from hydra import compose, initialize, initialize_config_dir
 from torch.utils.data.dataloader import DataLoader
 from omegaconf import OmegaConf
 
-from .constants import MODELS, VARIATIONAL_MODELS, SPARSE_MODELS
+from .constants import MODELS, VARIATIONAL_MODELS, SPARSE_MODELS, CONFIG_KEYS
 from .dataloaders import MultiviewDataModule
 from .datasets import MVDataset
 
@@ -55,17 +55,16 @@ class BaseModelAE(ABC, pl.LightningModule):
 
         # some variables should not be set for certain models
         self.cfg = self.__checkconfig(def_cfg)
+        print("MODEL: ", self.model_name)
+        self.print_config()
 
-        self.__dict__.update(self.cfg.model)  #TODO: make sure config is always complete even if user defined
-                                                # don't do this because user can put anything in model,
-                                                # unless can initialize config internally first
-        self.print_config(key="model")
+        self.__dict__.update(self.cfg.model)
 
         if all(k in self.cfg.model for k in ["seed_everything", "seed"]):
             pl.seed_everything(self.cfg.model.seed, workers=True)
 
         self.input_dim = input_dim  # TODO: check types?
-        if z_dim is not None:   # overrides hydra config... parsed arg has precedence
+        if z_dim is not None:   # overrides hydra config... passed arg has precedence
             self.z_dim = z_dim  # TODO: update hydra cfg?
             self.cfg.model.z_dim = z_dim
         self.n_views = len(self.input_dim)
@@ -78,8 +77,6 @@ class BaseModelAE(ABC, pl.LightningModule):
 
     ################################            public methods
     def fit(self, *data, labels=None, max_epochs=None, batch_size=None):
-        # self.data = data  # TODO: not saving, might be too big
-        # self.labels = labels
         self._training = True
 
         data = list(data)
@@ -90,7 +87,7 @@ class BaseModelAE(ABC, pl.LightningModule):
 
         if batch_size is not None:
             self.batch_size = batch_size
-            self.cfg.datamodule.batch_size = batch_size # update hydra cfg
+            self.cfg.datamodule.batch_size = batch_size
         else:
             self.batch_size = self.cfg.datamodule.batch_size
 
@@ -100,8 +97,9 @@ class BaseModelAE(ABC, pl.LightningModule):
             assert(data[i].shape[1] == self.input_dim[i])   # TODO: this is only for 1D input
 
         callbacks = []
-        for _, cb_conf in self.cfg.callbacks.items():
-            callbacks.append(hydra.utils.instantiate(cb_conf))
+        if self.cfg.datamodule.is_validate:
+            for _, cb_conf in self.cfg.callbacks.items():
+                callbacks.append(hydra.utils.instantiate(cb_conf))
 
         logger = hydra.utils.instantiate(self.cfg.logger)
 
@@ -125,12 +123,14 @@ class BaseModelAE(ABC, pl.LightningModule):
     def predict_reconstruction(self, *data, batch_size=None):
         return self.__predict(*data, batch_size=batch_size, is_recon=True)
 
-    def print_config(self, key=None):
-        if key is not None and key in self.cfg.keys():
-            str = (OmegaConf.to_yaml(self.cfg[key])).replace("\n", "\n  ")
-            print(f"{key}:\n  {str}")
+    def print_config(self, keys=None):
+        if keys is not None:
+            for k in keys:
+                if k in CONFIG_KEYS:
+                    str = (OmegaConf.to_yaml(self.cfg[k])).replace("\n", "\n  ")
+                    print(f"{k}:\n  {str}")
         else:
-            print(OmegaConf.to_yaml(self.cfg))
+            self.print_config(keys=CONFIG_KEYS)
 
     ################################            abstract methods
     # TODO: should probably have defaults?
@@ -149,9 +149,9 @@ class BaseModelAE(ABC, pl.LightningModule):
     ################################            LightningModule methods
     @abstractmethod
     def forward(self, x):
-        raise NotImplementedError()
+         raise NotImplementedError()
 
-    def training_step(self, batch, batch_idx, optimizer_idx):
+    def training_step(self, batch, batch_idx, optimizer_idx=None):
         return self.__step(batch, batch_idx, stage="train")
 
     def validation_step(self, batch, batch_idx):
@@ -201,14 +201,14 @@ class BaseModelAE(ABC, pl.LightningModule):
             ]
         )
 
-    ################################            private methods #TODO: check cannot be overwritten
+    ################################            private methods
     def __updateconfig(self, orig, update):
-        default_keys = ["model", "datamodule", "encoder", "decoder", "trainer", "callbacks", "logger"]
-        for k in default_keys:
-            if k in update.keys():
-                for key, val in update[k].items():
-                    if key in orig[k].keys():
-                        orig[k][key] = val
+        # TODO: except _target_
+        update_keys = list(set(update.keys()) & set(CONFIG_KEYS))
+        for k in update_keys:
+            for key, val in update[k].items():
+                if key in orig[k].keys():
+                    orig[k][key] = val
         return orig
 
     def __checkconfig(self, cfg):
@@ -248,7 +248,7 @@ class BaseModelAE(ABC, pl.LightningModule):
         dataset = MVDataset(data, labels=None)
 
         if batch_size is None:
-            batch_size = data[0].shape[0] # TODO: assumes data is always a list of at least 1
+            batch_size = data[0].shape[0]
 
         generator = DataLoader(dataset, batch_size=batch_size, shuffle=False)
         with torch.no_grad():
@@ -263,20 +263,23 @@ class BaseModelAE(ABC, pl.LightningModule):
                 if is_recon:
                     z = self.decode(z)
 
-                if self.is_variational:
-                    z = [
-                            [ d__._sample().cpu().detach().numpy() for d__ in d_ ]
-                            if isinstance(d_, (list))
-                            else d_._sample().cpu().detach().numpy()
-                            for d_ in z
-                        ]
+                z = [
+                        [ d__._sample().cpu().detach().numpy() for d__ in d_ ]
+                        if isinstance(d_, (list))
+                        else
+                        (d_.cpu().detach().numpy() if isinstance(d_, torch.Tensor)
+                        else d_._sample().cpu().detach().numpy())
+                        for d_ in z
+                    ]
 
                 if z_ is not None:
-                    z_ = [ np.append(p_, p, axis=0)
-                                for p_, p in zip(z_, z) ]
+                    z_ = [
+                            [ np.append(d_, d, axis=0) for d_, d in zip(p_,p) ]
+                            if isinstance(p_, list) else np.append(p_, p, axis=0)
+                            for p_, p in zip(z_, z)
+                         ]
                 else:
                     z_ = z
-
         return z_
 
 
@@ -306,6 +309,7 @@ class BaseModelVAE(BaseModelAE):
         assert self.threshold <= 1.0
         keep = (self.__dropout() < self.threshold).squeeze().cpu()
         z_keep = []
+
         for _ in z:
             _ = _._sample()
             _[:, ~keep] = 0
@@ -430,7 +434,7 @@ class BaseModelAAE(BaseModelAE):
 
     def configure_optimizers(self):
         optimizers = []
-        [
+        [   # TODO: why the brackets?
             optimizers.append(
                 torch.optim.Adam(
                     list(self.encoders[i].parameters()), lr=self.learning_rate

@@ -4,7 +4,7 @@ import hydra
 
 from ..base.constants import MODEL_MMVAE
 from ..base.base_model import BaseModelVAE
-from ..base.distributions import Normal
+from ..base.distributions import Normal, MultivariateNormal
 
 class mmVAE(BaseModelVAE):
     """
@@ -43,7 +43,7 @@ class mmVAE(BaseModelVAE):
             ]
             px_zs.append(
                 px_z
-            )  # NOTE: this is other way around to other multiautoencoder models - FIX
+            )  # TODO: this is other way around to other multiautoencoder models - FIX
             del px_z
         return px_zs
 
@@ -64,13 +64,23 @@ class mmVAE(BaseModelVAE):
         for i in range(self.n_views):
             zs = qz_xs[i].rsample(torch.Size([self.K]))
             zss.append(zs)
+
+        # TODO: please fix this. MultivariateNormal outputs different shape from Normal for log_prob() and kl_divergence()
         for r, qz_x in enumerate(qz_xs):
-            lpz = Normal(loc=0, scale=1).log_likelihood(zss[r]).sum(-1)
-            lqz_x = self.log_mean_exp(
-                torch.stack([qz_x.log_prob(zss[r]).sum(-1) for qz_x in qz_xs])
-            )  # summing over M modalities for each z to create q(z|x1:M)
-            lpx_z = [   # TODO: changed torch.dist.Normal to distributions.Normal
-                px_z.log_likelihood(x[d]).view(*px_z.batch_shape[:2], -1).sum(-1)   #TODO: check this works - changed log_prob --> log_likelihood
+            if isinstance(qz_xs[0], Normal):
+                lpz = Normal(loc=0,scale=1).log_likelihood(zss[r]).sum(-1)
+                lqz_x = self.log_mean_exp(
+                    torch.stack([qz_x.log_prob(zss[r]).sum(-1) for qz_x in qz_xs])
+                )  # summing over M modalities for each z to create q(z|x1:M)
+            else:   # TODO: hack
+                sh = zss[r].shape
+                lpz = MultivariateNormal(loc=torch.zeros(sh), scale=torch.ones(sh)).log_likelihood(zss[r]).reshape((sh[0], sh[1], 1)).sum(-1)
+                lqz_x = self.log_mean_exp(
+                    torch.stack([qz_x.log_prob(zss[r]).reshape((sh[0], sh[1], 1)).sum(-1) for qz_x in qz_xs])
+                )  # summing over M modalities for each z to create q(z|x1:M)
+
+            lpx_z = [
+                px_z.log_likelihood(x[d]).view(*px_z.batch_shape[:2], -1).sum(-1)
                 for d, px_z in enumerate(px_zs[r])
             ]  # summing over each decoder
             lpx_z = torch.stack(lpx_z).sum(0)
@@ -82,12 +92,3 @@ class mmVAE(BaseModelVAE):
 
     def log_mean_exp(self, value, dim=0, keepdim=False):
         return torch.logsumexp(value, dim, keepdim=keepdim) - math.log(value.size(dim))
-
-    # TODO: this is never used - what is it for?
-    # def sample_loc_variance(self, qz_xs):
-    #     mu = []
-    #     var = []
-    #     for qz_x in qz_xs:
-    #         mu.append(qz_x.loc)
-    #         var.append(qz_x.variance)
-    #     return mu, var

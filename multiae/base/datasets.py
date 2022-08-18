@@ -19,16 +19,15 @@ class MVDataset(Dataset):
         self.return_index = return_index
         self.transform = transform
 
-        if isinstance(data, (list, tuple)):
-            # TODO: assumes the same N? if yes, assert somewhere
-            self.N = len(self.data[0])
-            self.data = [
-                torch.from_numpy(d).float() if isinstance(d, np.ndarray) else d
-                for d in self.data
-            ]
-            self.shape = [
-                np.shape(d) for d in self.data
-            ]
+        # TODO: assumes the same N? assert somewhere
+        self.N = len(self.data[0])
+        self.data = [
+            torch.from_numpy(d).float() if isinstance(d, np.ndarray) else d
+            for d in self.data
+        ]
+        self.shape = [
+            np.shape(d) for d in self.data
+        ]
 
         if labels is not None:
             self.labels = torch.from_numpy(self.labels).long()

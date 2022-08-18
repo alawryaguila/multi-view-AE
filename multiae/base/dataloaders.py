@@ -33,10 +33,10 @@ class MultiviewDataModule(pl.LightningDataModule):
             self.labels = self.process_labels(self.labels)
         if self.is_validate:
             train_data, test_data, train_labels, test_labels = self.train_test_split()
-            self.train_dataset = MVDataset(data=train_data, labels=train_labels) # self.dataset(*train_data, labels=train_labels)
-            self.test_dataset = MVDataset(data=test_data, labels=test_labels) # self.dataset(*test_data, labels=test_labels)
+            self.train_dataset = MVDataset(data=train_data, labels=train_labels)
+            self.test_dataset = MVDataset(data=test_data, labels=test_labels)
         else:
-            self.train_dataset = MVDataset(data=self.data, labels=self.labels) #self.dataset(*self.data, labels=self.labels)
+            self.train_dataset = MVDataset(data=self.data, labels=self.labels) 
             self.test_dataset = None
 
     def train_test_split(self):
