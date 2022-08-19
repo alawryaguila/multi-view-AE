@@ -110,7 +110,8 @@ class Decoder(nn.Module):
         hidden_layer_dim,
         bias,
         non_linear,
-        dec_dist
+        dec_dist,
+        init_logvar=None,
     ):
         super().__init__()
 
@@ -132,7 +133,7 @@ class Decoder(nn.Module):
 
     def forward(self, z):
         x_rec = z
-        for it_layer, layer in enumerate(self.decoder_layers):
+        for it_layer, layer in enumerate(self.decoder_layers[:-1]):
             x_rec = layer(x_rec)
             if self.non_linear:
                 x_rec = F.relu(x_rec)

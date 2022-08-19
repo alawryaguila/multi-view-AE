@@ -81,6 +81,7 @@ class BaseModelAE(ABC, pl.LightningModule):
         data = list(data) 
         if max_epochs is not None:
             self.max_epochs = max_epochs
+            self.cfg.trainer.max_epochs = max_epochs
         else:
             self.max_epochs = self.cfg.trainer.max_epochs
 
@@ -113,6 +114,7 @@ class BaseModelAE(ABC, pl.LightningModule):
         datamodule = hydra.utils.instantiate(
            self.cfg.datamodule, data=data, labels=labels, _convert_="all"
         )
+
         py_trainer.fit(self, datamodule)
 
     def predict_latents(self, *data, batch_size=None):

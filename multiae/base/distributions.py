@@ -3,7 +3,8 @@ import torch
 from torch.distributions import Normal, kl_divergence
 from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions.utils import broadcast_all
-from torch.nn.functional import binary_cross_entropy_with_logits
+from torch.nn.functional import binary_cross_entropy
+
 
 def compute_log_alpha(mu, logvar):
     # clamp because dropout rate p in 0-99%, where p = alpha/(alpha+1)
@@ -107,9 +108,11 @@ class Bernoulli():
     ):
         self.x = kwargs['x']
 
-    def log_likelihood(self, x):
-        logits, x = broadcast_all(self.x, x)
-        return -binary_cross_entropy_with_logits(logits, x, reduction='none')
+    def log_likelihood(self, target):     
+        x, target = broadcast_all(self.x, target)
+        x = torch.sigmoid(x)
+        bce = binary_cross_entropy(x, target, reduction='none')
+        return -bce
 
     def rsample(self):
         raise NotImplementedError

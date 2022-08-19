@@ -6,6 +6,7 @@ MODEL_JOINTAAE  = "jointAAE"
 MODEL_WAAE      = "wAAE"
 MODEL_MCVAE     = "mcVAE"
 MODEL_MVAE      = "mVAE"
+MODEL_MEMVAE    = "me_mVAE"
 MODEL_MMVAE     = "mmVAE"
 MODEL_MVTCAE    = "mvtCAE"
 MODEL_DVCCA     = "DVCCA"
@@ -17,6 +18,7 @@ MODELS = [
             MODEL_WAAE,
             MODEL_MCVAE,
             MODEL_MVAE,
+            MODEL_MEMVAE,
             MODEL_MMVAE,
             MODEL_MVTCAE,
             MODEL_DVCCA
@@ -25,6 +27,7 @@ MODELS = [
 VARIATIONAL_MODELS = [
             MODEL_MCVAE,
             MODEL_MVAE,
+            MODEL_MEMVAE,
             MODEL_MMVAE,
             MODEL_MVTCAE,
             MODEL_DVCCA
