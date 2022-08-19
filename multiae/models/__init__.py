@@ -9,6 +9,6 @@ from .mvae import *
 from .mmvae import *
 from .mvtcae import *
 from .dvcca import *
-from .multi_mVAE import *
+from .multi_mvae import *
 # TODO: change name of this file
 from .layers import *

@@ -80,7 +80,7 @@ class mmVAE(BaseModelVAE):
                 )  # summing over M modalities for each z to create q(z|x1:M)
 
             lpx_z = [
-                px_z.log_likelihood(x[d]).view(*px_z.batch_shape[:2], -1).sum(-1)
+                px_z.log_likelihood(x[d]).view(*px_z._sample().size()[:2], -1).sum(-1)
                 for d, px_z in enumerate(px_zs[r])
             ]  # summing over each decoder
             lpx_z = torch.stack(lpx_z).sum(0)
