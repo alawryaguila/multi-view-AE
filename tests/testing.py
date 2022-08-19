@@ -4,7 +4,7 @@ import torch
 import importlib
 
 from multiae import *
-
+from os.path import abspath, dirname, join 
 from torchvision import datasets, transforms
 
 def print_results(key, res, idx=0):
@@ -76,17 +76,17 @@ def test_userconfig():
     test_3 = np.random.rand(50, 5)
 
     tests = {
-            "/tests/user_config/example_dvcca.yaml" : [MODEL_DVCCA],
-            "/tests/user_config/example_sparse.yaml" : SPARSE_MODELS,
-            "/tests/user_config/example_multivariatenormal.yaml": VARIATIONAL_MODELS,
-            "/tests/user_config/example_multivariatenormal.yaml": SPARSE_MODELS,
+            "./user_config/example_dvcca.yaml" : [MODEL_DVCCA],
+            "./user_config/example_sparse.yaml" : SPARSE_MODELS,
+            "./user_config/example_multivariatenormal.yaml": VARIATIONAL_MODELS,
+            "./user_config/example_multivariatenormal.yaml": SPARSE_MODELS,
             }
-
+            
     module = importlib.import_module("multiae")
     for cfg, test_models in tests.items():
         for m in test_models:
             class_ = getattr(module, m)
-            model = class_(cfg=cfg, input_dim=[20, 10, 5])
+            model = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=[20, 10, 5])
 
             model.fit(train_1, train_2, train_3)
 
@@ -129,7 +129,7 @@ def test_mnist():
     data_test_2 = torch.rot90(data_test_2, 1, [1, 2])
     data_test_2 = data_test_2.reshape(-1,784)
 
-    cfg = "/tests/user_config/example_mnist.yaml"
+    cfg = "./user_config/example_mnist.yaml"
     test_models = [MODEL_MCVAE, MODEL_DVCCA]
     max_epochs = 10
     batch_size = 2000
@@ -137,7 +137,7 @@ def test_mnist():
     module = importlib.import_module("multiae")
     for m in test_models:
         class_ = getattr(module, m)
-        model = class_(cfg=cfg, input_dim=[784,784])
+        model = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=[784,784])
 
         model.fit(data_1, data_2, max_epochs=max_epochs, batch_size=batch_size)
 

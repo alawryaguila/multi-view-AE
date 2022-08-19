@@ -33,6 +33,7 @@ class MVDataset(Dataset):
             self.labels = torch.from_numpy(self.labels).long()
 
     def __getitem__(self, index):
+
         x = [d[index] for d in self.data]
         if self.transform:
             x = self.transform(x)

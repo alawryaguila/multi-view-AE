@@ -15,6 +15,7 @@ class Encoder(nn.Module):
         input_dim,
         z_dim,
         hidden_layer_dim,
+        non_linear,
         bias,
         enc_dist
     ):
@@ -25,7 +26,7 @@ class Encoder(nn.Module):
         self.hidden_layer_dim = hidden_layer_dim
         self.bias = bias
         self.enc_dist = enc_dist    
-
+        self.non_linear = non_linear
         self.layer_sizes = [input_dim] + self.hidden_layer_dim + [z_dim]
         lin_layers = [
             nn.Linear(dim0, dim1, bias=self.bias)
@@ -40,7 +41,10 @@ class Encoder(nn.Module):
         h1 = x
         for it_layer, layer in enumerate(self.encoder_layers[0:-1]):
             h1 = layer(h1)
+            if self.non_linear:
+                h1 = F.relu(h1)
         h1 = self.encoder_layers[-1](h1)
+
         return h1
 
 class VariationalEncoder(Encoder):
@@ -49,9 +53,9 @@ class VariationalEncoder(Encoder):
         input_dim,
         z_dim,
         hidden_layer_dim,
+        non_linear,
         bias,
         sparse,
-        non_linear,
         log_alpha,
         enc_dist
     ):
@@ -59,6 +63,7 @@ class VariationalEncoder(Encoder):
                         z_dim=z_dim,
                         hidden_layer_dim=hidden_layer_dim,
                         bias=bias,
+                        non_linear=non_linear,
                         enc_dist=enc_dist)
 
         self.sparse = sparse
@@ -104,6 +109,7 @@ class Decoder(nn.Module):
         z_dim,
         hidden_layer_dim,
         bias,
+        non_linear,
         dec_dist
     ):
         super().__init__()
@@ -113,7 +119,7 @@ class Decoder(nn.Module):
         self.hidden_layer_dim = hidden_layer_dim
         self.bias = bias
         self.dec_dist = dec_dist
-
+        self.non_linear = non_linear
         self.layer_sizes = [z_dim] + self.hidden_layer_dim[::-1] + [input_dim]
         lin_layers = [
             nn.Linear(dim0, dim1, bias=self.bias)
@@ -128,6 +134,9 @@ class Decoder(nn.Module):
         x_rec = z
         for it_layer, layer in enumerate(self.decoder_layers):
             x_rec = layer(x_rec)
+            if self.non_linear:
+                x_rec = F.relu(x_rec)
+        x_rec = self.decoder_layers[-1](x_rec)
         x_rec = hydra.utils.instantiate(self.dec_dist, x=x_rec)
         return x_rec
 
@@ -145,6 +154,7 @@ class VariationalDecoder(Decoder):
         super().__init__(input_dim=input_dim,
                 z_dim=z_dim,
                 hidden_layer_dim=hidden_layer_dim,
+                non_linear=non_linear,
                 bias=bias, dec_dist=dec_dist)
 
         self.non_linear = non_linear

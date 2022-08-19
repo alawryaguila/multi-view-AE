@@ -78,8 +78,7 @@ class BaseModelAE(ABC, pl.LightningModule):
     ################################            public methods
     def fit(self, *data, labels=None, max_epochs=None, batch_size=None):
         self._training = True
-
-        data = list(data)
+        data = list(data) 
         if max_epochs is not None:
             self.max_epochs = max_epochs
         else:
@@ -112,9 +111,8 @@ class BaseModelAE(ABC, pl.LightningModule):
         )
 
         datamodule = hydra.utils.instantiate(
-            self.cfg.datamodule, data=data, labels=labels, _convert_="all"
+           self.cfg.datamodule, data=data, labels=labels, _convert_="all"
         )
-
         py_trainer.fit(self, datamodule)
 
     def predict_latents(self, *data, batch_size=None):
@@ -323,6 +321,7 @@ class BaseModelVAE(BaseModelAE):
 
     ################################            protected methods
     def _setencoders(self):
+
         if self.sparse and self.threshold != 0.:
             self.log_alpha = torch.nn.Parameter(
                 torch.FloatTensor(1, self.z_dim).normal_(0, 0.01)

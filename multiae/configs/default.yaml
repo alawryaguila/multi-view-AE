@@ -43,6 +43,7 @@ encoder:
 
   hidden_layer_dim: []  # TODO: why empty default?
   bias: True
+  non_linear: False
 
   enc_dist:
     _target_: multiae.base.distributions.Default
@@ -53,6 +54,7 @@ decoder:
   # TODO: test hidden_layer_dim not same as encoder's?
   hidden_layer_dim: []  # TODO: note in documentation that this will be reversed... usually same as encoder's hidden layers
   bias: True
+  non_linear: False
 
   dec_dist:
     _target_: multiae.base.distributions.Default
