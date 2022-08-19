@@ -74,5 +74,5 @@ class MultiviewDataModule(pl.LightningDataModule):
     def val_dataloader(self):
         if self.is_validate:
             return DataLoader(
-                self.train_dataset, batch_size=self.batch_size, shuffle=False, num_workers=0)
+                self.test_dataset, batch_size=self.batch_size, shuffle=False, num_workers=0)
         return None
