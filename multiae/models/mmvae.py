@@ -37,10 +37,16 @@ class mmVAE(BaseModelVAE):
     def decode(self, qz_xs):
         px_zs = []
         for i in range(self.n_views):
-            px_z = [
-                self.decoders[j](qz_xs[i].rsample(torch.Size([self.K])))
-                for j in range(self.n_views)
-            ]
+            if self._training:
+                px_z = [
+                    self.decoders[j](qz_xs[i].rsample(torch.Size([self.K])))
+                    for j in range(self.n_views)
+                ]
+            else:
+                px_z = [
+                    self.decoders[j](qz_xs[i].rsample())
+                    for j in range(self.n_views)
+                ]
             px_zs.append(
                 px_z
             )  # TODO: this is other way around to other multiautoencoder models - FIX
@@ -62,7 +68,10 @@ class mmVAE(BaseModelVAE):
         lws = []
         zss = []
         for i in range(self.n_views):
-            zs = qz_xs[i].rsample(torch.Size([self.K]))
+            if self._training:
+                zs = qz_xs[i].rsample(torch.Size([self.K]))
+            else:
+                zs = qz_xs[i].rsample()
             zss.append(zs)
 
         # TODO: please fix this. MultivariateNormal outputs different shape from Normal for log_prob() and kl_divergence()
