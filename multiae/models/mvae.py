@@ -72,7 +72,8 @@ class mVAE(BaseModelVAE):
         sparse-VAE: Implementation from: https://github.com/senya-ashukha/variational-dropout-sparsifies-dnn/blob/master/KL%20approximation.ipynb
         """
         sh = qz_x[0].loc.shape
-        if isinstance(qz_x[0], Normal):    # TODO - flexible prior
+
+        if isinstance(qz_x[0], Normal):    # TODO - flexible prior doesn't need to be same dist as posterior
             prior = torch.distributions.normal.Normal(0,1)
         else:
             prior = torch.distributions.multivariate_normal.MultivariateNormal( \

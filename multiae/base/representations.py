@@ -10,7 +10,6 @@ class ProductOfExperts(nn.Module):
     """
 
     def forward(self, mu, var, eps=1e-8):
-        # precision of i-th Gaussian expert at point x
         T = 1.0 / (var + eps)
         pd_mu = torch.sum(mu * T, dim=0) / torch.sum(T, dim=0)
         pd_var = 1.0 / torch.sum(T, dim=0)

@@ -6,7 +6,7 @@ import hydra
 import torch
 import pytorch_lightning as pl
 
-from os.path import join, exists
+from os.path import join, exists, isdir
 from abc import ABC, abstractmethod
 from hydra import compose, initialize, initialize_config_dir
 
@@ -16,7 +16,7 @@ from omegaconf import OmegaConf
 from .constants import MODELS, VARIATIONAL_MODELS, SPARSE_MODELS, CONFIG_KEYS
 from .dataloaders import MultiviewDataModule
 from .datasets import MVDataset
-
+from datetime import datetime
 
 class BaseModelAE(ABC, pl.LightningModule):
     is_variational = False
@@ -33,9 +33,10 @@ class BaseModelAE(ABC, pl.LightningModule):
         assert(model_name is not None)  # have to choose which model always
         assert(input_dim is not None)
 
+
+
         super().__init__()
         self.model_name = model_name
-        # TODO: log/save hydra config
 
         with initialize(version_base=None, config_path="../configs"):
             def_cfg = compose(
@@ -62,10 +63,15 @@ class BaseModelAE(ABC, pl.LightningModule):
 
         if all(k in self.cfg.model for k in ["seed_everything", "seed"]):
             pl.seed_everything(self.cfg.model.seed, workers=True)
+            
 
-        self.input_dim = input_dim  # TODO: check types?
+        assert isinstance(input_dim,list), 'input_dim must be a list of input dimensions'
+        assert (isinstance(dim, int) for dim in input_dim), 'Input dimensions must be integers'
+        assert isinstance(z_dim, int), 'z_dim must be an integer'
+        
+        self.input_dim = input_dim 
         if z_dim is not None:   # overrides hydra config... passed arg has precedence
-            self.z_dim = z_dim  # TODO: update hydra cfg?
+            self.z_dim = z_dim  
             self.cfg.model.z_dim = z_dim
         self.n_views = len(self.input_dim)
 
@@ -74,7 +80,10 @@ class BaseModelAE(ABC, pl.LightningModule):
 
         # TODO: should this be in the end of instance init()?
         self.save_hyperparameters()
-
+        self.create_folder(self.cfg.out_dir)
+        run_time = datetime.now().strftime("%Y-%m-%d_%H%M")
+        OmegaConf.save(self.cfg, join(self.cfg.out_dir, 'config_{0}.yaml'.format(run_time))) #TODO only save model parameters
+        
     ################################            public methods
     def fit(self, *data, labels=None, max_epochs=None, batch_size=None):
         self._training = True
@@ -131,6 +140,11 @@ class BaseModelAE(ABC, pl.LightningModule):
                     print(f"{k}:\n  {str}")
         else:
             self.print_config(keys=CONFIG_KEYS)
+    
+    def create_folder(self, dir_path):
+        check_folder = isdir(dir_path)
+        if not check_folder:
+            os.makedirs(dir_path)
 
     ################################            abstract methods
     # TODO: should probably have defaults?
@@ -212,17 +226,18 @@ class BaseModelAE(ABC, pl.LightningModule):
         return orig
 
     def __checkconfig(self, cfg):
-
-        assert(self.model_name in MODELS)
-
+        
+        assert self.model_name in MODELS, "Model name is invalid"
+        
         if self.model_name in VARIATIONAL_MODELS:
             self.is_variational = True
+            #TODO encoder must be variational
 
         # should be always false for non-sparse models
         if self.model_name not in SPARSE_MODELS:
             cfg.model.sparse = False
         # else configurable
-
+        #TODO if sparse prior must be normal dist
         return cfg
 
     # TODO: batch_idx is not manual_seed --> what does this mean?
