@@ -20,7 +20,7 @@ class MultivariateNormal(MultivariateNormal):
         self.loc = kwargs['loc']
         self.scale = kwargs['scale']
         if isinstance(self.scale, int): # TODO: dont like this, check loc is always list?
-            self.covariance_matrix = torch.diag_embed(torch.ones(len(self.loc)))
+            self.covariance_matrix = torch.diag_embed(torch.ones(len(self.loc))*self.scale)
         else:
             self.covariance_matrix = torch.diag_embed(self.scale)
         super().__init__(loc=self.loc, covariance_matrix=self.covariance_matrix)
@@ -52,9 +52,9 @@ class MultivariateNormal(MultivariateNormal):
         sh = ll.shape
         return ll.reshape((sh[0], 1))
 
-    def _sample(self, training=False):
+    def _sample(self, *kwargs, training=False):
         if training:
-            return self.rsample()
+            return self.rsample(*kwargs)
         return self.loc
 
 
@@ -89,9 +89,9 @@ class Normal(Normal):
     def log_likelihood(self, x):
         return self.log_prob(x)
 
-    def _sample(self, training=False):
+    def _sample(self, *kwargs, training=False):
         if training:
-            return self.rsample()
+            return self.rsample(*kwargs)
         return self.loc
 
 # TODO: test this

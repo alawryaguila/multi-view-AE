@@ -38,7 +38,8 @@ class wAAE(BaseModelAAE):
         return x_out
 
     def disc(self, z):
-        z_real = Variable(torch.randn(z[0].size()[0], self.z_dim) * 1.0).to(self.device)
+        sh = z[0].shape
+        z_real = self.prior.sample(sample_shape=sh)
         d_real = self.discriminator(z_real)
         d_fake = self.discriminator(z[0])
         return d_real, d_fake
@@ -68,7 +69,7 @@ class wAAE(BaseModelAAE):
         x_recon = fwd_rtn["x_recon"]
         recon = 0
         for i in range(self.n_views):
-            recon += x_recon[i][0].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+            recon += - x_recon[i][0].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
         return recon / self.n_views
 
     def generator_loss(self, fwd_rtn):

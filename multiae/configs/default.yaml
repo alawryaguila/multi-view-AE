@@ -58,6 +58,11 @@ decoder:
 
   dec_dist:
     _target_: multiae.base.distributions.Default
+  
+prior:
+  _target_: multiae.base.distributions.Normal
+  loc: 0
+  scale: 1
 
 trainer:
   _target_: pytorch_lightning.Trainer

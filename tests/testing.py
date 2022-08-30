@@ -31,7 +31,9 @@ def test_models():
     # test_models = [MODEL_AE, MODEL_AAE, MODEL_JOINTAAE, MODEL_WAAE]
     # test_models = [MODEL_MCVAE, MODEL_MVAE, MODEL_MMVAE, MODEL_MVTCAE, MODEL_DVCCA]
     # test_models = [MODEL_MVTCAE] #
-    test_models = MODELS
+   #  test_models = MODELS
+    test_models = [MODEL_AE, MODEL_AAE, MODEL_JOINTAAE, MODEL_WAAE,
+     MODEL_MCVAE, MODEL_MVAE, MODEL_MMVAE, MODEL_MEMVAE, MODEL_MVTCAE, MODEL_DVCCA]
 
     module = importlib.import_module("multiae")
     for m in test_models:
@@ -156,4 +158,4 @@ def test_mnist():
 if __name__ == "__main__":
     test_models()
     test_userconfig()
-    # test_mnist()
+    test_mnist()

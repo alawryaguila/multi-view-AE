@@ -1,8 +1,7 @@
 import torch
 import numpy as np
-
 from torch.autograd import Variable
-
+from ..base.distributions import Normal
 from ..base.constants import MODEL_AAE
 from ..base.base_model import BaseModelAAE
 
@@ -40,7 +39,8 @@ class AAE(BaseModelAAE):
         return x_recon
 
     def disc(self, z):
-        z_real = Variable(torch.randn(z[0].size()[0], self.z_dim) * 1.0).to(self.device)
+        sh = z[0].shape
+        z_real = self.prior.sample(sample_shape=sh)
         d_real = self.discriminator(z_real)
         d_fake = []
         for i in range(self.n_views):
@@ -74,7 +74,7 @@ class AAE(BaseModelAAE):
         recon = 0
         for i in range(self.n_views):
             for j in range(self.n_views):
-                recon += x_recon[i][j].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+                recon += - x_recon[i][j].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
         return recon / self.n_views / self.n_views
 
     def generator_loss(self, fwd_rtn):
@@ -95,13 +95,13 @@ class AAE(BaseModelAAE):
         disc_loss = 0
         label_real = np.zeros((z[0].shape[0], self.n_views + 1))
         label_real[:, 0] = 1
-        label_real = torch.FloatTensor(label_real).to(self.device)
+        label_real = torch.FloatTensor(label_real)
 
         disc_loss += -torch.mean(label_real * torch.log(d_real + self.eps))
         for i in range(self.n_views):
             label_fake = np.zeros((z[0].shape[0], self.n_views + 1))
             label_fake[:, i + 1] = 1
-            label_fake = torch.FloatTensor(label_fake).to(self.device)
+            label_fake = torch.FloatTensor(label_fake)
             disc_loss += -torch.mean(label_fake * torch.log(d_fake[i] + self.eps))
 
         return disc_loss / (self.n_views + 1)

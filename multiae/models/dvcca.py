@@ -135,13 +135,6 @@ class DVCCA(BaseModelVAE):
         return losses
 
     def calc_kl(self, qz_x):
-        sh = qz_x[0].loc.shape
-        if isinstance(qz_x[0], Normal):    # TODO - flexible prior
-            prior = torch.distributions.normal.Normal(0,1)
-        else:
-            prior = torch.distributions.multivariate_normal.MultivariateNormal( \
-                        loc=torch.zeros(sh), covariance_matrix=torch.diag_embed(torch.ones(sh)))
-
         kl = 0
         if self.private:
             n = self.n_views
@@ -151,7 +144,7 @@ class DVCCA(BaseModelVAE):
             if self.sparse:
                 kl += qz_x[i].sparse_kl_divergence().sum(1, keepdims=True).mean(0)
             else:
-                kl += qz_x[i].kl_divergence(prior).sum(1, keepdims=True).mean(0)
+                kl += qz_x[i].kl_divergence(self.prior).sum(1, keepdims=True).mean(0)
         return self.beta * kl
 
     def calc_ll(self, x, px_zs):

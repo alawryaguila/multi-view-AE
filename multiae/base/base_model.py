@@ -65,14 +65,17 @@ class BaseModelAE(ABC, pl.LightningModule):
             pl.seed_everything(self.cfg.model.seed, workers=True)
 
 
-        assert isinstance(input_dim,list), 'input_dim must be a list of input dimensions'
-        assert (isinstance(dim, int) for dim in input_dim), 'Input dimensions must be integers'
-        assert isinstance(z_dim, int), 'z_dim must be an integer'
+
         
         self.input_dim = input_dim 
         if z_dim is not None:   # overrides hydra config... passed arg has precedence
             self.z_dim = z_dim  
             self.cfg.model.z_dim = z_dim
+
+        assert isinstance(input_dim,list), 'input_dim must be a list of input dimensions'
+        assert (isinstance(dim, int) for dim in input_dim), 'Input dimensions must be integers'
+        assert isinstance(self.cfg.model.z_dim, int), 'z_dim must be an integer'
+
         self.n_views = len(self.input_dim)
 
         self._setencoders()
@@ -237,7 +240,8 @@ class BaseModelAE(ABC, pl.LightningModule):
         if self.model_name not in SPARSE_MODELS:
             cfg.model.sparse = False
         # else configurable
-        #TODO if sparse prior must be normal dist
+        #TODO if sparse prior must be normal dist for encoder
+        #TODO if sparse prior then no prior should be included in yaml?
         return cfg
 
     # TODO: batch_idx is not manual_seed --> what does this mean?
@@ -314,6 +318,8 @@ class BaseModelVAE(BaseModelAE):
                 cfg=cfg,
                 input_dim=input_dim,
                 z_dim=z_dim)
+        if not self.sparse: #TODO: hack
+            self.prior = hydra.utils.instantiate(self.cfg.prior)
 
     ################################            class methods
     def apply_threshold(self, z):
@@ -398,6 +404,8 @@ class BaseModelAAE(BaseModelAE):
             is_wasserstein=self.is_wasserstein,
             _convert_="all"
         )
+
+        self.prior = hydra.utils.instantiate(self.cfg.prior)
 
     ################################            abstract methods
     @abstractmethod

@@ -66,19 +66,12 @@ class mcVAE(BaseModelVAE):
         sparse-VAE: Implementation from: https://github.com/senya-ashukha/variational-dropout-sparsifies-dnn/blob/master/KL%20approximation.ipynb
 
         """
-        sh = qz_xs[0].loc.shape
-        if isinstance(qz_xs[0], Normal):    # TODO - flexible prior
-            prior = torch.distributions.normal.Normal(0,1)
-        else:
-            prior = torch.distributions.multivariate_normal.MultivariateNormal( \
-                        loc=torch.zeros(sh), covariance_matrix=torch.diag_embed(torch.ones(sh)))
-
         kl = 0
         for qz_x in qz_xs:
             if self.sparse:
                 kl += qz_x.sparse_kl_divergence().sum(1, keepdims=True).mean(0)
             else:
-                kl += qz_x.kl_divergence(prior).sum(1, keepdims=True).mean(0)
+                kl += qz_x.kl_divergence(self.prior).sum(1, keepdims=True).mean(0)
         return self.beta * kl
 
     def calc_ll(self, x, px_zs):

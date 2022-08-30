@@ -75,19 +75,12 @@ class mmVAE(BaseModelVAE):
             zss.append(zs)
 
         # TODO: please fix this. MultivariateNormal outputs different shape from Normal for log_prob() and kl_divergence()
-        for r, qz_x in enumerate(qz_xs):
-            if isinstance(qz_xs[0], Normal):
-                lpz = Normal(loc=0,scale=1).log_likelihood(zss[r]).sum(-1)
-                lqz_x = self.log_mean_exp(
-                    torch.stack([qz_x.log_prob(zss[r]).sum(-1) for qz_x in qz_xs])
-                )  # summing over M modalities for each z to create q(z|x1:M)
-            else:   # TODO: hack
-                sh = zss[r].shape
-                lpz = MultivariateNormal(loc=torch.zeros(sh), scale=torch.ones(sh)).log_likelihood(zss[r]).reshape((sh[0], sh[1], 1)).sum(-1)
-                lqz_x = self.log_mean_exp(
-                    torch.stack([qz_x.log_prob(zss[r]).reshape((sh[0], sh[1], 1)).sum(-1) for qz_x in qz_xs])
-                )  # summing over M modalities for each z to create q(z|x1:M)
-
+        # TODO: check this works for MultivariateNormal
+        for r, qz_x in enumerate(qz_xs): 
+            lpz = self.prior.log_likelihood(zss[r]).sum(-1)
+            lqz_x = self.log_mean_exp(
+                torch.stack([qz_x.log_prob(zss[r]).sum(-1) for qz_x in qz_xs])
+            )  # summing over M modalities for each z to create q(z|x1:M)
             lpx_z = [
                 px_z.log_likelihood(x[d]).view(*px_z._sample().size()[:2], -1).sum(-1)
                 for d, px_z in enumerate(px_zs[r])
