@@ -63,7 +63,7 @@ class BaseModelAE(ABC, pl.LightningModule):
 
         if all(k in self.cfg.model for k in ["seed_everything", "seed"]):
             pl.seed_everything(self.cfg.model.seed, workers=True)
-            
+
 
         assert isinstance(input_dim,list), 'input_dim must be a list of input dimensions'
         assert (isinstance(dim, int) for dim in input_dim), 'Input dimensions must be integers'
