@@ -33,12 +33,13 @@ class jointAAE(BaseModelAAE):
         mean_z = torch.mean(z, axis=0)
         return [mean_z]
 
+
     def decode(self, z):
-        x_recon = []
+        px_zs = []
         for i in range(self.n_views):
-            x_out = self.decoders[i](z[0])
-            x_recon.append([x_out])
-        return x_recon
+            px_z = self.decoders[i](z[0])
+            px_zs.append(px_z)
+        return px_zs
 
     def disc(self, z):
         sh = z[0].shape
@@ -49,8 +50,8 @@ class jointAAE(BaseModelAAE):
 
     def forward_recon(self, x):
         z = self.encode(x)
-        x_recon = self.decode(z)
-        fwd_rtn = {"x_recon": x_recon, "z": z}
+        px_zs = self.decode(z)
+        fwd_rtn = {"px_zs": px_zs, "z": z}
         return fwd_rtn
 
     def forward_discrim(self, x):
@@ -69,11 +70,11 @@ class jointAAE(BaseModelAAE):
         return fwd_rtn
 
     def recon_loss(self, x, fwd_rtn):
-        x_recon = fwd_rtn["x_recon"]
-        recon = 0
+        px_zs = fwd_rtn["px_zs"]
+        ll = 0
         for i in range(self.n_views):
-            recon += - x_recon[i][0].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
-        return recon / self.n_views
+            ll += - px_zs[i][0].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+        return ll / self.n_views
 
     def generator_loss(self, fwd_rtn):
         d_fake = fwd_rtn["d_fake"]

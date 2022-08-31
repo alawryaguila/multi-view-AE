@@ -31,11 +31,11 @@ class wAAE(BaseModelAAE):
         return [mean_z]
 
     def decode(self, z):
-        x_out = []
+        px_zs = []
         for i in range(self.n_views):
-            x_ = self.decoders[i](z[0])
-            x_out.append([x_])
-        return x_out
+            px_z = self.decoders[i](z[0])
+            px_zs.append(px_z)
+        return px_zs
 
     def disc(self, z):
         sh = z[0].shape
@@ -66,23 +66,20 @@ class wAAE(BaseModelAAE):
         return fwd_rtn
 
     def recon_loss(self, x, fwd_rtn):
-        x_recon = fwd_rtn["x_recon"]
-        recon = 0
+        px_zs = fwd_rtn["px_zs"]
+        ll = 0
         for i in range(self.n_views):
-            recon += - x_recon[i][0].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
-        return recon / self.n_views
+            ll += - px_zs[i][0].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+        return ll / self.n_views
 
     def generator_loss(self, fwd_rtn):
-        z = fwd_rtn["z"]
         d_fake = fwd_rtn["d_fake"]
-        gen_loss = -torch.mean(d_fake.sum(dim=-1)) #TODO: check this
+        gen_loss = -torch.mean(d_fake.sum(dim=-1)) 
         return gen_loss
 
     def discriminator_loss(self, fwd_rtn):
-        z = fwd_rtn["z"]
         d_real = fwd_rtn["d_real"]
         d_fake = fwd_rtn["d_fake"]
 
-        disc_loss = -torch.mean(d_real.sum(dim=-1)) + torch.mean(d_fake.sum(dim=-1)) #TODO: check this
-
+        disc_loss = -torch.mean(d_real.sum(dim=-1)) + torch.mean(d_fake.sum(dim=-1)) 
         return disc_loss

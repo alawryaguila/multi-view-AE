@@ -29,7 +29,6 @@ class AE(BaseModelAE):
         for i in range(self.n_views):
             temp_recon = [self.decoders[i](z[j]) for j in range(self.n_views)]
             x_recon.append(temp_recon)
-            del temp_recon
         return x_recon
 
     def forward(self, x):

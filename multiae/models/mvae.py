@@ -54,11 +54,11 @@ class mVAE(BaseModelVAE):
         return [qz_x]
 
     def decode(self, qz_x):
-        x_recon = []
+        px_zs = []
         for i in range(self.n_views):
-            mu_out = self.decoders[i](qz_x[0]._sample(training=self._training))
-            x_recon.append([mu_out])
-        return x_recon
+            px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
+            px_zs.append(px_z)
+        return px_zs
 
     def forward(self, x):
         qz_x = self.encode(x)
