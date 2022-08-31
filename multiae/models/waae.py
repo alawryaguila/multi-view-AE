@@ -75,7 +75,7 @@ class wAAE(BaseModelAAE):
     def generator_loss(self, fwd_rtn):
         z = fwd_rtn["z"]
         d_fake = fwd_rtn["d_fake"]
-        gen_loss = -torch.mean(d_fake.sum(dim=-1))
+        gen_loss = -torch.mean(d_fake.sum(dim=-1)) #TODO: check this
         return gen_loss
 
     def discriminator_loss(self, fwd_rtn):
@@ -83,6 +83,6 @@ class wAAE(BaseModelAAE):
         d_real = fwd_rtn["d_real"]
         d_fake = fwd_rtn["d_fake"]
 
-        disc_loss = -torch.mean(d_real.sum(dim=-1)) + torch.mean(d_fake.sum(dim=-1))
+        disc_loss = -torch.mean(d_real.sum(dim=-1)) + torch.mean(d_fake.sum(dim=-1)) #TODO: check this
 
         return disc_loss

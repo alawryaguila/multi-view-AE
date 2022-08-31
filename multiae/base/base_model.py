@@ -195,7 +195,7 @@ class BaseModelAE(ABC, pl.LightningModule):
             [
                 hydra.utils.instantiate(
                     self.cfg.encoder,
-                    input_dim=d,    # TODO: check if multidim. MLP does not support multidim.
+                    input_dim=d,    
                     z_dim=self.z_dim,
                     _recursive_=False,
                     _convert_ = "all"
@@ -400,7 +400,7 @@ class BaseModelAAE(BaseModelAE):
         self.discriminator = hydra.utils.instantiate(
             self.cfg.discriminator,
             input_dim=self.z_dim,
-            output_dim=(self.n_views + 1),
+            output_dim=1,
             is_wasserstein=self.is_wasserstein,
             _convert_="all"
         )

@@ -76,9 +76,8 @@ class jointAAE(BaseModelAAE):
         return recon / self.n_views
 
     def generator_loss(self, fwd_rtn):
-        z = fwd_rtn["z"]
         d_fake = fwd_rtn["d_fake"]
-        gen_loss = -torch.mean(torch.log(d_fake + self.eps))
+        gen_loss = torch.mean(1 - torch.log(d_fake + self.eps))
         return gen_loss
 
     def discriminator_loss(self, fwd_rtn):
