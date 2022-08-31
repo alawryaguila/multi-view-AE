@@ -218,6 +218,15 @@ class BaseModelAE(ABC, pl.LightningModule):
             ]
         )
 
+    def _checkprior(self, cfg):
+
+        assert (cfg.prior._target_ == 'multiae.base.distributions.Normal') \
+        or (cfg.prior._target_ == 'multiae.base.distributions.MultivariateNormal'), \
+        "Prior must be Normal or MultivariateNormal"
+
+        assert 'loc' in cfg.prior.keys(), "Must provide mean for prior distribution"
+        assert 'scale' in cfg.prior.keys(), "Must provide standard deviation for prior distribution"
+
     ################################            private methods
     def __updateconfig(self, orig, update):
         # TODO: except _target_
@@ -234,13 +243,16 @@ class BaseModelAE(ABC, pl.LightningModule):
         
         if self.model_name in VARIATIONAL_MODELS:
             self.is_variational = True
-            #TODO encoder must be variational
+            assert 'VariationalEncoder' in cfg.encoder._target_, \
+            "Must use variational encoder for variational models"
 
         # should be always false for non-sparse models
         if self.model_name not in SPARSE_MODELS:
             cfg.model.sparse = False
+        elif cfg.model.sparse:
+            assert (cfg.encoder.enc_dist._target_ == 'multiae.base.distributions.Normal'), \
+            "Must use Normal distribution for encoder for sparse models"
         # else configurable
-        #TODO if sparse prior must be normal dist for encoder
         #TODO if sparse prior then no prior should be included in yaml?
         return cfg
 
@@ -318,9 +330,11 @@ class BaseModelVAE(BaseModelAE):
                 cfg=cfg,
                 input_dim=input_dim,
                 z_dim=z_dim)
+
+        self._checkprior(self.cfg)
         if not self.sparse: #TODO: hack
             self.prior = hydra.utils.instantiate(self.cfg.prior)
-
+        exit()
     ################################            class methods
     def apply_threshold(self, z):
         """
@@ -396,7 +410,6 @@ class BaseModelAAE(BaseModelAE):
 
         self.automatic_optimization = False
 
-        # TODO - check discriminator dimensionality is correct (nviews + 1?) and for joint model too
         self.discriminator = hydra.utils.instantiate(
             self.cfg.discriminator,
             input_dim=self.z_dim,
@@ -404,7 +417,7 @@ class BaseModelAAE(BaseModelAE):
             is_wasserstein=self.is_wasserstein,
             _convert_="all"
         )
-
+        self._checkprior(self.cfg)
         self.prior = hydra.utils.instantiate(self.cfg.prior)
 
     ################################            abstract methods

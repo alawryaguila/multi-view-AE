@@ -46,8 +46,8 @@ class wAAE(BaseModelAAE):
 
     def forward_recon(self, x):
         z = self.encode(x)
-        x_out = self.decode(z)
-        fwd_rtn = {"x_recon": x_out, "z": z}
+        px_zs = self.decode(z)
+        fwd_rtn = {"px_zs": px_zs, "z": z}
         return fwd_rtn
 
     def forward_discrim(self, x):
