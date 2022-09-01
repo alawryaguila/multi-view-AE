@@ -28,46 +28,56 @@ def test_models():
     test_2 = np.random.rand(50, 10)
     test_3 = np.random.rand(50, 5)
 
-    # test_models = [MODEL_AE, MODEL_AAE, MODEL_JOINTAAE, MODEL_WAAE]
-    # test_models = [MODEL_MCVAE, MODEL_MVAE, MODEL_MMVAE, MODEL_MVTCAE, MODEL_DVCCA]
-    # test_models = [MODEL_MVTCAE] #
-   #  test_models = MODELS
-    test_models = [MODEL_AE, MODEL_AAE, MODEL_JOINTAAE, MODEL_WAAE,
-     MODEL_MCVAE, MODEL_MVAE, MODEL_MMVAE, MODEL_MEMVAE, MODEL_MVTCAE, MODEL_DVCCA]
-
+    test_models = MODELS
+    twoview_models = TWOVIEW_MODELS
     module = importlib.import_module("multiae")
     for m in test_models:
         class_ = getattr(module, m)
+        if m not in twoview_models:
+            model1 = class_(input_dim=[20])
+            model1.fit(train_1)
+            model1.fit(train_1, max_epochs=5, batch_size=10)
 
-        model1 = class_(input_dim=[20])
-        model1.fit(train_1)
-        model1.fit(train_1, max_epochs=5, batch_size=10)
+            model2 = class_(input_dim=[20, 10, 5])
+            model2.fit(train_1, train_2, train_3)
+            model2.fit(train_1, train_2, train_3, max_epochs=5, batch_size=5)
 
-        model2 = class_(input_dim=[20, 10, 5])
-        model2.fit(train_1, train_2, train_3)
-        model2.fit(train_1, train_2, train_3, max_epochs=5, batch_size=5)
+            print("RESULTS: ", m)
+            latent = model1.predict_latents(test_1)
+            print_results("latent", latent)
+            recon = model1.predict_reconstruction(test_1)
+            print_results("recon", recon)
 
-        print("RESULTS: ", m)
-        latent = model1.predict_latents(test_1)
-        print_results("latent", latent)
-        recon = model1.predict_reconstruction(test_1)
-        print_results("recon", recon)
+            latent = model1.predict_latents(test_1, batch_size=10)
+            print_results("latent", latent)
+            recon = model1.predict_reconstruction(test_1, batch_size=5)
+            print_results("recon", recon)
 
-        latent = model1.predict_latents(test_1, batch_size=10)
-        print_results("latent", latent)
-        recon = model1.predict_reconstruction(test_1, batch_size=5)
-        print_results("recon", recon)
+            latent = model2.predict_latents(test_1, test_2, test_3)
+            print_results("latent", latent)
+            recon = model2.predict_reconstruction(test_1, test_2, test_3)
+            print_results("recon", recon)
 
-        latent = model2.predict_latents(test_1, test_2, test_3)
-        print_results("latent", latent)
-        recon = model2.predict_reconstruction(test_1, test_2, test_3)
-        print_results("recon", recon)
+            latent = model2.predict_latents(test_1, test_2, test_3, batch_size=10)
+            print_results("latent", latent)
+            recon = model2.predict_reconstruction(test_1, test_2, test_3, batch_size=5)
+            print_results("recon", recon)
+            print("")
+        else:
+            model1 = class_(input_dim=[20, 10])
+            model1.fit(train_1, train_2)
+            model1.fit(train_1, train_2, max_epochs=5, batch_size=10)
 
-        latent = model2.predict_latents(test_1, test_2, test_3, batch_size=10)
-        print_results("latent", latent)
-        recon = model2.predict_reconstruction(test_1, test_2, test_3, batch_size=5)
-        print_results("recon", recon)
-        print("")
+            print("RESULTS: ", m)
+            latent = model1.predict_latents(test_1, test_2)
+            print_results("latent", latent)
+            recon = model1.predict_reconstruction(test_1, test_2)
+            print_results("recon", recon)
+
+            latent = model1.predict_latents(test_1, test_2, batch_size=10)
+            print_results("latent", latent)
+            recon = model1.predict_reconstruction(test_1, test_2, batch_size=5)
+            print_results("recon", recon)
 
 def test_userconfig():
     train_1 = np.random.rand(200, 20)
@@ -85,22 +95,33 @@ def test_userconfig():
             }
             
     module = importlib.import_module("multiae")
+    train_twoviews = [train_1, train_2]
+    test_twoviews = [test_1, test_2]
+    train_threeviews = [train_1, train_2, train_3]
+    test_threeviews = [test_1, test_2, test_3]
+
     for cfg, test_models in tests.items():
         for m in test_models:
+            if m in TWOVIEW_MODELS:
+                train = train_twoviews
+                test = test_twoviews
+            else:
+                train = train_threeviews
+                test = test_threeviews
             class_ = getattr(module, m)
             model = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=[20, 10, 5])
 
-            model.fit(train_1, train_2, train_3)
+            model.fit(*train)
 
             print("RESULTS: ", m)
-            latent = model.predict_latents(test_1, test_2, test_3)
+            latent = model.predict_latents(*test)
             print_results("latent", latent)
-            recon = model.predict_reconstruction(test_1, test_2, test_3)
+            recon = model.predict_reconstruction(*test)
             print_results("recon", recon)
 
-            latent = model.predict_latents(test_1, test_2, test_3, batch_size=10)
+            latent = model.predict_latents(*test, batch_size=10)
             print_results("latent", latent)
-            recon = model.predict_reconstruction(test_1, test_2, test_3, batch_size=5)
+            recon = model.predict_reconstruction(*test, batch_size=5)
             print_results("recon", recon)
             print("")
 

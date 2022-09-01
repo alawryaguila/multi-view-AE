@@ -43,6 +43,7 @@ class DVCCA(BaseModelVAE):
         )
 
         if self.private:
+
             self.private_encoders = torch.nn.ModuleList(
                 [
                     hydra.utils.instantiate(
@@ -59,7 +60,8 @@ class DVCCA(BaseModelVAE):
             )
             self.z_dim = self.z_dim + self.z_dim
             if self.sparse and self.threshold != 0.:
-                self.log_alpha = torch.nn.Parameter(    # TODO: is this correct? have to update log_alpha due to z_dim
+                
+                self.log_alpha = torch.nn.Parameter(    
                     torch.FloatTensor(1, self.z_dim).normal_(0, 0.01)
                 )
 

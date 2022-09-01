@@ -34,7 +34,7 @@ class wAAE(BaseModelAAE):
         px_zs = []
         for i in range(self.n_views):
             px_z = self.decoders[i](z[0])
-            px_zs.append(px_z)
+            px_zs.append([px_z])
         return px_zs
 
     def disc(self, z):

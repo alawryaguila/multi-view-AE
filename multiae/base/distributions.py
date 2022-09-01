@@ -1,5 +1,5 @@
 import torch
-
+import numpy as np
 from torch.distributions import Normal, kl_divergence
 from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions.utils import broadcast_all
@@ -19,10 +19,13 @@ class MultivariateNormal(MultivariateNormal):
 
         self.loc = kwargs['loc']
         self.scale = kwargs['scale']
+        
         if isinstance(self.scale, int): # TODO: dont like this, check loc is always list?
             self.covariance_matrix = torch.diag_embed(torch.ones(len(self.loc))*self.scale)
+            self.loc = torch.Tensor(self.loc)
         else:
             self.covariance_matrix = torch.diag_embed(self.scale)
+
         super().__init__(loc=self.loc, covariance_matrix=self.covariance_matrix)
 
     @property
@@ -35,7 +38,7 @@ class MultivariateNormal(MultivariateNormal):
         sh = kl.shape
         return kl.reshape((sh[0], 1))   # TODO: hack. kl_dirgence returns (x,) vector here. not the same with Normal.kl_divergence
 
-    def sparse_kl_divergence(self):  # TODO: check this is also the case for multivariate gauss - fine except using Normal prior
+    def sparse_kl_divergence(self): 
         mu = self.loc
         logvar = torch.log(self.variance)
         log_alpha = compute_log_alpha(mu, logvar)

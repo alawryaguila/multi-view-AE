@@ -25,3 +25,4 @@ decoder:
 
   dec_dist:
     _target_: multiae.base.distributions.Normal
+  

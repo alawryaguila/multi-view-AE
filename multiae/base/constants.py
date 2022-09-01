@@ -42,11 +42,15 @@ SPARSE_MODELS = [
             MODEL_DVCCA
         ]
 
+TWOVIEW_MODELS = [
+            MODEL_JMVAE,
+]
 CONFIG_KEYS = [
             "model",
             "datamodule",
             "encoder",
             "decoder",
+            "prior",
             "trainer",
             "callbacks",
             "logger"

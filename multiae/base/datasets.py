@@ -19,7 +19,6 @@ class MVDataset(Dataset):
         self.return_index = return_index
         self.transform = transform
 
-        # TODO: assumes the same N? assert somewhere
         self.N = len(self.data[0])
         self.data = [
             torch.from_numpy(d).float() if isinstance(d, np.ndarray) else d

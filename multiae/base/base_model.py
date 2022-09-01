@@ -56,6 +56,7 @@ class BaseModelAE(ABC, pl.LightningModule):
 
         # some variables should not be set for certain models
         self.cfg = self.__checkconfig(def_cfg)
+        
         print("MODEL: ", self.model_name)
         self.print_config()
 
@@ -65,8 +66,6 @@ class BaseModelAE(ABC, pl.LightningModule):
             pl.seed_everything(self.cfg.model.seed, workers=True)
 
 
-
-        
         self.input_dim = input_dim 
         if z_dim is not None:   # overrides hydra config... passed arg has precedence
             self.z_dim = z_dim  
@@ -89,8 +88,10 @@ class BaseModelAE(ABC, pl.LightningModule):
         
     ################################            public methods
     def fit(self, *data, labels=None, max_epochs=None, batch_size=None):
-        self._training = True
+
         data = list(data) 
+        assert all(data_.shape[0] == data[0].shape[0] for data_ in data), 'All modalities must have same number of entries'
+        self._training = True
         if max_epochs is not None:
             self.max_epochs = max_epochs
             self.cfg.trainer.max_epochs = max_epochs
@@ -218,15 +219,6 @@ class BaseModelAE(ABC, pl.LightningModule):
             ]
         )
 
-    def _checkprior(self, cfg):
-
-        assert (cfg.prior._target_ == 'multiae.base.distributions.Normal') \
-        or (cfg.prior._target_ == 'multiae.base.distributions.MultivariateNormal'), \
-        "Prior must be Normal or MultivariateNormal"
-
-        assert 'loc' in cfg.prior.keys(), "Must provide mean for prior distribution"
-        assert 'scale' in cfg.prior.keys(), "Must provide standard deviation for prior distribution"
-
     ################################            private methods
     def __updateconfig(self, orig, update):
         # TODO: except _target_
@@ -253,7 +245,7 @@ class BaseModelAE(ABC, pl.LightningModule):
             assert (cfg.encoder.enc_dist._target_ == 'multiae.base.distributions.Normal'), \
             "Must use Normal distribution for encoder for sparse models"
         # else configurable
-        #TODO if sparse prior then no prior should be included in yaml?
+    
         return cfg
 
     # TODO: batch_idx is not manual_seed --> what does this mean?
@@ -331,10 +323,8 @@ class BaseModelVAE(BaseModelAE):
                 input_dim=input_dim,
                 z_dim=z_dim)
 
-        self._checkprior(self.cfg)
-        if not self.sparse: #TODO: hack
-            self.prior = hydra.utils.instantiate(self.cfg.prior)
-        exit()
+        self.__checkprior(self.cfg)
+
     ################################            class methods
     def apply_threshold(self, z):
         """
@@ -390,6 +380,22 @@ class BaseModelVAE(BaseModelAE):
         alpha = torch.exp(self.log_alpha.detach())
         return alpha / (alpha + 1)
 
+    def __checkprior(self, cfg):
+        #TODO: create rules for allowed combinations of distributions
+        assert (cfg.prior._target_ == cfg.encoder.enc_dist._target_), 'Prior and posterior must have same distribution'
+
+        assert (cfg.prior._target_ == 'multiae.base.distributions.Normal') \
+        or (cfg.prior._target_ == 'multiae.base.distributions.MultivariateNormal'), \
+        "Prior must be Normal or MultivariateNormal"
+
+        assert 'loc' in cfg.prior.keys(), "Must provide mean for prior distribution"
+        assert 'scale' in cfg.prior.keys(), "Must provide standard deviation for prior distribution"
+
+        if isinstance(cfg.prior.loc, int) and cfg.prior._target_ == 'multiae.base.distributions.MultivariateNormal':
+            cfg.prior.loc = [cfg.prior.loc]*self.z_dim
+        if not self.sparse:
+            self.prior = hydra.utils.instantiate(cfg.prior)
+       
 ################################################################################
 class BaseModelAAE(BaseModelAE):
     is_wasserstein = False
@@ -417,8 +423,7 @@ class BaseModelAAE(BaseModelAE):
             is_wasserstein=self.is_wasserstein,
             _convert_="all"
         )
-        self._checkprior(self.cfg)
-        self.prior = hydra.utils.instantiate(self.cfg.prior)
+        self.__checkprior(self.cfg)
 
     ################################            abstract methods
     @abstractmethod
@@ -503,6 +508,18 @@ class BaseModelAAE(BaseModelAE):
         return optimizers
 
     ################################            private methods
+    def __checkprior(self, cfg):
+
+        assert (cfg.prior._target_ == 'multiae.base.distributions.Normal') \
+        or (cfg.prior._target_ == 'multiae.base.distributions.MultivariateNormal'), \
+        "Prior must be Normal or MultivariateNormal"
+
+        assert 'loc' in cfg.prior.keys(), "Must provide mean for prior distribution"
+        assert 'scale' in cfg.prior.keys(), "Must provide standard deviation for prior distribution"
+        if isinstance(cfg.prior.loc, int) and cfg.prior._target_ == 'multiae.base.distributions.MultivariateNormal':
+            cfg.prior.loc = [cfg.prior.loc]*self.z_dim
+        self.prior = hydra.utils.instantiate(cfg.prior)
+
     def __optimise_batch(self, local_batch):
         fwd_return = self.forward_recon(local_batch)
         loss_recon = self.recon_loss(local_batch, fwd_return)

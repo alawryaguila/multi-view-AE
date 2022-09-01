@@ -1,7 +1,4 @@
 import torch
-import numpy as np
-from torch.autograd import Variable
-from ..base.distributions import Normal
 from ..base.constants import MODEL_AAE
 from ..base.base_model import BaseModelAAE
 
