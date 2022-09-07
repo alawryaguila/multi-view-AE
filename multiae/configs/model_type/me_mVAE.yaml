@@ -1,18 +1,19 @@
 # @package _global_
 
-# default parameters for DVCCA model
-model_name: "DVCCA"
+# default parameters for MVAE model
+model_name: "me_mVAE"
 
 model:
   beta: 1
-  private: False
+  join_type: "PoE"  # TODO: test MeanRepresentation, set restrictions with hydra?
 
-  sparse: True
+  sparse: False
 
 encoder:
   _target_: multiae.models.layers.VariationalEncoder
 
   non_linear: False
+
   enc_dist:
     _target_: multiae.base.distributions.Normal
 

@@ -1,6 +1,0 @@
-_target_: multiae.models.layers.Encoder
-
-hidden_layer_dims: []
-bias: True
-non_linear: False
-variational: False

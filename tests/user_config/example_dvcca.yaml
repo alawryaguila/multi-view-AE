@@ -1,0 +1,16 @@
+# @package _global_
+
+model:
+  use_GPU: True
+  seed: 1000
+
+  z_dim: 12
+  private: True
+  sparse: False
+
+encoder:
+  non_linear: True
+
+decoder:
+  non_linear: True
+  init_logvar: -4

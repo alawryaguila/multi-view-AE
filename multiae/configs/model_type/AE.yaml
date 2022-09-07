@@ -1,16 +1,4 @@
 # @package _global_
 
-defaults:
-  - override /model: base.yaml
-
-# all parameters below will be merged with parameters from default configurations set above
-# this allows you to overwrite only specified parameters
 # default parameters for AE model
 model_name: "AE"
-
-model:
-  sparse: False
-  joint_representation: False
-  variational: False
-
-out_dir: ${original_work_dir}/${model_name}/${now:%Y_%m_%d_%H%M}

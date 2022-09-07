@@ -2,15 +2,10 @@ import torch
 
 from torch.autograd import Variable
 
-from ..base.constants import MODEL_JOINTAAE
+from ..base.constants import MODEL_WAAE
 from ..base.base_model import BaseModelAAE
 
-class jointAAE(BaseModelAAE):
-    """
-    Multi-view Adversarial Autoencoder model with a joint latent representation.
-
-    """
-
+class wAAE(BaseModelAAE):
     def __init__(
         self,
         cfg = None,
@@ -18,10 +13,12 @@ class jointAAE(BaseModelAAE):
         z_dim = None
     ):
 
-        super().__init__(model_name=MODEL_JOINTAAE,
+        super().__init__(model_name=MODEL_WAAE,
                 cfg=cfg,
                 input_dim=input_dim,
                 z_dim=z_dim)
+
+        self.is_wasserstein = True
 
     def encode(self, x):
         z = []
@@ -32,7 +29,6 @@ class jointAAE(BaseModelAAE):
         z = torch.stack(z)
         mean_z = torch.mean(z, axis=0)
         return [mean_z]
-
 
     def decode(self, z):
         px_zs = []
@@ -78,14 +74,12 @@ class jointAAE(BaseModelAAE):
 
     def generator_loss(self, fwd_rtn):
         d_fake = fwd_rtn["d_fake"]
-        gen_loss = torch.mean(1 - torch.log(d_fake + self.eps))
+        gen_loss = -torch.mean(d_fake.sum(dim=-1)) 
         return gen_loss
 
     def discriminator_loss(self, fwd_rtn):
-        z = fwd_rtn["z"]
         d_real = fwd_rtn["d_real"]
         d_fake = fwd_rtn["d_fake"]
-        disc_loss = -torch.mean(
-            torch.log(d_real + self.eps) + torch.log(1 - d_fake + self.eps)
-        )
+
+        disc_loss = -torch.mean(d_real.sum(dim=-1)) + torch.mean(d_fake.sum(dim=-1)) 
         return disc_loss

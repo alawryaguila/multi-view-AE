@@ -1,67 +1,27 @@
 import torch
-from ..base.base_model import BaseModel
-from ..utils.calc_utils import ProductOfExperts
 import hydra
-from torch.distributions import Normal
 
+from ..base.constants import MODEL_MVTCAE
+from ..base.base_model import BaseModelVAE
+from ..base.representations import ProductOfExperts
+from ..base.distributions import Normal
 
-class MVTCAE(BaseModel):
+class mvtCAE(BaseModelVAE):
     """
     Multi-View Total Correlation Auto-Encoder (MVTCAE) https://proceedings.neurips.cc/paper/2021/hash/65a99bb7a3115fdede20da98b08a370f-Abstract.html
     """
 
     def __init__(
         self,
-        input_dims,
-        model="MVTCAE",
-        network=None,
-        **kwargs,
+        cfg = None,
+        input_dim = None,
+        z_dim = None
     ):
 
-        super().__init__(model=model, network=network)
-        self.save_hyperparameters()
-
-        self.__dict__.update(self.cfg.model)
-        self.__dict__.update(kwargs)
-
-        self.model_type = model
-        self.input_dims = input_dims
-        self.n_views = len(input_dims)
-
-        self.encoders = torch.nn.ModuleList(
-            [
-                hydra.utils.instantiate(
-                    self.cfg.encoder,
-                    _recursive_=False,
-                    input_dim=input_dim,
-                    z_dim=self.z_dim,
-                    sparse=self.sparse,
-                )
-                for input_dim in self.input_dims
-            ]
-        )
-        self.decoders = torch.nn.ModuleList(
-            [
-                hydra.utils.instantiate(
-                    self.cfg.decoder,
-                    _recursive_=False,
-                    input_dim=input_dim,
-                    z_dim=self.z_dim,
-                )
-                for input_dim in self.input_dims
-            ]
-        )
-
-    def configure_optimizers(self):
-        optimizers = [
-            torch.optim.Adam(
-                list(self.encoders[i].parameters())
-                + list(self.decoders[i].parameters()),
-                lr=self.learning_rate,
-            )
-            for i in range(self.n_views)
-        ]
-        return optimizers
+        super().__init__(model_name=MODEL_MVTCAE,
+                        cfg=cfg,
+                        input_dim=input_dim,
+                        z_dim=z_dim)
 
     def encode(self, x):
         if self._training:
@@ -87,7 +47,7 @@ class MVTCAE(BaseModel):
             qz_x = hydra.utils.instantiate(
                 self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
             )
-            return qz_x
+            return [qz_x]
 
     def decode(self, qz_xs):
         if self._training:
@@ -103,13 +63,13 @@ class MVTCAE(BaseModel):
                         self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
                     ).rsample()
                 )
-                px_zs.append(px_z)
+                px_zs.append([px_z])
             return px_zs
         else:
             px_zs = []
             for i in range(self.n_views):
-                px_z = self.decoders[i](qz_xs.loc)
-                px_zs.append(px_z)
+                px_z = self.decoders[i](qz_xs[0].loc)
+                px_zs.append([px_z])
             return px_zs
 
     def forward(self, x):
@@ -117,51 +77,6 @@ class MVTCAE(BaseModel):
         px_zs = self.decode(qz_xs)
         fwd_rtn = {"px_zs": px_zs, "qz_xs": qz_xs}
         return fwd_rtn
-
-    def calc_kl_cvib(self, qz_xs):
-        mu = [qz_x.loc for qz_x in qz_xs]
-        var = [qz_x.variance for qz_x in qz_xs]
-        mu = torch.stack(mu)
-        print('mu: ', mu)
-        var = torch.stack(var)
-        print('var: ', var)
-        mu, var = ProductOfExperts()(mu, var)
-        kl = 0
-        for i in range(self.n_views):
-            kl += (
-                hydra.utils.instantiate(
-                    self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
-                )
-                .kl_divergence(qz_xs[i])
-                .sum(1, keepdims=True)
-                .mean(0)
-            )
-        return kl
-
-    def calc_kl_groupwise(self, qz_xs):
-        mu = [qz_x.loc for qz_x in qz_xs]
-        var = [qz_x.variance for qz_x in qz_xs]
-        mu = torch.stack(mu)
-        var = torch.stack(var)
-        mu, var = ProductOfExperts()(mu, var)
-        prior = Normal(0, 1)  # TODO - flexible prior
-        return (
-            hydra.utils.instantiate(
-                self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
-            )
-            .kl_divergence(prior)
-            .sum(1, keepdims=True)
-            .mean(0)
-        )
-
-    def calc_ll(self, x, px_zs):
-        ll = 0
-        for i in range(self.n_views):
-            ll += px_zs[i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
-        return ll
-
-    def sample_from_dist(self, dist):
-        return dist._sample()
 
     def loss_function(self, x, fwd_rtn):
         px_zs = fwd_rtn["px_zs"]
@@ -180,3 +95,38 @@ class MVTCAE(BaseModel):
 
         losses = {"loss": total, "kl_cvib": cvib_kl, "kl_grp": grp_kl, "ll": ll}
         return losses
+
+    def calc_kl_cvib(self, qz_xs):
+        mu = [qz_x.loc for qz_x in qz_xs]
+        var = [qz_x.variance for qz_x in qz_xs]
+        mu = torch.stack(mu)
+        var = torch.stack(var)
+        mu, var = ProductOfExperts()(mu, var)
+        kl = 0
+        for i in range(self.n_views):
+            kl += (
+                hydra.utils.instantiate(
+                    self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
+                )
+                .kl_divergence(qz_xs[i]).sum(1, keepdims=True).mean(0)
+            )
+        return kl
+
+    def calc_kl_groupwise(self, qz_xs):
+        mu = [qz_x.loc for qz_x in qz_xs]
+        var = [qz_x.variance for qz_x in qz_xs]
+        mu = torch.stack(mu)
+        var = torch.stack(var)
+        mu, var = ProductOfExperts()(mu, var)
+        return (
+            hydra.utils.instantiate(
+                self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
+            )
+            .kl_divergence(self.prior).sum(1, keepdims=True).mean(0)
+        )
+
+    def calc_ll(self, x, px_zs):
+        ll = 0
+        for i in range(self.n_views):
+            ll += px_zs[i][0].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+        return ll

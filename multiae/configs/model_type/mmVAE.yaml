@@ -1,18 +1,18 @@
 # @package _global_
 
-# default parameters for DVCCA model
-model_name: "DVCCA"
+# default parameters for MMVAE model
+model_name: "mmVAE"
 
 model:
   beta: 1
-  private: False
 
-  sparse: True
+  K: 20
 
 encoder:
   _target_: multiae.models.layers.VariationalEncoder
 
   non_linear: False
+
   enc_dist:
     _target_: multiae.base.distributions.Normal
 

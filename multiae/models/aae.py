@@ -1,10 +1,6 @@
 import torch
+from ..base.constants import MODEL_AAE
 from ..base.base_model import BaseModelAAE
-import numpy as np
-from ..utils.calc_utils import compute_mse, update_dict
-from torch.autograd import Variable
-import hydra
-
 
 class AAE(BaseModelAAE):
     """
@@ -14,89 +10,15 @@ class AAE(BaseModelAAE):
 
     def __init__(
         self,
-        input_dims,
-        model="AAE",
-        network=None,
-        **kwargs,
+        cfg = None,
+        input_dim = None,
+        z_dim = None
     ):
 
-        super().__init__(model=model, network=network)
-
-        self.save_hyperparameters()
-        self.automatic_optimization = False
-        self.__dict__.update(self.cfg.model)
-        self.__dict__.update(kwargs)
-
-        self.cfg.encoder = update_dict(self.cfg.encoder, kwargs)
-        self.cfg.decoder = update_dict(self.cfg.decoder, kwargs)
-
-        self.model_type = model
-        self.input_dims = input_dims
-        self.n_views = len(input_dims)
-
-        self.encoders = torch.nn.ModuleList(
-            [
-                hydra.utils.instantiate(
-                    self.cfg.encoder,
-                    _recursive_=False,
-                    input_dim=input_dim,
-                    z_dim=self.z_dim,
-                )
-                for input_dim in self.input_dims
-            ]
-        )
-        self.decoders = torch.nn.ModuleList(
-            [
-                hydra.utils.instantiate(
-                    self.cfg.decoder,
-                    _recursive_=False,
-                    input_dim=input_dim,
-                    z_dim=self.z_dim,
-                )
-                for input_dim in self.input_dims
-            ]
-        )
-        self.discriminator = hydra.utils.instantiate(
-            self.cfg.discriminator,
-            _recursive_=False,
-            input_dim=self.z_dim,
-            output_dim=(self.n_views + 1),
-        )
-
-        # TO DO - check discriminator dimensionality is correct (nviews + 1?) and for joint model too
-
-    def configure_optimizers(self):
-        optimizers = []
-        [
-            optimizers.append(
-                torch.optim.Adam(
-                    list(self.encoders[i].parameters()), lr=self.learning_rate
-                )
-            )
-            for i in range(self.n_views)
-        ]
-        [
-            optimizers.append(
-                torch.optim.Adam(
-                    list(self.decoders[i].parameters()), lr=self.learning_rate
-                )
-            )
-            for i in range(self.n_views)
-        ]
-        [
-            optimizers.append(
-                torch.optim.Adam(
-                    list(self.encoders[i].parameters()), lr=self.learning_rate
-                )
-            )
-            for i in range(self.n_views)
-        ]
-        optimizers.append(
-            torch.optim.Adam(
-                list(self.discriminator.parameters()), lr=self.learning_rate
-            )
-        )
-        return optimizers
+        super().__init__(model_name=MODEL_AAE,
+                cfg=cfg,
+                input_dim=input_dim,
+                z_dim=z_dim)
 
     def encode(self, x):
         z = []
@@ -106,18 +28,15 @@ class AAE(BaseModelAAE):
         return z
 
     def decode(self, z):
-        x_recon = []
+        px_zs = []
         for i in range(self.n_views):
-            temp_recon = [self.decoders[i](z[j]) for j in range(self.n_views)]
-            x_recon.append(temp_recon)
-            del temp_recon
-        return x_recon
+            px_z = [self.decoders[i](z[j]) for j in range(self.n_views)]
+            px_zs.append(px_z)
+        return px_zs
 
-    def sample_from_dist(self, dist):
-        return dist._sample()
-        
     def disc(self, z):
-        z_real = Variable(torch.randn(z[0].size()[0], self.z_dim) * 1.0).to(self.device)
+        sh = z[0].shape
+        z_real = self.prior.sample(sample_shape=sh)
         d_real = self.discriminator(z_real)
         d_fake = []
         for i in range(self.n_views):
@@ -127,8 +46,8 @@ class AAE(BaseModelAAE):
 
     def forward_recon(self, x):
         z = self.encode(x)
-        x_recon = self.decode(z)
-        fwd_rtn = {"x_recon": x_recon, "z": z}
+        px_zs = self.decode(z)
+        fwd_rtn = {"px_zs": px_zs, "z": z}
         return fwd_rtn
 
     def forward_discrim(self, x):
@@ -147,38 +66,27 @@ class AAE(BaseModelAAE):
         return fwd_rtn
 
     def recon_loss(self, x, fwd_rtn):
-        x_recon = fwd_rtn["x_recon"]
-        recon = 0
+        px_zs = fwd_rtn["px_zs"]
+        ll = 0
         for i in range(self.n_views):
             for j in range(self.n_views):
-                recon += x_recon[i][j].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
-        return recon / self.n_views / self.n_views
+                ll += - px_zs[i][j].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+        return ll / self.n_views / self.n_views
 
-    def generator_loss(self, fwd_rtn):
-        z = fwd_rtn["z"]
+    def generator_loss (self, fwd_rtn):
         d_fake = fwd_rtn["d_fake"]
         gen_loss = 0
-        label_real = np.zeros((z[0].shape[0], self.n_views + 1))
-        label_real[:, 0] = 1
-        label_real = torch.FloatTensor(label_real).to(self.device)
         for i in range(self.n_views):
-            gen_loss += -torch.mean(label_real * torch.log(d_fake[i] + self.eps))
-        return gen_loss / self.n_views
-
+            gen_loss += torch.mean(1 - torch.log(d_fake[i] + self.eps))
+        return gen_loss/self.n_views
+    
     def discriminator_loss(self, fwd_rtn):
-        z = fwd_rtn["z"]
         d_real = fwd_rtn["d_real"]
         d_fake = fwd_rtn["d_fake"]
-        disc_loss = 0
-        label_real = np.zeros((z[0].shape[0], self.n_views + 1))
-        label_real[:, 0] = 1
-        label_real = torch.FloatTensor(label_real).to(self.device)
 
-        disc_loss += -torch.mean(label_real * torch.log(d_real + self.eps))
+        disc_loss = -torch.mean(torch.log(d_real + self.eps)) 
         for i in range(self.n_views):
-            label_fake = np.zeros((z[0].shape[0], self.n_views + 1))
-            label_fake[:, i + 1] = 1
-            label_fake = torch.FloatTensor(label_fake).to(self.device)
-            disc_loss += -torch.mean(label_fake * torch.log(d_fake[i] + self.eps))
-
+            disc_loss += -torch.mean(1 - torch.log(d_fake[i] + self.eps))
         return disc_loss / (self.n_views + 1)
+
+

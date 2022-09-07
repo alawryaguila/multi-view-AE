@@ -1,0 +1,99 @@
+# @package _global_
+
+# TODO: _target_ should not be replaceable except for enc/dec _target_ and enc_dist/dec_dist _target_
+# TODO: user should be able to replace _target_ with classnames and not full classpath
+
+defaults:
+  - _self_
+  - model_type: null
+
+out_dir: ${hydra.runtime.cwd}/outputs/${model_name}/${now:%Y-%m-%d_%H%M}
+
+hydra:
+  # TODO: this does not work... I want to save yaml files, i think it is not enabled when using initialize/compose
+  output_subdir: ${out_dir}/.hydra
+  run:
+    dir: ${out_dir}
+
+model:
+  use_GPU: False
+  save_model: True
+
+  seed_everything: True
+  seed: 42
+
+  # TODO: support multi-dimensional tuple
+  z_dim: 5
+  learning_rate: 0.001  # learning rate for both encoder/decoder
+
+  sparse: False
+  threshold: 0.2
+
+datamodule:
+  _target_: multiae.base.dataloaders.MultiviewDataModule
+
+  # TODO: specify in docs what happens if batch_size is None
+  batch_size: null
+  is_validate: True
+
+  train_size: 0.9
+
+encoder:
+  _target_: multiae.models.layers.Encoder
+
+  hidden_layer_dim: []  # TODO: why empty default?
+  bias: True
+  non_linear: False
+
+  enc_dist:
+    _target_: multiae.base.distributions.Default
+
+decoder:
+  _target_: multiae.models.layers.Decoder
+
+  # TODO: test hidden_layer_dim not same as encoder's?
+  hidden_layer_dim: []  # TODO: note in documentation that this will be reversed... usually same as encoder's hidden layers
+  bias: True
+  non_linear: False
+
+  dec_dist:
+    _target_: multiae.base.distributions.Default
+  
+prior:
+  _target_: multiae.base.distributions.Normal
+  loc: 0
+  scale: 1
+
+trainer:
+  _target_: pytorch_lightning.Trainer
+
+  gpus: 0
+
+  max_epochs: 10
+
+  deterministic: false
+  log_every_n_steps: 2
+
+  # NOTE: null means do not resume_from_checkpoint
+  resume_from_checkpoint: null #${out_dir}/last.ckpt  #TODO: should default be to resume?
+
+callbacks:
+  model_checkpoint:
+    _target_: pytorch_lightning.callbacks.ModelCheckpoint
+    monitor: "val_loss"
+    mode: "min"
+    save_last: True
+    dirpath: ${out_dir}
+
+  early_stopping:
+    _target_: pytorch_lightning.callbacks.EarlyStopping
+    monitor: "val_loss"
+    mode: "min"
+    patience: 50
+    min_delta: 0.001
+    verbose: True
+
+logger:
+  _target_: pytorch_lightning.loggers.tensorboard.TensorBoardLogger
+
+  save_dir: ${out_dir}/logs

@@ -1,0 +1,17 @@
+# @package _global_
+
+model:
+  sparse: False
+
+encoder:
+  enc_dist:
+    _target_: multiae.base.distributions.MultivariateNormal
+
+decoder:
+  enc_dist:
+    _target_: multiae.base.distributions.MultivariateNormal
+
+prior:
+  _target_: multiae.base.distributions.MultivariateNormal
+  loc: 0
+  scale: 1
