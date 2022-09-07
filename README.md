@@ -8,7 +8,7 @@ This repository contains various multi-view autoencoder models built in Pytorch 
  
 | Model class      | Model name           | Number of views |
 | ------------- |:-------------:| -----:|
-| multiVAE      | Multi-Channel Variational Autoencoder (mcVAE) [1] | >=1 |
+| mcVAE      | Multi-Channel Variational Autoencoder (mcVAE) [1] | >=1 |
 | AE      | Multi-view Autoencoder    |   >=1 |
 | AAE | Multi-view Adversarial Autoencoder with separate latent representations     |    >=1 |
 | cVAE     | Conditional Variational Autoencoder [2] | 1 |
@@ -17,7 +17,9 @@ This repository contains various multi-view autoencoder models built in Pytorch 
 |  jointAAE    | Multi-view Adversarial Autoencoder with joint latent representation  |   >=1 |
 | wAAE | Multi-view Adversarial Autoencoder with joint latent representation and wasserstein loss    |    >=1 |
 |  mmVAE    | Variational mixture-of-experts autoencoder (MMVAE) [4] |   >=1 |
-| jointVAE | Multi-view VAE with joint representation. Multimodal Variational Autoencoder (MVAE) with ```join_type=PoE``` [5] |    >=1 |
+| mVAE | Multi-view VAE with joint representation. Multimodal Variational Autoencoder (MVAE) with ```join_type=PoE``` [5] |    >=1 |
+| me_mVAE | Multimodal Variational Autoencoder (MVAE) with separate ELBO terms for each view [5] |    >=1 |
+| JMVAE |  Joint Multimodal Variational Autoencoder(JMVAE-kl) [6] |    2 |
 
 [1] Antelmi, Luigi & Ayache, Nicholas & Robert, Philippe & Lorenzi, Marco. (2019). Sparse Multi-Channel Variational Autoencoder for the Joint Analysis of Heterogeneous Data. 
 
