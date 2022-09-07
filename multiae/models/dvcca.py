@@ -1,9 +1,7 @@
 import torch
 import hydra
-
 from ..base.constants import MODEL_DVCCA
 from ..base.base_model import BaseModelVAE
-from ..base.distributions import Normal
 
 class DVCCA(BaseModelVAE):
     def __init__(

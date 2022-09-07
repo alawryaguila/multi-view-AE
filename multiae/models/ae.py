@@ -1,5 +1,3 @@
-import hydra
-from hydra import compose, initialize
 from ..base.constants import MODEL_AE
 from ..base.base_model import BaseModelAE
 

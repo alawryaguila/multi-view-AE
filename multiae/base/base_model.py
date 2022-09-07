@@ -1,12 +1,11 @@
 import os
-import ast
 import numpy as np
 import hydra
 
 import torch
 import pytorch_lightning as pl
 
-from os.path import join, exists, isdir
+from os.path import join, isdir
 from abc import ABC, abstractmethod
 from hydra import compose, initialize, initialize_config_dir
 
@@ -14,7 +13,6 @@ from torch.utils.data.dataloader import DataLoader
 from omegaconf import OmegaConf
 
 from .constants import MODELS, VARIATIONAL_MODELS, SPARSE_MODELS, CONFIG_KEYS
-from .dataloaders import MultiviewDataModule
 from .datasets import MVDataset
 from datetime import datetime
 
@@ -46,14 +44,22 @@ class BaseModelAE(ABC, pl.LightningModule):
                         )
 
         if cfg is not None: # user overrides default config
-            workdir = os.getcwd()   # TODO: assumes path is relative to working dir
-            with initialize_config_dir(version_base=None, config_dir=workdir):
-                user_cfg = compose(
-                            config_name=cfg,
-                            return_hydra_config=True
-                        )
+            if os.path.isabs(cfg):
+                cfgdir, cfg_file = os.path.split(cfg)
+                with initialize_config_dir(version_base=None, config_dir=cfgdir):
+                    user_cfg = compose(
+                                config_name=cfg_file,
+                                return_hydra_config=True
+                            )
+            else:
+                workdir = os.getcwd() 
+                with initialize_config_dir(version_base=None, config_dir=workdir):
+                    user_cfg = compose(
+                                config_name=cfg,
+                                return_hydra_config=True
+                            )
             def_cfg = self.__updateconfig(def_cfg, user_cfg)
-
+        
         # some variables should not be set for certain models
         self.cfg = self.__checkconfig(def_cfg)
         
@@ -476,7 +482,8 @@ class BaseModelAAE(BaseModelAE):
 
     def configure_optimizers(self):
         optimizers = []
-        [   # TODO: why the brackets?
+        #Encoder optimizers
+        [   
             optimizers.append(
                 torch.optim.Adam(
                     list(self.encoders[i].parameters()), lr=self.learning_rate
@@ -484,6 +491,7 @@ class BaseModelAAE(BaseModelAE):
             )
             for i in range(self.n_views)
         ]
+        #Decoder optimizers
         [
             optimizers.append(
                 torch.optim.Adam(
@@ -492,6 +500,7 @@ class BaseModelAAE(BaseModelAE):
             )
             for i in range(self.n_views)
         ]
+        #Generator optimizers
         [
             optimizers.append(
                 torch.optim.Adam(
@@ -500,6 +509,7 @@ class BaseModelAAE(BaseModelAE):
             )
             for i in range(self.n_views)
         ]
+        #Discriminator optimizers
         optimizers.append(
             torch.optim.Adam(
                 list(self.discriminator.parameters()), lr=self.learning_rate

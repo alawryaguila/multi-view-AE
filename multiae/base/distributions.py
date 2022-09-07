@@ -36,7 +36,7 @@ class MultivariateNormal(MultivariateNormal):
         kl = kl_divergence(torch.distributions.multivariate_normal.MultivariateNormal( \
                         loc=self.loc, covariance_matrix=self.covariance_matrix), other)
         sh = kl.shape
-        return kl.reshape((sh[0], 1))   # TODO: hack. kl_dirgence returns (x,) vector here. not the same with Normal.kl_divergence
+        return kl.reshape((sh[0], 1)) 
 
     def sparse_kl_divergence(self): 
         mu = self.loc
@@ -97,7 +97,6 @@ class Normal(Normal):
             return self.rsample(*kwargs)
         return self.loc
 
-# TODO: test this
 class Bernoulli():
     def __init__(
         self,

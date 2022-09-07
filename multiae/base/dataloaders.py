@@ -68,7 +68,6 @@ class MultiviewDataModule(pl.LightningDataModule):
             return np.array(self.labels)
 
     def train_dataloader(self):
-        # TODO: other settings? like num_workers
         return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=False, num_workers=0) #use default num_workers for now, problem in windows! 
 
     def val_dataloader(self):
