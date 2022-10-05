@@ -1,2 +1,2 @@
-from multiae.models import *
-from multiae.base.constants import *
+from .models import *
+from .base.constants import *
