@@ -9,7 +9,6 @@ from ..base.distributions import Normal
 class mvtCAE(BaseModelVAE):
     """
     Multi-View Total Correlation Auto-Encoder (MVTCAE) https://proceedings.neurips.cc/paper/2021/hash/65a99bb7a3115fdede20da98b08a370f-Abstract.html
-    code inspired by: https://github.com/gr8joo/MVTCAE
     """
 
     def __init__(
