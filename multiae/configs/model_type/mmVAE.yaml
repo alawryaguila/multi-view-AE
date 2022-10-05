@@ -4,8 +4,6 @@
 model_name: "mmVAE"
 
 model:
-  beta: 1
-
   K: 20
 
 encoder:

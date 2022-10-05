@@ -6,8 +6,8 @@ model_name: "wAAE"
 discriminator:
   _target_: multiae.models.layers.Discriminator
 
-  hidden_layer_dim: []  # TODO: why empty default?
+  hidden_layer_dim: []  
   bias: True
   non_linear: False
 
-  dropout_threshold: 0  ## TODO: this is different from sparse threshold?
+  dropout_threshold: 0  #Discriminator layer dropout
