@@ -64,7 +64,7 @@ encoder:
  ``` 
  The ```encoder._target_``` parameter specifies the encoder function class of which the in-built options include: ```multiae.models.layers.Encoder``` and ```multiae.models.layers.VariationalEncoder```.
  
- The ``encoder.enc_dist._target_``` parameter specifies the encoding distribution class of which the in-built options include: ```multiae.base.distributions.Default```, ```multiae.base.distributions.Normal``` and ```multiae.base.distributions.MultivariateNormal```. The ```multiae.base.distributions.Default``` class is used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
+ The ```encoder.enc_dist._target_``` parameter specifies the encoding distribution class of which the in-built options include: ```multiae.base.distributions.Default```, ```multiae.base.distributions.Normal``` and ```multiae.base.distributions.MultivariateNormal```. The ```multiae.base.distributions.Default``` class is used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
 
 ### Decoder
 The decoder function parameters.
@@ -81,7 +81,7 @@ decoder:
  ``` 
  The ```decoder._target_``` parameter specifies the encoder function class of which the in-built options include: ```multiae.models.layers.Decoder``` and ```multiae.models.layers.VariationalDecoder```.
  
- The ``decoder.dec_dist._target_``` parameter specifies the decoding distribution class of which the in-built options include: ```multiae.base.distributions.Default```, ```multiae.base.distributions.Normal```, ```multiae.base.distributions.MultivariateNormal``` and ```multiae.base.distributions.Bernoulli```. The ```multiae.base.distributions.Default``` class is used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
+ The ```decoder.dec_dist._target_``` parameter specifies the decoding distribution class of which the in-built options include: ```multiae.base.distributions.Default```, ```multiae.base.distributions.Normal```, ```multiae.base.distributions.MultivariateNormal``` and ```multiae.base.distributions.Bernoulli```. The ```multiae.base.distributions.Default``` class is used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
 
 **NOTE:** The order of the layer dimensions in ```hidden_layer_dim``` is flipped by the model. Such that ```hidden_layer_dim=[10, 5]``` indicates a decoder network architecture:
 ``` 
