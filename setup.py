@@ -1,6 +1,4 @@
 from setuptools import setup, find_packages
-import os
-
 
 def setup_package():
     data = dict(
