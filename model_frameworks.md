@@ -16,6 +16,7 @@ When extending autoencoders to multiple views, we can assume two latent models. 
 <p align="center">
   <img src="./figures/latent_models.png" alt="fig" width="400"/>
 </p>
+
 The joint and coordinated models within the ```multiAE``` framework:
 
 <p align="center">
