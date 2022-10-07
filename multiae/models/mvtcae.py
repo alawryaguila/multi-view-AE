@@ -4,7 +4,6 @@ import hydra
 from ..base.constants import MODEL_MVTCAE
 from ..base.base_model import BaseModelVAE
 from ..base.representations import ProductOfExperts
-from ..base.distributions import Normal
 
 class mvtCAE(BaseModelVAE):
     """

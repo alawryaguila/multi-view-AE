@@ -13,4 +13,5 @@ discriminator:
   bias: True
   non_linear: False
 
-  dropout_threshold: 0
+  dropout_threshold: 0 #Discriminator layer dropout
+

@@ -28,7 +28,7 @@ class MultiviewDataModule(pl.LightningDataModule):
         if not isinstance(self.batch_size, int):
             self.batch_size = self.data[0].shape[0]
 
-    def setup(self, stage):
+    def setup(self, stage): #TODO: look into whether can add data here 
         if self.labels is not None:
             self.labels = self.process_labels(self.labels)
         if self.is_validate:
