@@ -4,7 +4,6 @@ import hydra
 
 from ..base.constants import MODEL_MMVAE
 from ..base.base_model import BaseModelVAE
-from ..base.distributions import Normal, MultivariateNormal
 
 class mmVAE(BaseModelVAE):
     """

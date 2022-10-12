@@ -71,7 +71,7 @@ trainer:
   deterministic: False
   log_every_n_steps: 2
 
-  resume_from_checkpoint: ${out_dir}/last.ckpt  
+  resume_from_checkpoint: null #${out_dir}/last.ckpt
 
 callbacks:
   model_checkpoint:
