@@ -17,9 +17,10 @@ This repository contains various multi-view autoencoder models built in Pytorch 
 |  jointAAE    | Multi-view Adversarial Autoencoder with joint latent representation  |   >=1 |
 | wAAE | Multi-view Adversarial Autoencoder with joint latent representation and wasserstein loss    |    >=1 |
 |  mmVAE    | Variational mixture-of-experts autoencoder (MMVAE) [4] |   >=1 |
-| mVAE | Multi-view VAE with joint representation. Multimodal Variational Autoencoder (MVAE) with ```join_type=PoE``` [5] |    >=1 |
+| mVAE | Multimodal Variational Autoencoder (MVAE) [5] |    >=1 |
 | me_mVAE | Multimodal Variational Autoencoder (MVAE) with separate ELBO terms for each view [5] |    >=1 |
 | JMVAE |  Joint Multimodal Variational Autoencoder(JMVAE-kl) [6] |    2 |
+| MoPoEVAE |  Mixture-of-Products-of-Experts VAE [7] |    >=1 |
 
 [1] Antelmi, Luigi & Ayache, Nicholas & Robert, Philippe & Lorenzi, Marco. (2019). Sparse Multi-Channel Variational Autoencoder for the Joint Analysis of Heterogeneous Data. 
 
@@ -32,6 +33,8 @@ This repository contains various multi-view autoencoder models built in Pytorch 
 [5] Wu, Mike & Goodman, Noah. (2018). Multimodal Generative Models for Scalable Weakly-Supervised Learning. 
 
 [6] Suzuki, Masahiro and Nakayama, Kotaro and Matsuo, Yutaka. (2016). Joint Multimodal Learning with Deep Generative Models.
+
+[7] Sutter, Thomas & Daunhawer, Imant & Vogt, Julia. (2021). Generalized Multimodal ELBO. 
 ### Installation
 
 Clone this repository and move to folder:
