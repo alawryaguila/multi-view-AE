@@ -45,7 +45,7 @@ cd multiAE
 
 Create the customised python environment:
 ```bash
-conda create --name mvm
+conda create --name mvm python=3.9
 ```
 
 Activate python environment:
