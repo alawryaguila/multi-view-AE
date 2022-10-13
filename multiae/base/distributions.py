@@ -24,8 +24,9 @@ class MultivariateNormal(MultivariateNormal):
             self.covariance_matrix = torch.diag_embed(torch.ones(len(self.loc))*self.scale)
             self.loc = torch.Tensor(self.loc)
         else:
-            self.covariance_matrix = torch.diag_embed(self.scale) #TODO: find out where this is used 
-
+            self.covariance_matrix = torch.diag_embed(self.scale) #TODO: find out where this is used - if wanted to use prior with different diagonal terms
+            
+        #TODO: implement case where full covariance matrix is given (Need to enforce PSD)
         super().__init__(loc=self.loc, covariance_matrix=self.covariance_matrix)
 
     @property
@@ -33,6 +34,7 @@ class MultivariateNormal(MultivariateNormal):
         return self.scale.pow(2)
 
     def kl_divergence(self, other):
+
         kl = kl_divergence(torch.distributions.multivariate_normal.MultivariateNormal( \
                         loc=self.loc, covariance_matrix=self.covariance_matrix), other)
         sh = kl.shape
