@@ -1,11 +1,13 @@
 import torch
-
-from torch.autograd import Variable
-
 from ..base.constants import MODEL_WAAE
 from ..base.base_model import BaseModelAAE
 
 class wAAE(BaseModelAAE):
+    """
+    Multi-view Adversarial Autoencoder model with wasserstein loss. TODO: add link for wasserstein loss
+
+    """
+
     def __init__(
         self,
         cfg = None,

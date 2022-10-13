@@ -1,10 +1,10 @@
 # @package _global_
 
-# default parameters for MMVAE model
-model_name: "mmVAE"
+# default parameters for MoPoEVAE model
+model_name: "MoPoEVAE"
 
 model:
-  K: 20
+  beta: 1
 
 encoder:
   _target_: multiae.models.layers.VariationalEncoder

@@ -3,7 +3,6 @@ import hydra
 
 from ..base.constants import MODEL_JMVAE
 from ..base.base_model import BaseModelVAE
-from ..base.distributions import Normal
 from ..base.exceptions import ModelInputError
 
 class JMVAE(BaseModelVAE):

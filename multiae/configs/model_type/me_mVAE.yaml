@@ -8,7 +8,7 @@ model:
   join_type: "PoE"  # TODO: test MeanRepresentation, set restrictions with hydra?
 
   sparse: False
-
+  threshold: 0
 encoder:
   _target_: multiae.models.layers.VariationalEncoder
 

@@ -4,12 +4,13 @@ import hydra
 from ..base.constants import MODEL_MVTCAE
 from ..base.base_model import BaseModelVAE
 from ..base.representations import ProductOfExperts
-from ..base.distributions import Normal
 
 class mvtCAE(BaseModelVAE):
     """
     Multi-View Total Correlation Auto-Encoder (MVTCAE) https://proceedings.neurips.cc/paper/2021/hash/65a99bb7a3115fdede20da98b08a370f-Abstract.html
     code inspired by: https://github.com/gr8joo/MVTCAE
+
+    NOTE: This implementation currently only caters for a PoE posterior distribution. MoE and MoPoE posteriors will be included in further work.
     """
 
     def __init__(

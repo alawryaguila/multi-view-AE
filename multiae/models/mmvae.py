@@ -4,7 +4,6 @@ import hydra
 
 from ..base.constants import MODEL_MMVAE
 from ..base.base_model import BaseModelVAE
-from ..base.distributions import Normal, MultivariateNormal
 
 class mmVAE(BaseModelVAE):
     """
@@ -74,8 +73,6 @@ class mmVAE(BaseModelVAE):
                 zs = qz_xs[i].rsample()
             zss.append(zs)
 
-        # TODO: please fix this. MultivariateNormal outputs different shape from Normal for log_prob() and kl_divergence()
-        # TODO: check this works for MultivariateNormal
         for r, qz_x in enumerate(qz_xs): 
             lpz = self.prior.log_likelihood(zss[r]).sum(-1)
             lqz_x = self.log_mean_exp(
@@ -90,7 +87,7 @@ class mmVAE(BaseModelVAE):
             lws.append(lw)
         return (
             self.log_mean_exp(torch.stack(lws), dim=1).mean(0).sum()
-        )  # looser iwae bound where have #TODO: what does this comment mean?
+        )  # looser iwae bound 
 
     def log_mean_exp(self, value, dim=0, keepdim=False):
         return torch.logsumexp(value, dim, keepdim=keepdim) - math.log(value.size(dim))

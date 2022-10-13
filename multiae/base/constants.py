@@ -11,7 +11,7 @@ MODEL_MEMVAE    = "me_mVAE"
 MODEL_MMVAE     = "mmVAE"
 MODEL_MVTCAE    = "mvtCAE"
 MODEL_DVCCA     = "DVCCA"
-
+MODEL_MOPOEVAE  = "MoPoEVAE"
 MODELS = [
             MODEL_AE,
             MODEL_AAE,
@@ -23,7 +23,8 @@ MODELS = [
             MODEL_MEMVAE,
             MODEL_MMVAE,
             MODEL_MVTCAE,
-            MODEL_DVCCA
+            MODEL_DVCCA,
+            MODEL_MOPOEVAE
         ]
 
 VARIATIONAL_MODELS = [
@@ -33,7 +34,8 @@ VARIATIONAL_MODELS = [
             MODEL_MEMVAE,
             MODEL_MMVAE,
             MODEL_MVTCAE,
-            MODEL_DVCCA
+            MODEL_DVCCA,
+            MODEL_MOPOEVAE
         ]
 
 SPARSE_MODELS = [

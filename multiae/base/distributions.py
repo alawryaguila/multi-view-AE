@@ -10,8 +10,8 @@ def compute_log_alpha(mu, logvar):
     # clamp because dropout rate p in 0-99%, where p = alpha/(alpha+1)
     return (logvar - 2 * torch.log(torch.abs(mu) + 1e-8)).clamp(min=-8, max=8)
 
-# TODO: test different distributions
 class MultivariateNormal(MultivariateNormal):
+
     def __init__(
             self,
             **kwargs
@@ -24,8 +24,9 @@ class MultivariateNormal(MultivariateNormal):
             self.covariance_matrix = torch.diag_embed(torch.ones(len(self.loc))*self.scale)
             self.loc = torch.Tensor(self.loc)
         else:
-            self.covariance_matrix = torch.diag_embed(self.scale)
-
+            self.covariance_matrix = torch.diag_embed(self.scale) #TODO: find out where this is used - if wanted to use prior with different diagonal terms
+            
+        #TODO: implement case where full covariance matrix is given (Need to enforce PSD)
         super().__init__(loc=self.loc, covariance_matrix=self.covariance_matrix)
 
     @property
@@ -33,6 +34,7 @@ class MultivariateNormal(MultivariateNormal):
         return self.scale.pow(2)
 
     def kl_divergence(self, other):
+
         kl = kl_divergence(torch.distributions.multivariate_normal.MultivariateNormal( \
                         loc=self.loc, covariance_matrix=self.covariance_matrix), other)
         sh = kl.shape

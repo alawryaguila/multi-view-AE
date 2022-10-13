@@ -5,7 +5,7 @@ model_name: "JMVAE"
 
 model:
   sparse: False
-
+  threshold: 0.2
 encoder:
   _target_: multiae.models.layers.VariationalEncoder
 

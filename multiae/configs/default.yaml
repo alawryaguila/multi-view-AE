@@ -1,7 +1,6 @@
 # @package _global_
 
 # TODO: _target_ should not be replaceable except for enc/dec _target_ and enc_dist/dec_dist _target_
-# TODO: user should be able to replace _target_ with classnames and not full classpath
 
 defaults:
   - _self_
@@ -16,23 +15,22 @@ hydra:
     dir: ${out_dir}
 
 model:
-  use_GPU: False
-  save_model: True
+  use_GPU: False #whether to use a GPU if available
+  save_model: True #whether to save the model
 
   seed_everything: True
   seed: 42
 
   # TODO: support multi-dimensional tuple
-  z_dim: 5
+  z_dim: 5 #dimensionality of the latent space
   learning_rate: 0.001  # learning rate for both encoder/decoder
 
-  sparse: False
-  threshold: 0.2
+  sparse: False #sparsity of the encoding distribution. NOTE: setting sparse to True enforces a uniform prior over the latents
+
 
 datamodule:
   _target_: multiae.base.dataloaders.MultiviewDataModule
 
-  # TODO: specify in docs what happens if batch_size is None
   batch_size: null
   is_validate: True
 
@@ -41,7 +39,7 @@ datamodule:
 encoder:
   _target_: multiae.models.layers.Encoder
 
-  hidden_layer_dim: []  # TODO: why empty default?
+  hidden_layer_dim: []  
   bias: True
   non_linear: False
 
@@ -51,15 +49,14 @@ encoder:
 decoder:
   _target_: multiae.models.layers.Decoder
 
-  # TODO: test hidden_layer_dim not same as encoder's?
-  hidden_layer_dim: []  # TODO: note in documentation that this will be reversed... usually same as encoder's hidden layers
+  hidden_layer_dim: []  
   bias: True
   non_linear: False
 
   dec_dist:
     _target_: multiae.base.distributions.Default
   
-prior:
+prior: #TODO: move to just variational models 
   _target_: multiae.base.distributions.Normal
   loc: 0
   scale: 1
@@ -71,11 +68,10 @@ trainer:
 
   max_epochs: 10
 
-  deterministic: false
+  deterministic: False
   log_every_n_steps: 2
 
-  # NOTE: null means do not resume_from_checkpoint
-  resume_from_checkpoint: null #${out_dir}/last.ckpt  #TODO: should default be to resume?
+  resume_from_checkpoint: null #${out_dir}/last.ckpt
 
 callbacks:
   model_checkpoint:
@@ -93,7 +89,7 @@ callbacks:
     min_delta: 0.001
     verbose: True
 
-logger:
+logger: #TODO: check other logger frameworks work
   _target_: pytorch_lightning.loggers.tensorboard.TensorBoardLogger
 
   save_dir: ${out_dir}/logs

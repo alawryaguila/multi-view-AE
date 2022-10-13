@@ -30,7 +30,7 @@ class jointAAE(BaseModelAAE):
             z.append(z_)
 
         z = torch.stack(z)
-        mean_z = torch.mean(z, axis=0)
+        mean_z = torch.mean(z, axis=0) #TODO: change to mean representation function
         return [mean_z]
 
 

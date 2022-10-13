@@ -8,7 +8,8 @@ model:
   private: False
 
   sparse: True
-
+  threshold: 0
+  
 encoder:
   _target_: multiae.models.layers.VariationalEncoder
 

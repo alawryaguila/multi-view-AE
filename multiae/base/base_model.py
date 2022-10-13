@@ -78,7 +78,7 @@ class BaseModelAE(ABC, pl.LightningModule):
             self.cfg.model.z_dim = z_dim
 
         assert isinstance(input_dim,list), 'input_dim must be a list of input dimensions'
-        assert (isinstance(dim, int) for dim in input_dim), 'Input dimensions must be integers'
+        assert (isinstance(dim, int) for dim in input_dim), 'Input dimensions must be integers' #TODO: this will have to change for conv model
         assert isinstance(self.cfg.model.z_dim, int), 'z_dim must be an integer'
 
         self.n_views = len(self.input_dim)
@@ -157,7 +157,7 @@ class BaseModelAE(ABC, pl.LightningModule):
             os.makedirs(dir_path)
 
     ################################            abstract methods
-    # TODO: should probably have defaults?
+ 
     @abstractmethod
     def encode(self, x):
         raise NotImplementedError()
@@ -227,7 +227,7 @@ class BaseModelAE(ABC, pl.LightningModule):
 
     ################################            private methods
     def __updateconfig(self, orig, update):
-        # TODO: except _target_
+
         update_keys = list(set(update.keys()) & set(CONFIG_KEYS))
         for k in update_keys:
             for key, val in update[k].items():
@@ -392,12 +392,12 @@ class BaseModelVAE(BaseModelAE):
 
         assert (cfg.prior._target_ == 'multiae.base.distributions.Normal') \
         or (cfg.prior._target_ == 'multiae.base.distributions.MultivariateNormal'), \
-        "Prior must be Normal or MultivariateNormal"
+        "Prior must be Normal or MultivariateNormal" #TODO: at the moment this doesn't allow users implementations
 
         assert 'loc' in cfg.prior.keys(), "Must provide mean for prior distribution"
         assert 'scale' in cfg.prior.keys(), "Must provide standard deviation for prior distribution"
 
-        if isinstance(cfg.prior.loc, int) and cfg.prior._target_ == 'multiae.base.distributions.MultivariateNormal':
+        if isinstance(cfg.prior.loc, int) and cfg.prior._target_ == 'multiae.base.distributions.MultivariateNormal': #TODO: move this
             cfg.prior.loc = [cfg.prior.loc]*self.z_dim
         if not self.sparse:
             self.prior = hydra.utils.instantiate(cfg.prior)
