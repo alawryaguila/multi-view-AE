@@ -7,9 +7,22 @@ from ..base.base_model import BaseModelVAE
 
 class mmVAE(BaseModelVAE):
     """
-    Multi-view Variational Autoencoder model using Mixture of Experts approach (https://arxiv.org/abs/1911.03393).
+    Mixture-of-Experts Multimodal Variational Autoencoder (MMVAE): Shi, Y., Siddharth, N., Paige, B., & Torr, P.H. (2019). 
+    Variational Mixture-of-Experts Autoencoders for Multi-Modal Deep Generative Models. ArXiv, abs/1911.03393.
+
     Code is based on: https://github.com/iffsid/mmvae
 
+    Args:
+        cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
+            model.K (int): Number of samples to take from encoding distribution.
+            encoder._target_ (multiae.models.layers.VariationalEncoder): Type of encoder class to use. 
+            encoder.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
+            decoder._target_ (multiae.models.layers.VariationalDecoder): Type of decoder class to use.
+            decoder.init_logvar(int, float): Initial value for log variance of decoder.
+            decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
+            
+        input_dim (list): Dimensionality of the input data.
+        z_dim (int): Number of latent dimensions. 
     """
 
     def __init__(
@@ -35,20 +48,20 @@ class mmVAE(BaseModelVAE):
 
     def decode(self, qz_xs):
         px_zs = []
-        for i in range(self.n_views):
+        for qz_x in qz_xs:
             if self._training:
                 px_z = [
-                    self.decoders[j](qz_xs[i].rsample(torch.Size([self.K])))
+                    self.decoders[j](qz_x.rsample(torch.Size([self.K])))
                     for j in range(self.n_views)
                 ]
             else:
                 px_z = [
-                    self.decoders[j](qz_xs[i].rsample())
+                    self.decoders[j](qz_x.rsample())
                     for j in range(self.n_views)
                 ]
             px_zs.append(
                 px_z
-            )  # TODO: this is other way around to other multiautoencoder models - FIX
+            )  
             del px_z
         return px_zs
 
@@ -76,13 +89,15 @@ class mmVAE(BaseModelVAE):
         for r, qz_x in enumerate(qz_xs): 
             lpz = self.prior.log_likelihood(zss[r]).sum(-1)
             lqz_x = self.log_mean_exp(
-                torch.stack([qz_x.log_prob(zss[r]).sum(-1) for qz_x in qz_xs])
+                torch.stack([qz_x.log_likelihood(zss[r]).sum(-1) for qz_x in qz_xs])
             )  # summing over M modalities for each z to create q(z|x1:M)
+            
             lpx_z = [
                 px_z.log_likelihood(x[d]).view(*px_z._sample().size()[:2], -1).sum(-1)
                 for d, px_z in enumerate(px_zs[r])
             ]  # summing over each decoder
             lpx_z = torch.stack(lpx_z).sum(0)
+
             lw = lpz + lpx_z - lqz_x
             lws.append(lw)
         return (

@@ -65,15 +65,15 @@ mcvae_latent_view1, mcvae_latent_view2 = mcvae_latent[0], mcvae_latent[1]
 mvae_reconstruction = mvae.predict_reconstruction(data_test_1, data_test_2)
 
 mvae_reconstruction_view1 = mvae_reconstruction[0][0] #view 1 reconstruction from joint latent
-mvae_reconstruction_view2 = mvae_reconstruction[1][0] #view 2 reconstruction from joint latent
+mvae_reconstruction_view2 = mvae_reconstruction[0][1] #view 2 reconstruction from joint latent
 
 mcvae_reconstruction = mcvae.predict_reconstruction(data_test_1, data_test_2)
 
-mvae_reconstruction_view1_latent1 = mvae_reconstruction[0][0] #view 1 reconstruction from latent 1
-mvae_reconstruction_view2_latent1 = mvae_reconstruction[1][0] #view 2 reconstruction from latent 1
+mcvae_reconstruction_view1_latent1 = mcvae_reconstruction[0][0] #view 1 reconstruction from latent 1
+mcvae_reconstruction_view2_latent1 = mcvae_reconstruction[0][1] #view 2 reconstruction from latent 1
 
-mvae_reconstruction_view1_latent2 = mvae_reconstruction[0][1] #view 1 reconstruction from latent 2
-mvae_reconstruction_view2_latent2 = mvae_reconstruction[1][1] #view 2 reconstruction from latent 2
+mcvae_reconstruction_view1_latent2 = mcvae_reconstruction[1][0] #view 1 reconstruction from latent 2
+mcvae_reconstruction_view2_latent2 = mcvae_reconstruction[1][1] #view 2 reconstruction from latent 2
 ```
 
 ### Model loading 

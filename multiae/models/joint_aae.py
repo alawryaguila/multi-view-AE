@@ -1,7 +1,4 @@
 import torch
-
-from torch.autograd import Variable
-
 from ..base.constants import MODEL_JOINTAAE
 from ..base.base_model import BaseModelAAE
 
@@ -9,8 +6,17 @@ class jointAAE(BaseModelAAE):
     """
     Multi-view Adversarial Autoencoder model with a joint latent representation.
 
+    Args:
+        cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
+            eps (float): 
+            discriminator._target_ (multiae.models.layers.Discriminator): 
+            discriminator.hidden_layer_dim (list): Number of nodes per hidden layer.
+            discriminator.bias (bool): Whether to include a bias term in hidden layers.
+            discriminator.non_linear (bool): Whether to include a ReLU() function between layers.
+            discriminator.dropout_threshold (float): Dropout threshold of layers.
+        input_dim (list): Dimensionality of the input data.
+        z_dim (int): Number of latent dimensions. 
     """
-
     def __init__(
         self,
         cfg = None,
@@ -30,7 +36,7 @@ class jointAAE(BaseModelAAE):
             z.append(z_)
 
         z = torch.stack(z)
-        mean_z = torch.mean(z, axis=0) #TODO: change to mean representation function
+        mean_z = torch.mean(z, axis=0)
         return [mean_z]
 
 
@@ -38,8 +44,8 @@ class jointAAE(BaseModelAAE):
         px_zs = []
         for i in range(self.n_views):
             px_z = self.decoders[i](z[0])
-            px_zs.append([px_z])
-        return px_zs
+            px_zs.append(px_z)
+        return [px_zs]
 
     def disc(self, z):
         sh = z[0].shape
@@ -73,7 +79,7 @@ class jointAAE(BaseModelAAE):
         px_zs = fwd_rtn["px_zs"]
         ll = 0
         for i in range(self.n_views):
-            ll += - px_zs[i][0].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+            ll += - px_zs[0][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0) #first index is latent, second index is view
         return ll / self.n_views
 
     def generator_loss(self, fwd_rtn):

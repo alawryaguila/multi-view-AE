@@ -3,23 +3,31 @@ from ..base.constants import MODEL_AAE
 from ..base.base_model import BaseModelAAE
 
 class AAE(BaseModelAAE):
-    """
-    Multi-view Adversarial Autoencoder model with a separate latent representation for each view.
+    """Multi-view Adversarial Autoencoder model with a separate latent representation for each view.
 
+    Args:
+        cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
+            eps (float): 
+            discriminator._target_ (multiae.models.layers.Discriminator): 
+            discriminator.hidden_layer_dim (list): Number of nodes per hidden layer.
+            discriminator.bias (bool): Whether to include a bias term in hidden layers.
+            discriminator.non_linear (bool): Whether to include a ReLU() function between layers.
+            discriminator.dropout_threshold (float): Dropout threshold of layers.
+        input_dim (list): Dimensionality of the input data.
+        z_dim (int): Number of latent dimensions. 
     """
-
     def __init__(
         self,
         cfg = None,
         input_dim = None,
         z_dim = None
     ):
-
+        
         super().__init__(model_name=MODEL_AAE,
                 cfg=cfg,
                 input_dim=input_dim,
                 z_dim=z_dim)
-
+        
     def encode(self, x):
         z = []
         for i in range(self.n_views):
@@ -30,9 +38,9 @@ class AAE(BaseModelAAE):
     def decode(self, z):
         px_zs = []
         for i in range(self.n_views):
-            px_z = [self.decoders[i](z[j]) for j in range(self.n_views)]
+            px_z = [self.decoders[j](z[i]) for j in range(self.n_views)] 
             px_zs.append(px_z)
-        return px_zs
+        return px_zs    
 
     def disc(self, z):
         sh = z[0].shape
@@ -70,7 +78,7 @@ class AAE(BaseModelAAE):
         ll = 0
         for i in range(self.n_views):
             for j in range(self.n_views):
-                ll += - px_zs[i][j].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+                ll += - px_zs[j][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0) #first index is latent, second index is view
         return ll / self.n_views / self.n_views
 
     def generator_loss (self, fwd_rtn):

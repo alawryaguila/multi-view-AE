@@ -17,6 +17,14 @@ from .datasets import MVDataset
 from datetime import datetime
 
 class BaseModelAE(ABC, pl.LightningModule):
+    """Base class for autoencoder models.
+
+    Args:
+        model_name (str): Type of autoencoder model.
+        cfg (str): Path to configuration file.
+        input_dim (list): Dimensionality of the input data.
+        z_dim (int): Number of latent dimensions. 
+    """
     is_variational = False
 
     @abstractmethod
@@ -30,7 +38,6 @@ class BaseModelAE(ABC, pl.LightningModule):
 
         assert(model_name is not None)  # have to choose which model always
         assert(input_dim is not None)
-
 
 
         super().__init__()
@@ -89,8 +96,8 @@ class BaseModelAE(ABC, pl.LightningModule):
         # TODO: should this be in the end of instance init()?
         self.save_hyperparameters()
         self.create_folder(self.cfg.out_dir)
-        run_time = datetime.now().strftime("%Y-%m-%d_%H%M")
-        OmegaConf.save(self.cfg, join(self.cfg.out_dir, 'config_{0}.yaml'.format(run_time))) #TODO only save model parameters
+        self.save_config()
+
         
     ################################            public methods
     def fit(self, *data, labels=None, max_epochs=None, batch_size=None):
@@ -151,6 +158,17 @@ class BaseModelAE(ABC, pl.LightningModule):
         else:
             self.print_config(keys=CONFIG_KEYS)
     
+    def save_config(self, keys=None):
+        run_time = datetime.now().strftime("%Y-%m-%d_%H%M")
+        save_cfg = {}
+        if keys is not None:
+            for k in keys:
+                if k in CONFIG_KEYS:
+                    save_cfg[k] = self.cfg[k]
+            OmegaConf.save(save_cfg, join(self.cfg.out_dir, 'config_{0}.yaml'.format(run_time)))            
+        else:
+            self.save_config(keys=CONFIG_KEYS)       
+            
     def create_folder(self, dir_path):
         check_folder = isdir(dir_path)
         if not check_folder:
@@ -254,7 +272,6 @@ class BaseModelAE(ABC, pl.LightningModule):
     
         return cfg
 
-    # TODO: batch_idx is not manual_seed --> what does this mean?
     def __step(self, batch, batch_idx, stage):
         fwd_return = self.forward(batch)
         loss = self.loss_function(batch, fwd_return)
@@ -274,7 +291,7 @@ class BaseModelAE(ABC, pl.LightningModule):
         for i in range(self.n_views):
             assert(data[i].shape[1] == self.input_dim[i])   # TODO: this is only for 1D input
 
-        dataset = MVDataset(data, labels=None)
+        dataset = MVDataset(data, labels=None) #TODO: make flexible 
 
         if batch_size is None:
             batch_size = data[0].shape[0]
@@ -314,7 +331,14 @@ class BaseModelAE(ABC, pl.LightningModule):
 
 ################################################################################
 class BaseModelVAE(BaseModelAE):
+    """Base class for variational autoencoder models. Inherits from BaseModelAE.
 
+    Args:
+        model_name (str): Type of autoencoder model.
+        cfg (str): Path to configuration file.
+        input_dim (list): Dimensionality of the input data.
+        z_dim (int): Number of latent dimensions. 
+    """
     @abstractmethod
     def __init__(
         self,
@@ -404,6 +428,14 @@ class BaseModelVAE(BaseModelAE):
        
 ################################################################################
 class BaseModelAAE(BaseModelAE):
+    """Base class for adversarial autoencoder models. Inherits from BaseModelAE.
+
+    Args:
+        model_name (str): Type of autoencoder model.
+        cfg (str): Path to configuration file.
+        input_dim (list): Dimensionality of the input data.
+        z_dim (int): Number of latent dimensions. 
+    """
     is_wasserstein = False
 
     @abstractmethod

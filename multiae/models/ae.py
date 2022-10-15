@@ -2,6 +2,13 @@ from ..base.constants import MODEL_AE
 from ..base.base_model import BaseModelAE
 
 class AE(BaseModelAE):
+    """Multi-view Autoencoder model with a separate latent representation for each view.
+
+    Args:
+        cfg (str): Path to configuration file. 
+        input_dim (list): Dimensionality of the input data.
+        z_dim (int): Number of latent dimensions. 
+    """
     def __init__(
         self,
         cfg = None,
@@ -23,7 +30,7 @@ class AE(BaseModelAE):
     def decode(self, z):
         x_recon = []
         for i in range(self.n_views):
-            temp_recon = [self.decoders[i](z[j]) for j in range(self.n_views)]
+            temp_recon = [self.decoders[j](z[i]) for j in range(self.n_views)]
             x_recon.append(temp_recon)
         return x_recon
 
@@ -44,5 +51,5 @@ class AE(BaseModelAE):
         recon = 0
         for i in range(self.n_views):
             for j in range(self.n_views):
-                recon += x_recon[i][j].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+                recon += x_recon[j][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0) #first index is latent, second index is view
         return recon / self.n_views / self.n_views

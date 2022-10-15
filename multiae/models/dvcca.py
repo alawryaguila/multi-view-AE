@@ -4,6 +4,22 @@ from ..base.constants import MODEL_DVCCA
 from ..base.base_model import BaseModelVAE
 
 class DVCCA(BaseModelVAE):
+    """Deep Variational Canonical Correlation Analysis: Wang, Weiran & Lee, Honglak & Livescu, Karen. (2016). Deep Variational Canonical Correlation Analysis.
+
+    Args:
+        cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
+            model.beta (int, float): KL divergence weighting term.
+            model.private (bool): Whether to include private view-specific latent dimensions.
+            model.sparse (bool): Whether to enforce sparsity of the encoding distribution.
+            model.threshold (float): Dropout threshold applied to the latent dimensions. Default is 0.
+            encoder._target_ (multiae.models.layers.VariationalEncoder): Type of encoder class to use. 
+            encoder.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
+            decoder._target_ (multiae.models.layers.VariationalDecoder): Type of decoder class to use.
+            decoder.init_logvar(int, float): Initial value for log variance of decoder.
+            decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
+        input_dim (list): Dimensionality of the input data.
+        z_dim (int): Number of latent dimensions. 
+    """
     def __init__(
         self,
         cfg = None,
@@ -115,8 +131,8 @@ class DVCCA(BaseModelVAE):
                 x_out = self.decoders[i](qz_x[i]._sample(training=self._training))
             else:
                 x_out = self.decoders[i](qz_x[0]._sample(training=self._training))
-            px_zs.append([x_out])
-        return px_zs
+            px_zs.append(x_out)
+        return [px_zs]
 
     def forward(self, x):
         self.zero_grad()
@@ -150,5 +166,5 @@ class DVCCA(BaseModelVAE):
     def calc_ll(self, x, px_zs):
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[i][0].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)   
+            ll += px_zs[0][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)  #first index is latent, second index is view
         return ll
