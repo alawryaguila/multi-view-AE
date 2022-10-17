@@ -9,11 +9,25 @@ from ..base.representations import ProductOfExperts, MeanRepresentation
 
 class me_mVAE(BaseModelVAE):
     """
-    Implementation of Multimodal Generative Models for Scalable Weakly-Supervised Learning (https://arxiv.org/abs/1802.05335), MVAE
-    Code inspired by: https://github.com/mhw32/multimodal-vae-public
+    Multimodal Variational Autoencoder (MVAE): Wu, M., & Goodman, N.D. (2018). Multimodal Generative Models for Scalable Weakly-Supervised Learning. NeurIPS.
 
     Loss optimises the ELBO term from the joint posterior distribution, as well as the separate ELBO terms for each view.
-    me_mVAE stands for multi ELBO multimodal VAE
+    me_mVAE stands for multi ELBO Multimodal VAE
+
+    Args:
+    cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
+        model.beta (int, float): KL divergence weighting term.
+        model.join_type (str): Method of combining encoding distributions.       
+        model.sparse (bool): Whether to enforce sparsity of the encoding distribution.
+        model.threshold (float): Dropout threshold applied to the latent dimensions. Default is 0.
+        encoder._target_ (multiae.models.layers.VariationalEncoder): Type of encoder class to use. 
+        encoder.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
+        decoder._target_ (multiae.models.layers.VariationalDecoder): Type of decoder class to use.
+        decoder.init_logvar(int, float): Initial value for log variance of decoder.
+        decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
+        
+    input_dim (list): Dimensionality of the input data.
+    z_dim (int): Number of latent dimensions.
     """
 
     def __init__(
@@ -66,15 +80,15 @@ class me_mVAE(BaseModelVAE):
         px_zs = []
         for i in range(self.n_views):
             px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
-            px_zs.append([px_z])
-        return px_zs
+            px_zs.append(px_z)
+        return [px_zs]
 
     def decode_separate(self, qz_xs):
         px_zs = []
         for i in range(self.n_views):
             px_z = self.decoders[i](qz_xs[i]._sample(training=self._training))
-            px_zs.append([px_z])
-        return px_zs
+            px_zs.append(px_z)
+        return [px_zs]
 
     def forward(self, x):
         qz_x = self.encode(x)
@@ -85,10 +99,6 @@ class me_mVAE(BaseModelVAE):
         return fwd_rtn
         
     def calc_kl(self, qz_xs):
-        """
-        VAE: Implementation from: https://arxiv.org/abs/1312.6114
-        sparse-VAE: Implementation from: https://github.com/senya-ashukha/variational-dropout-sparsifies-dnn/blob/master/KL%20approximation.ipynb
-        """
         kl = 0
         for i in range(len(qz_xs)):
             if self.sparse:
@@ -100,7 +110,7 @@ class me_mVAE(BaseModelVAE):
     def calc_ll(self, x, px_zs):
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[i][0].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+            ll += px_zs[0][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0) #first index is latent, second index is view 
         return ll
 
     def loss_function(self, x, fwd_rtn):

@@ -5,8 +5,9 @@ class ProductOfExperts(nn.Module):
     """Return parameters for product of independent experts.
     See https://arxiv.org/pdf/1410.7827.pdf for equations.
 
-    :param mu: M x D for M experts
-    :param logvar: M x D for M experts
+    Args:
+    mu (torch.Tensor): Mean of experts distribution. M x D for M experts
+    var (torch.Tensor): Variance of experts distribution. M x D for M experts
     """
 
     def forward(self, mu, var, eps=1e-8):
@@ -18,9 +19,10 @@ class ProductOfExperts(nn.Module):
 class MixtureOfExperts(nn.Module):
     """Return parameters for mixture of independent experts.
     Implementation from: https://github.com/thomassutter/MoPoE
-    :param mu: M x D for M experts
-    :param var: M x D for M experts
 
+    Args:
+    mu (torch.Tensor): Mean of experts distribution. M x D for M experts
+    var (torch.Tensor): Variance of experts distribution. M x D for M experts
     """
 
     def forward(self, mus, vars):
@@ -50,8 +52,10 @@ class MixtureOfExperts(nn.Module):
 
 class MeanRepresentation(nn.Module):
     """Return mean of separate VAE representations.
-    :param mu: M x D for M views
-    :param var: M x D for M views
+    
+    Args:
+    mu (torch.Tensor): Mean of distributions. M x D for M views.
+    var (torch.Tensor): Variance of distributions. M x D for M views.
     """
 
     def forward(self, mu, var):

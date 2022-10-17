@@ -7,9 +7,16 @@ import torch.nn.functional as F
 
 from torch.nn import Parameter
 
-# TODO: convert this to LightningModule
-# TODO: change name to MLPEncoder?
 class Encoder(nn.Module):
+    """MLP Encoder 
+    Args:
+        input_dim (list): Dimensionality of the input data.
+        z_dim (int): Number of latent dimensions. 
+        hidden_layer_dim (list): Number of nodes per hidden layer.
+        non_linear (bool): Whether to include a ReLU() function between layers.
+        bias (bool): Whether to include a bias term in hidden layers.
+        enc_dist (multiae.base.distributions.Default): Encoder distribution.
+    """
     def __init__(
         self,
         input_dim,
@@ -48,6 +55,17 @@ class Encoder(nn.Module):
         return h1
 
 class VariationalEncoder(Encoder):
+    """Variational MLP Encoder 
+    Args:
+        input_dim (list): Dimensionality of the input data.
+        z_dim (int): Number of latent dimensions. 
+        hidden_layer_dim (list): Number of nodes per hidden layer.
+        non_linear (bool): Whether to include a ReLU() function between layers.
+        bias (bool): Whether to include a bias term in hidden layers.
+        sparse (bool): Whether to enforce sparsity of the encoding distribution.
+        log_alpha (float): Log of the dropout parameter.
+        enc_dist (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoder distribution.
+    """
     def __init__(
         self,
         input_dim,
@@ -101,15 +119,24 @@ class VariationalEncoder(Encoder):
         return mu, logvar
 
 
-# TODO: convert this to LightningModule
 class Decoder(nn.Module):
+    """MLP Decoder 
+    Args:
+        input_dim (list): Dimensionality of the input data.
+        z_dim (int): Number of latent dimensions. 
+        hidden_layer_dim (list): Number of nodes per hidden layer. The layer order is reversed e.g. [100, 50, 5] becomes [5, 50, 100].
+        non_linear (bool): Whether to include a ReLU() function between layers.
+        bias (bool): Whether to include a bias term in hidden layers.
+        dec_dist (multiae.base.distributions.Default, multiae.base.distributions.Bernoulli): Decoder distribution.
+        init_logvar (int, float): Initial value for log variance of decoder. Unused in Decoder class.
+    """
     def __init__(
         self,
         input_dim,
         z_dim,
         hidden_layer_dim,
-        bias,
         non_linear,
+        bias,
         dec_dist,
         init_logvar=None,
     ):
@@ -142,6 +169,16 @@ class Decoder(nn.Module):
         return x_rec
 
 class VariationalDecoder(Decoder):
+    """MLP Variational Decoder 
+    Args:
+        input_dim (list): Dimensionality of the input data.
+        z_dim (int): Number of latent dimensions. 
+        hidden_layer_dim (list): Number of nodes per hidden layer. The layer order is reversed e.g. [100, 50, 5] becomes [5, 50, 100].
+        non_linear (bool): Whether to include a ReLU() function between layers.
+        bias (bool): Whether to include a bias term in hidden layers.
+        init_logvar (int, float): Initial value for log variance of decoder.
+        dec_dist (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoder distribution.
+    """
     def __init__(
         self,
         input_dim,
@@ -188,14 +225,24 @@ class VariationalDecoder(Decoder):
         return x_rec
 
 class Discriminator(nn.Module):
+    """MLP Discriminator 
+    Args:
+        input_dim (list): Dimensionality of the input data.
+        z_dim (int): Number of output dimensions. 
+        hidden_layer_dim (list): Number of nodes per hidden layer. 
+        non_linear (bool): Whether to include a ReLU() function between layers.
+        bias (bool): Whether to include a bias term in hidden layers.
+        dropout_threshold (float): Dropout threshold of layers.
+        is_wasserstein (bool): Whether model employs a wasserstein loss.
+    """
     def __init__(
         self,
-        hidden_layer_dim,
-        bias,
-        non_linear,
-        dropout_threshold,
         input_dim,
         output_dim,
+        hidden_layer_dim,
+        non_linear,
+        bias,
+        dropout_threshold,
         is_wasserstein
     ):
         super().__init__()

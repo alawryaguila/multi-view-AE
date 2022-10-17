@@ -13,6 +13,14 @@ from torchvision import transforms
 from torch.utils.data import Dataset
 
 class MVDataset(Dataset):
+    """PyTorch Dataset for storing and accessing multi-view data.
+
+    Args:
+        data (list): Input data. list of torch.Tensors.
+        labels (np.array): Dataset labels. 
+        return_index (bool): Whether to return batch index labels.
+        transform (torchvision.transforms): Torchvision transformation to apply to the data. Default is None.
+    """
     def __init__(self, data, labels, return_index=False, transform=None):
         self.data = data
         self.labels = labels

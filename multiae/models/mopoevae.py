@@ -8,9 +8,21 @@ from ..base.representations import ProductOfExperts, MixtureOfExperts
 
 class MoPoEVAE(BaseModelVAE):
     """
-    Mixture-of-Product-of-Experts VAE https://openreview.net/forum?id=5Y21V0RDBV
-    code inspired by: https://github.com/thomassutter/MoPoE and https://github.com/gr8joo/MVTCAE
+    Mixture-of-Product-of-Experts Variational Autoencoder: Sutter, Thomas & Daunhawer, Imant & Vogt, Julia. (2021). Generalized Multimodal ELBO. 
 
+    Code is based on: https://github.com/thomassutter/MoPoE 
+
+    Args:
+    cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
+        model.beta (int, float): KL divergence weighting term.
+        encoder._target_ (multiae.models.layers.VariationalEncoder): Type of encoder class to use. 
+        encoder.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
+        decoder._target_ (multiae.models.layers.VariationalDecoder): Type of decoder class to use.
+        decoder.init_logvar(int, float): Initial value for log variance of decoder.
+        decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
+        
+    input_dim (list): Dimensionality of the input data.
+    z_dim (int): Number of latent dimensions. 
     """
 
     def __init__(
@@ -82,8 +94,8 @@ class MoPoEVAE(BaseModelVAE):
         px_zs = []
         for i in range(self.n_views):
             px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
-            px_zs.append([px_z])
-        return px_zs
+            px_zs.append(px_z)
+        return [px_zs]
 
     def forward(self, x):
         qz_xs, qz_x = self.encode(x)
@@ -108,7 +120,7 @@ class MoPoEVAE(BaseModelVAE):
         '''
         num_components = mus.shape[0]
         num_samples = mus.shape[1]
-        weights = weight * torch.ones(num_components)
+        weights = (1/num_components) * torch.ones(num_components)
         idx_start = []
         idx_end = []
         for k in range(0, num_components):
@@ -147,5 +159,5 @@ class MoPoEVAE(BaseModelVAE):
     def calc_ll(self, x, px_zs):
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[i][0].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+            ll += px_zs[0][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0) #first index is latent, second index is view 
         return ll

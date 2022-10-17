@@ -7,10 +7,25 @@ from ..base.representations import ProductOfExperts
 
 class mvtCAE(BaseModelVAE):
     """
-    Multi-View Total Correlation Auto-Encoder (MVTCAE) https://proceedings.neurips.cc/paper/2021/hash/65a99bb7a3115fdede20da98b08a370f-Abstract.html
-    code inspired by: https://github.com/gr8joo/MVTCAE
+    Multi-View Total Correlation Auto-Encoder (MVTCAE): Hwang, HyeongJoo and Kim, Geon-Hyeong and Hong, Seunghoon and Kim, Kee-Eung. 
+    Multi-View Representation Learning via Total Correlation Objective. 2021. NeurIPS
+    
+    Code is based on: https://github.com/gr8joo/MVTCAE
 
     NOTE: This implementation currently only caters for a PoE posterior distribution. MoE and MoPoE posteriors will be included in further work.
+    
+    Args:
+    cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
+        model.beta (int, float): KL divergence weighting term.
+        model.alpha (int, float): Log likelihood, Conditional VIB and VIB weighting term.
+        encoder._target_ (multiae.models.layers.VariationalEncoder): Type of encoder class to use. 
+        encoder.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
+        decoder._target_ (multiae.models.layers.VariationalDecoder): Type of decoder class to use.
+        decoder.init_logvar(int, float): Initial value for log variance of decoder.
+        decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
+        
+    input_dim (list): Dimensionality of the input data.
+    z_dim (int): Number of latent dimensions.
     """
 
     def __init__(
@@ -65,14 +80,14 @@ class mvtCAE(BaseModelVAE):
                         self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
                     ).rsample()
                 )
-                px_zs.append([px_z])
-            return px_zs
+                px_zs.append(px_z)
+            return [px_zs]
         else:
             px_zs = []
             for i in range(self.n_views):
                 px_z = self.decoders[i](qz_xs[0].loc)
-                px_zs.append([px_z])
-            return px_zs
+                px_zs.append(px_z)
+            return [px_zs]
 
     def forward(self, x):
         qz_xs = self.encode(x)
@@ -130,5 +145,5 @@ class mvtCAE(BaseModelVAE):
     def calc_ll(self, x, px_zs):
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[i][0].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+            ll += px_zs[0][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0) #first index is latent, second index is view 
         return ll

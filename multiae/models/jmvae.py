@@ -7,7 +7,17 @@ from ..base.exceptions import ModelInputError
 
 class JMVAE(BaseModelVAE):
     """
-    Implementation of JMVAE-kl from Joint Multimodal Learning with Deep Generative Models (https://arxiv.org/abs/1611.01891)
+    JMVAE-kl: Suzuki, Masahiro & Nakayama, Kotaro & Matsuo, Yutaka. (2016). Joint Multimodal Learning with Deep Generative Models. 
+
+    Args:
+    cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
+        encoder._target_ (multiae.models.layers.VariationalEncoder): Type of Encoder to use. 
+        encoder.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
+        decoder._target_ (multiae.models.layers.VariationalDecoder): Type of decoder class to use.
+        decoder.init_logvar(int, float): Initial value for log variance of decoder.
+        decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.       
+    input_dim (list): Dimensionality of the input data.
+    z_dim (int): Number of latent dimensions. 
     """
 
     def __init__(
@@ -85,28 +95,24 @@ class JMVAE(BaseModelVAE):
         px_zs = []
         for i in range(self.n_views):
             px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
-            px_zs.append([px_z])
-        return px_zs
+            px_zs.append(px_z)
+        return [px_zs]
 
     def decode_separate(self, qz_xs):
         px_zs = []
         for i in range(self.n_views):
             px_z = self.decoders[i](qz_xs[i]._sample(training=self._training))
-            px_zs.append([px_z])
-        return px_zs
+            px_zs.append(px_z)
+        return [px_zs]
 
     def forward(self, x):
         qz_xy = self.encode(x)
         qz_x, qz_y = self.encode_separate(x)
-        px_z, py_z = self.decode_separate([qz_x, qz_y])
+        px_z, py_z = self.decode_separate([qz_x, qz_y])[0]
         fwd_rtn = {"px_z": px_z, "py_z": py_z, "qz_x": qz_x, "qz_y": qz_y, "qz_xy": qz_xy}
         return fwd_rtn
         
     def calc_kl(self, qz_xy, qz_x, qz_y):
-        """
-        VAE: Implementation from: https://arxiv.org/abs/1312.6114
-        sparse-VAE: Implementation from: https://github.com/senya-ashukha/variational-dropout-sparsifies-dnn/blob/master/KL%20approximation.ipynb
-        """
         kl_prior = qz_xy[0].kl_divergence(self.prior).sum(1, keepdims=True).mean(0)
         kl_qz_x = qz_xy[0].kl_divergence(qz_x).sum(1, keepdims=True).mean(0)
         kl_qz_y = qz_xy[0].kl_divergence(qz_y).sum(1, keepdims=True).mean(0)
@@ -116,7 +122,7 @@ class JMVAE(BaseModelVAE):
     def calc_ll(self, x, px_zs):
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[i][0].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)
+            ll += px_zs[i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)  
         return ll
 
     def loss_function(self, x, fwd_rtn):

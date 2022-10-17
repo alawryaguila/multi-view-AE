@@ -11,8 +11,6 @@ This repository contains various multi-view autoencoder models built in Pytorch 
 | mcVAE      | Multi-Channel Variational Autoencoder (mcVAE) [1] | >=1 |
 | AE      | Multi-view Autoencoder    |   >=1 |
 | AAE | Multi-view Adversarial Autoencoder with separate latent representations     |    >=1 |
-| cVAE     | Conditional Variational Autoencoder [2] | 1 |
-| VAE_classifier     | Variational Autoencoder with classifier on latent representation   |   1 |
 | DVCCA | Deep Variational CCA [3] |    2 |
 |  jointAAE    | Multi-view Adversarial Autoencoder with joint latent representation  |   >=1 |
 | wAAE | Multi-view Adversarial Autoencoder with joint latent representation and wasserstein loss    |    >=1 |
@@ -20,6 +18,7 @@ This repository contains various multi-view autoencoder models built in Pytorch 
 | mVAE | Multimodal Variational Autoencoder (MVAE) [5] |    >=1 |
 | me_mVAE | Multimodal Variational Autoencoder (MVAE) with separate ELBO terms for each view [5] |    >=1 |
 | JMVAE |  Joint Multimodal Variational Autoencoder(JMVAE-kl) [6] |    2 |
+| MVTCAE | Multi-View Total Correlation Auto-Encoder (MVTCAE) [8] |    >=1 |
 | MoPoEVAE |  Mixture-of-Products-of-Experts VAE [7] |    >=1 |
 
 [1] Antelmi, Luigi & Ayache, Nicholas & Robert, Philippe & Lorenzi, Marco. (2019). Sparse Multi-Channel Variational Autoencoder for the Joint Analysis of Heterogeneous Data. 
@@ -35,6 +34,8 @@ This repository contains various multi-view autoencoder models built in Pytorch 
 [6] Suzuki, Masahiro and Nakayama, Kotaro and Matsuo, Yutaka. (2016). Joint Multimodal Learning with Deep Generative Models.
 
 [7] Sutter, Thomas & Daunhawer, Imant & Vogt, Julia. (2021). Generalized Multimodal ELBO. 
+
+[8] Hwang, HyeongJoo and Kim, Geon-Hyeong and Hong, Seunghoon and Kim, Kee-Eung. Multi-View Representation Learning via Total Correlation Objective. 2021. NeurIPS
 ### Installation
 
 Clone this repository and move to folder:

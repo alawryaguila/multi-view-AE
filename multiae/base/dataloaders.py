@@ -8,7 +8,15 @@ from torch.utils.data import DataLoader
 from .datasets import MVDataset
 
 class MultiviewDataModule(pl.LightningDataModule):
+    """LightningDataModule for multi-view data.
 
+    Args:
+        batch_size (int): Batch size.
+        is_validate (bool): Whether to use a validation set.
+        train_size (float): Proportion of batch to use for training between 0 and 1. Remainder of batch is used for validation.
+        data (list): Input data. list of torch.Tensors.
+        labels (np.array): Dataset labels. 
+    """
     def __init__(
             self,
             batch_size,
