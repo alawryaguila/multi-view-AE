@@ -23,8 +23,7 @@ extensions = [
 ]
 
 sphinx_gallery_conf = {
-    "doc_module": "cca-zoo",
-    "examples_dirs": "../../examples",  
+    "doc_module": "multiae",
     "ignore_pattern": "__init__.py",
 }
 
