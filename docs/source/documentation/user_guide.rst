@@ -1,34 +1,35 @@
-# User Guide
+User Guide
+===========
 
-User guide for initialising and running models from the ```multiAE``` library. 
+User guide for initialising and running models from the ``multiAE`` library. 
 
-### Initialise model 
+Initialise model 
+----------
+.. sourcecode:: python
+   from multiae import mVAE, mcVAE
 
-```
-from multiae import mVAE, mcVAE
-
-MNIST_1 = datasets.MNIST('./data/MNIST', train=True, download=True, transform=transforms.Compose([
+   MNIST_1 = datasets.MNIST('./data/MNIST', train=True, download=True, transform=transforms.Compose([
         transforms.ToTensor(),
     ]))
 
-MNIST_2 = datasets.MNIST('./data/MNIST', train=True, download=True, transform=transforms.Compose([
+   MNIST_2 = datasets.MNIST('./data/MNIST', train=True, download=True, transform=transforms.Compose([
         transforms.ToTensor(),
     ]))
 
 
-data_1 = MNIST_1.train_data.reshape(-1,784).float()/255.
-data_2 = MNIST_2.train_data.float()
-data_2 = torch.rot90(data_2, 1, [1, 2])
-data_2 = data_2.reshape(-1,784)/255.
+   data_1 = MNIST_1.train_data.reshape(-1,784).float()/255.
+   data_2 = MNIST_2.train_data.float()
+   data_2 = torch.rot90(data_2, 1, [1, 2])
+   data_2 = data_2.reshape(-1,784)/255.
 
-mvae = mVAE(cfg='./config_folder/test_config.yaml',
+   mvae = mVAE(cfg='./config_folder/test_config.yaml',
         input_dim=[784, 784],
         z_dim=64)
-        
-mcvae = mcVAE(cfg='./config_folder/test_config.yaml',
+
+   mcvae = mcVAE(cfg='./config_folder/test_config.yaml',
         input_dim=[784, 784],
         z_dim=64)
-```
+
 
 The dimensions of the input data, ```input_dim```, must be provided however the path to a configuration file, ```cfg```, and number of latent dimensions, ```z_dim```, are optional. Setting ```z_dim``` will override the value given in the configuration file.
 
