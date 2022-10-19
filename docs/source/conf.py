@@ -22,11 +22,6 @@ extensions = [
     'sphinx_gallery.gen_gallery',
 ]
 
-sphinx_gallery_conf = {
-    "doc_module": "multiae",
-    "ignore_pattern": "__init__.py",
-}
-
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
