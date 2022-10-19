@@ -6,6 +6,7 @@ User guide for initialising and running models from the ``multiAE`` library.
 Initialise model 
 ----------
 .. code-block:: python
+
    from multiae import mVAE, mcVAE
 
    MNIST_1 = datasets.MNIST('./data/MNIST', train=True, download=True, transform=transforms.Compose([
@@ -37,6 +38,7 @@ Model fit
 ----------
 
 .. code-block:: python
+
    mvae.fit(data_1, data_2,  max_epochs=50, batch_size=1000)
 
 When fitting the model, the user must provide input each view of the training data. The user can optionally provide the ``max_epochs`` and ``batch_size``. These would override the settings in the configuration file. 
@@ -45,7 +47,9 @@ Model predictions
 ----------
 
 We can use a trained model to predict the latent dimensions or reconstructions. The structure of the latent and reconstruction list will depend on the type of model. Below shows an example for joint, ``MVAE``,  and coordinate, ``mcVAE``, multi-view VAE models.
+
 .. code-block:: python
+
    MNIST_1 = datasets.MNIST('./data/MNIST', train=False, download=True, transform=transforms.Compose([
         transforms.ToTensor()]))
 
@@ -80,7 +84,9 @@ We can use a trained model to predict the latent dimensions or reconstructions. 
 Model loading.
 ----------
 Trained models can be loaded from the specified path. 
+
 .. code-block:: python
+
    import torch
    from os.path import join
    mvae = torch.load(join('path/to/model', 'model.pkl'))
