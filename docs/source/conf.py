@@ -16,7 +16,18 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.intersphinx',
+    'sphinx.ext.mathjax',
+    'sphinx.ext.napoleon',
+    'sphinx.ext.viewcode',
+    'sphinx_gallery.gen_gallery',
 ]
+
+sphinx_gallery_conf = {
+    "doc_module": "cca-zoo",
+    "examples_dirs": "../../examples",  
+    "ignore_pattern": "__init__.py",
+}
+
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
