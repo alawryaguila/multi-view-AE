@@ -1,7 +1,7 @@
 User Guide
 ===========
 
-User guide for initialising and running models from the ``multiAE`` library. 
+User guide for initialising and running models from the ``multiviewAE`` library. 
 
 Initialise model 
 ----------
