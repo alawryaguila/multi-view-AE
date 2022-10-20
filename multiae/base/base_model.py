@@ -68,8 +68,7 @@ class BaseModelAE(ABC, pl.LightningModule):
         
         # some variables should not be set for certain models
         self.cfg = self.__checkconfig(def_cfg)
-        print(self.cfg)
-        exit()
+
         print("MODEL: ", self.model_name)
         self.print_config()
 
