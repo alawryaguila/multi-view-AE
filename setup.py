@@ -2,12 +2,12 @@ from setuptools import setup, find_packages
 
 def setup_package():
     data = dict(
-        name="multiae",
+        name="multiviewae",
         version="0.0.2",
         packages=find_packages(exclude=["*tests"]),
         author="Ana Lawry Aguila",
         author_email="ana.lawryaguila@outlook.com",
-        url="https://github.com/alawryaguila/multiAE",
+        url="https://github.com/alawryaguila/multiviewAE",
         install_requires=[
             "scipy>=1.9.0",
             "pytest>=7.1.2",
