@@ -8,7 +8,7 @@ encoder:
   non_linear: True
 
 decoder:
-  _target_: multiae.models.layers.Decoder
+  _target_: multiae.architectures.mlp.Decoder
   non_linear: True
   hidden_layer_dim: [512, 256]
 

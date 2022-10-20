@@ -7,8 +7,8 @@ from itertools import combinations
 from ..base.representations import ProductOfExperts, MixtureOfExperts
 
 class MoPoEVAE(BaseModelVAE):
-    """
-    Mixture-of-Product-of-Experts Variational Autoencoder: Sutter, Thomas & Daunhawer, Imant & Vogt, Julia. (2021). Generalized Multimodal ELBO. 
+    r"""
+    Mixture-of-Product-of-Experts Variational Autoencoder.  
 
     Code is based on: https://github.com/thomassutter/MoPoE 
 
@@ -23,6 +23,10 @@ class MoPoEVAE(BaseModelVAE):
         
     input_dim (list): Dimensionality of the input data.
     z_dim (int): Number of latent dimensions. 
+
+    References
+    ----------
+    Sutter, Thomas & Daunhawer, Imant & Vogt, Julia. (2021). Generalized Multimodal ELBO.
     """
 
     def __init__(

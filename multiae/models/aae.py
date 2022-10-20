@@ -3,7 +3,7 @@ from ..base.constants import MODEL_AAE
 from ..base.base_model import BaseModelAAE
 
 class AAE(BaseModelAAE):
-    """Multi-view Adversarial Autoencoder model with a separate latent representation for each view.
+    r"""Multi-view Adversarial Autoencoder model with a separate latent representation for each view.
 
     Args:
         cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:

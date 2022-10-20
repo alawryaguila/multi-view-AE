@@ -1,7 +1,5 @@
 # @package _global_
 
-# TODO: should there be default config files for AAE and VAE?
-
 # default parameters for AAE model
 model_name: "AAE"
 
@@ -9,7 +7,7 @@ model:
   eps: 1e-15
 
 discriminator:
-  _target_: multiae.models.layers.Discriminator
+  _target_: multiae.architectures.mlp.Discriminator
 
   hidden_layer_dim: []
   bias: True

@@ -6,8 +6,8 @@ from ..base.base_model import BaseModelVAE
 from ..base.exceptions import ModelInputError
 
 class JMVAE(BaseModelVAE):
-    """
-    JMVAE-kl: Suzuki, Masahiro & Nakayama, Kotaro & Matsuo, Yutaka. (2016). Joint Multimodal Learning with Deep Generative Models. 
+    r"""
+    JMVAE-kl. 
 
     Args:
     cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
@@ -18,6 +18,10 @@ class JMVAE(BaseModelVAE):
         decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.       
     input_dim (list): Dimensionality of the input data.
     z_dim (int): Number of latent dimensions. 
+
+    References
+    ----------
+    Suzuki, Masahiro & Nakayama, Kotaro & Matsuo, Yutaka. (2016). Joint Multimodal Learning with Deep Generative Models. 
     """
 
     def __init__(

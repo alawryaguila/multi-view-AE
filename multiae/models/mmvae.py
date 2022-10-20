@@ -6,9 +6,8 @@ from ..base.constants import MODEL_MMVAE
 from ..base.base_model import BaseModelVAE
 
 class mmVAE(BaseModelVAE):
-    """
-    Mixture-of-Experts Multimodal Variational Autoencoder (MMVAE): Shi, Y., Siddharth, N., Paige, B., & Torr, P.H. (2019). 
-    Variational Mixture-of-Experts Autoencoders for Multi-Modal Deep Generative Models. ArXiv, abs/1911.03393.
+    r"""
+    Mixture-of-Experts Multimodal Variational Autoencoder (MMVAE). 
 
     Code is based on: https://github.com/iffsid/mmvae
 
@@ -23,6 +22,10 @@ class mmVAE(BaseModelVAE):
             
         input_dim (list): Dimensionality of the input data.
         z_dim (int): Number of latent dimensions. 
+    
+    References
+    ----------
+    Shi, Y., Siddharth, N., Paige, B., & Torr, P.H. (2019). Variational Mixture-of-Experts Autoencoders for Multi-Modal Deep Generative Models. ArXiv, abs/1911.03393.
     """
 
     def __init__(

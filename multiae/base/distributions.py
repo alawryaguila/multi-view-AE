@@ -25,11 +25,12 @@ class MultivariateNormal(MultivariateNormal):
         self.scale = kwargs['scale']
         
         if isinstance(self.scale, int): # TODO: dont like this, check loc is always list?
+
             self.covariance_matrix = torch.diag_embed(torch.ones(len(self.loc))*self.scale) #used when fitting prior distribution
             self.loc = torch.Tensor(self.loc)
         else:
-          #  self.loc = torch.Tensor(self.loc)
-          #  self.scale = torch.Tensor(self.scale)
+            self.loc = torch.Tensor(self.loc)
+            self.scale = torch.Tensor(self.scale)
             self.covariance_matrix = torch.diag_embed(self.scale) #used when fitting encoder/decoder distribution or prior distribution with different mean and SD values
             
         #TODO: implement case where full covariance matrix is given (Need to enforce PSD)

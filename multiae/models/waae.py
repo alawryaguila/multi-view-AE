@@ -3,7 +3,7 @@ from ..base.constants import MODEL_WAAE
 from ..base.base_model import BaseModelAAE
 
 class wAAE(BaseModelAAE):
-    """
+    r"""
     Multi-view Adversarial Autoencoder model with wasserstein loss. 
     
     Wasserstein autoencoders: https://arxiv.org/abs/1711.01558
