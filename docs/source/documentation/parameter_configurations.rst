@@ -70,7 +70,7 @@ The encoder function parameters.
 .. code-block:: python
 
         encoder:
-          _target_: multiae.models.layers.Encoder
+          _target_: multiae.architectures.mlp.Encoder
 
           hidden_layer_dim: []  
           bias: True
@@ -79,7 +79,7 @@ The encoder function parameters.
           enc_dist:
             _target_: multiae.base.distributions.Default
  
-The ``encoder._target_`` parameter specifies the encoder function class of which the in-built options include: ``multiae.models.layers.Encoder`` and ``multiae.models.layers.VariationalEncoder``.
+The ``encoder._target_`` parameter specifies the encoder function class of which the in-built options include: ``multiae.architectures.mlp.Encoder`` and ``multiae.architectures.mlp.VariationalEncoder``.
 
 The ``encoder.enc_dist._target_`` parameter specifies the encoding distribution class of which the in-built options include: ``multiae.base.distributions.Default``, ``multiae.base.distributions.Normal`` and ``multiae.base.distributions.MultivariateNormal``. The ``multiae.base.distributions.Default`` class is used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
 
@@ -91,7 +91,7 @@ The decoder function parameters.
 .. code-block:: python
 
         decoder:
-          _target_: multiae.models.layers.Decoder
+          _target_: multiae.architectures.mlp.Decoder
 
           hidden_layer_dim: []
           bias: True
@@ -100,7 +100,7 @@ The decoder function parameters.
           dec_dist:
             _target_: multiae.base.distributions.Default
  
-The ``decoder._target_`` parameter specifies the encoder function class of which the in-built options include: ``multiae.models.layers.Decoder`` and ``multiae.models.layers.VariationalDecoder``.
+The ``decoder._target_`` parameter specifies the encoder function class of which the in-built options include: ``multiae.architectures.mlp.Decoder`` and ``multiae.models.layers.VariationalDecoder``.
 
 The ``decoder.dec_dist._target_`` parameter specifies the decoding distribution class of which the in-built options include: ``multiae.base.distributions.Default``, ``multiae.base.distributions.Normal``, ``multiae.base.distributions.MultivariateNormal`` and ``multiae.base.distributions.Bernoulli``. The ``multiae.base.distributions.Default`` class is used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
 
