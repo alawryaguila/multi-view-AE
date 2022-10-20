@@ -16,7 +16,7 @@ Welcome to MultiAE's documentation!
 
 .. toctree::
    :glob:
-   :maxdepth: 2
+   :maxdepth: 4
    :caption: Reference
 
    api/models
