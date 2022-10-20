@@ -6,7 +6,7 @@ This file containing information on parameters settings in the configuration fil
 How to specify the yaml configuration file
 ---------------------------------
 
-Most parameters (with the exception of those discussed in the User Guide) are set using configuration yaml files. There are some example yaml files given in the ```multiAE/tests/user_config/``` folder. To specify a configuration file, the user must specify the absolute or relative path to the yaml file when initialising the relevant model:
+Most parameters (with the exception of those discussed in the User Guide) are set using configuration yaml files. There are some example yaml files given in the ```multiviewAE/tests/user_config/``` folder. To specify a configuration file, the user must specify the absolute or relative path to the yaml file when initialising the relevant model:
 
 .. code-block:: python
 
@@ -17,7 +17,7 @@ Most parameters (with the exception of those discussed in the User Guide) are se
         z_dim=2)
 
 
-If no configuration file is specified, the default configuration for that model class is used. These can be found in the ``multiAE/multiae/configs/model_type/`` folder.
+If no configuration file is specified, the default configuration for that model class is used. These can be found in the ``multiviewAE/multiae/configs/model_type/`` folder.
 
 Configuration file structure
 --------------------------------
@@ -43,7 +43,7 @@ The global model parameter settings.
 
           sparse: False
 
-There are also a number of model specific parameters which are set in the yaml files in the ``multiAE/multiae/configs/model_type/`` folder.
+There are also a number of model specific parameters which are set in the yaml files in the ``multiviewAE/multiae/configs/model_type/`` folder.
 
 Datamodule
 ^^^^^
@@ -80,8 +80,8 @@ The encoder function parameters.
             _target_: multiae.base.distributions.Default
  
 The ``encoder._target_`` parameter specifies the encoder function class of which the in-built options include: ``multiae.models.layers.Encoder`` and ``multiae.models.layers.VariationalEncoder``.
- 
- The ``encoder.enc_dist._target_`` parameter specifies the encoding distribution class of which the in-built options include: ``multiae.base.distributions.Default``, ``multiae.base.distributions.Normal`` and ``multiae.base.distributions.MultivariateNormal``. The ``multiae.base.distributions.Default`` class is used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
+
+The ``encoder.enc_dist._target_`` parameter specifies the encoding distribution class of which the in-built options include: ``multiae.base.distributions.Default``, ``multiae.base.distributions.Normal`` and ``multiae.base.distributions.MultivariateNormal``. The ``multiae.base.distributions.Default`` class is used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
 
 Decoder
 ^^^^^
@@ -101,8 +101,8 @@ The decoder function parameters.
             _target_: multiae.base.distributions.Default
  
 The ``decoder._target_`` parameter specifies the encoder function class of which the in-built options include: ``multiae.models.layers.Decoder`` and ``multiae.models.layers.VariationalDecoder``.
- 
- The ``decoder.dec_dist._target_`` parameter specifies the decoding distribution class of which the in-built options include: ``multiae.base.distributions.Default``, ``multiae.base.distributions.Normal``, ``multiae.base.distributions.MultivariateNormal`` and ``multiae.base.distributions.Bernoulli``. The ``multiae.base.distributions.Default`` class is used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
+
+The ``decoder.dec_dist._target_`` parameter specifies the decoding distribution class of which the in-built options include: ``multiae.base.distributions.Default``, ``multiae.base.distributions.Normal``, ``multiae.base.distributions.MultivariateNormal`` and ``multiae.base.distributions.Bernoulli``. The ``multiae.base.distributions.Default`` class is used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
 
 **NOTE:** The order of the layer dimensions in ``hidden_layer_dim`` is flipped by the model. Such that ``hidden_layer_dim=[10, 5]`` indicates a decoder network architecture:
 
@@ -116,6 +116,7 @@ Prior
 The parameters of the prior distribution for variational models. 
 
 .. code-block:: python
+
         prior:
           _target_: multiae.base.distributions.Normal
           loc: 0
@@ -129,6 +130,7 @@ Trainer
 The parameters for the PyTorch trainer. 
 
 .. code-block:: python
+
         trainer:
           _target_: pytorch_lightning.Trainer
 
@@ -147,6 +149,7 @@ Callbacks
 Parameters for the PyTorchLightning callbacks.
 
 .. code-block:: python
+
         callbacks:
           model_checkpoint:
             _target_: pytorch_lightning.callbacks.ModelCheckpoint
@@ -163,7 +166,7 @@ Parameters for the PyTorchLightning callbacks.
             min_delta: 0.001
             verbose: True
 
-Only the ``model_checkpoint`` and ``early_stopping`` callbacks are used in the ``multiAE`` library. However for more callback options, please refer to the PyTorch Lightning documentation.
+Only the ``model_checkpoint`` and ``early_stopping`` callbacks are used in the ``multiviewAE`` library. However for more callback options, please refer to the PyTorch Lightning documentation.
 
 Logger
 ^^^^^
@@ -177,7 +180,7 @@ The parameters of the logger file.
 
           save_dir: ${out_dir}/logs
 
-In the ``multiAE`` we use TensorBoard for logging. However, the user is free to use whichever logging framework their prefer.
+In the ``multiviewAE`` we use TensorBoard for logging. However, the user is free to use whichever logging framework their prefer.
 
 Changing parameter settings
 --------------------------------
@@ -196,6 +199,7 @@ Only the grouping header, sub header and the parameters the user wishes to chang
 **NOTE:** An exception to this rule are the Pytorch callbacks where all the parameters for the relevant callback must be specified again in the user configuration file. For example to change the early stopping patience to ``100`` of the following callback:
 
 .. code-block:: python
+
         callbacks:
           early_stopping:
             _target_: pytorch_lightning.callbacks.EarlyStopping
@@ -222,18 +226,19 @@ The user must add the following section to their yaml file:
 Target classes
 --------------------------------
 
-There are a number of model classes specified in the configuration file, namely; the encoder and decoder functions, the encoder, decoder, and prior distributions for variational models, and the discriminator function for adversarial models. There are a number of existing classes built into the ``multiAE`` framework for the user to chose from. Alternatively, the user can use their own classes and specify them in the yaml file:
+There are a number of model classes specified in the configuration file, namely; the encoder and decoder functions, the encoder, decoder, and prior distributions for variational models, and the discriminator function for adversarial models. There are a number of existing classes built into the ``multiviewAE`` framework for the user to chose from. Alternatively, the user can use their own classes and specify them in the yaml file:
 
 .. code-block:: python
+
         encoder:
           _target_: encoder_folder.user_encoder
 
         decoder:
           _target_: decoder_folder.user_decoder
 
-However, for these classes to work with the ``multiAE`` framework, user class implementations must follow the same structure as existing classes. For example, an ``encoder`` implementation must have a ``forward`` method.
+However, for these classes to work with the ``multiviewAE`` framework, user class implementations must follow the same structure as existing classes. For example, an ``encoder`` implementation must have a ``forward`` method.
 
 Allowed parameter combinations
 --------------------------------
 
-Some parameter combinations are not compatible in the ``multiAE`` framework. If an incorrect parameter combination is given in the configuration file, either a warning or error is raised depending on whether the parameter choices can be ignored or would impede the model from functioning correctly.
+Some parameter combinations are not compatible in the ``multiviewAE`` framework. If an incorrect parameter combination is given in the configuration file, either a warning or error is raised depending on whether the parameter choices can be ignored or would impede the model from functioning correctly.
