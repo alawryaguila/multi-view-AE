@@ -12,3 +12,9 @@ Welcome to MultiAE's documentation!
    documentation/user_guide
    documentation/model_frameworks
    documentation/parameter_configurations
+
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`search`
