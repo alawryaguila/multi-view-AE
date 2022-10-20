@@ -8,8 +8,8 @@ from ..base.exceptions import ModelInputError
 from ..base.representations import ProductOfExperts, MeanRepresentation
 
 class me_mVAE(BaseModelVAE):
-    """
-    Multimodal Variational Autoencoder (MVAE): Wu, M., & Goodman, N.D. (2018). Multimodal Generative Models for Scalable Weakly-Supervised Learning. NeurIPS.
+    r"""
+    Multimodal Variational Autoencoder (MVAE).
 
     Loss optimises the ELBO term from the joint posterior distribution, as well as the separate ELBO terms for each view.
     me_mVAE stands for multi ELBO Multimodal VAE
@@ -28,6 +28,11 @@ class me_mVAE(BaseModelVAE):
         
     input_dim (list): Dimensionality of the input data.
     z_dim (int): Number of latent dimensions.
+
+    References
+    ----------
+    Wu, M., & Goodman, N.D. (2018). Multimodal Generative Models for Scalable Weakly-Supervised Learning. NeurIPS.
+
     """
 
     def __init__(

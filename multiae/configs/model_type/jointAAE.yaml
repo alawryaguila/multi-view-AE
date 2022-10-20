@@ -7,7 +7,7 @@ model:
   eps: 1e-15
 
 discriminator:
-  _target_: multiae.models.layers.Discriminator
+  _target_: multiae.architectures.mlp.Discriminator
 
   hidden_layer_dim: []
   bias: True

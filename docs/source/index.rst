@@ -13,6 +13,16 @@ Welcome to MultiAE's documentation!
    documentation/model_frameworks
    documentation/parameter_configurations
 
+
+.. toctree::
+   :glob:
+   :maxdepth: 2
+   :caption: Reference
+
+   api/models
+   api/architectures
+
+
 Indices and tables
 ==================
 

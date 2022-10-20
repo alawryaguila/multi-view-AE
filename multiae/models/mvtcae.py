@@ -6,9 +6,8 @@ from ..base.base_model import BaseModelVAE
 from ..base.representations import ProductOfExperts
 
 class mvtCAE(BaseModelVAE):
-    """
-    Multi-View Total Correlation Auto-Encoder (MVTCAE): Hwang, HyeongJoo and Kim, Geon-Hyeong and Hong, Seunghoon and Kim, Kee-Eung. 
-    Multi-View Representation Learning via Total Correlation Objective. 2021. NeurIPS
+    r"""
+    Multi-View Total Correlation Auto-Encoder (MVTCAE).
     
     Code is based on: https://github.com/gr8joo/MVTCAE
 
@@ -26,6 +25,11 @@ class mvtCAE(BaseModelVAE):
         
     input_dim (list): Dimensionality of the input data.
     z_dim (int): Number of latent dimensions.
+
+    References
+    ----------
+    Hwang, HyeongJoo and Kim, Geon-Hyeong and Hong, Seunghoon and Kim, Kee-Eung. Multi-View Representation Learning via Total Correlation Objective. 2021. NeurIPS
+    
     """
 
     def __init__(

@@ -12,5 +12,3 @@ from .dvcca import *
 from .multi_mvae import *
 from .jmvae import *
 from .mopoevae import *
-# TODO: change name of this file
-from .layers import *

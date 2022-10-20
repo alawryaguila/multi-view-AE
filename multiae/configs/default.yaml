@@ -37,7 +37,7 @@ datamodule:
   train_size: 0.9
 
 encoder:
-  _target_: multiae.models.layers.Encoder
+  _target_: multiae.architectures.mlp.Encoder
 
   hidden_layer_dim: []  
   bias: True
@@ -47,7 +47,7 @@ encoder:
     _target_: multiae.base.distributions.Default
 
 decoder:
-  _target_: multiae.models.layers.Decoder
+  _target_: multiae.architectures.mlp.Decoder
 
   hidden_layer_dim: []  
   bias: True

@@ -2,7 +2,7 @@ from ..base.constants import MODEL_AE
 from ..base.base_model import BaseModelAE
 
 class AE(BaseModelAE):
-    """Multi-view Autoencoder model with a separate latent representation for each view.
+    r"""Multi-view Autoencoder model with a separate latent representation for each view.
 
     Args:
         cfg (str): Path to configuration file. 

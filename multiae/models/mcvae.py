@@ -6,9 +6,8 @@ from ..base.base_model import BaseModelVAE
 from ..base.distributions import Normal
 
 class mcVAE(BaseModelVAE):
-    """
-    Multi-Channel Variational Autoencoder and Sparse Multi-Channel Variational Autoencoder: Antelmi, Luigi & Ayache, Nicholas & Robert, 
-    Philippe & Lorenzi, Marco. (2019). Sparse Multi-Channel Variational Autoencoder for the Joint Analysis of Heterogeneous Data. 
+    r"""
+    Multi-Channel Variational Autoencoder and Sparse Multi-Channel Variational Autoencoder. 
 
     Code is based on: https://github.com/ggbioing/mcvae
 
@@ -25,6 +24,10 @@ class mcVAE(BaseModelVAE):
             
         input_dim (list): Dimensionality of the input data.
         z_dim (int): Number of latent dimensions. 
+    
+    References
+    ----------
+    Antelmi, Luigi & Ayache, Nicholas & Robert, Philippe & Lorenzi, Marco. (2019). Sparse Multi-Channel Variational Autoencoder for the Joint Analysis of Heterogeneous Data. 
     """
 
     def __init__(

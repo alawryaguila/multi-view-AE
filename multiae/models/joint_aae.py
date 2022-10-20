@@ -3,7 +3,7 @@ from ..base.constants import MODEL_JOINTAAE
 from ..base.base_model import BaseModelAAE
 
 class jointAAE(BaseModelAAE):
-    """
+    r"""
     Multi-view Adversarial Autoencoder model with a joint latent representation.
 
     Args:

@@ -8,8 +8,8 @@ from ..base.exceptions import ModelInputError
 from ..base.representations import ProductOfExperts, MeanRepresentation
 
 class mVAE(BaseModelVAE):
-    """
-    Multimodal Variational Autoencoder (MVAE): Wu, M., & Goodman, N.D. (2018). Multimodal Generative Models for Scalable Weakly-Supervised Learning. NeurIPS.
+    r"""
+    Multimodal Variational Autoencoder (MVAE).
 
     Args:
     cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
@@ -25,6 +25,11 @@ class mVAE(BaseModelVAE):
         
     input_dim (list): Dimensionality of the input data.
     z_dim (int): Number of latent dimensions.
+
+    References
+    ----------
+    Wu, M., & Goodman, N.D. (2018). Multimodal Generative Models for Scalable Weakly-Supervised Learning. NeurIPS.
+
     """
 
     def __init__(

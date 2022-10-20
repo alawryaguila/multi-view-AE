@@ -49,7 +49,8 @@ class BaseModelAE(ABC, pl.LightningModule):
                             return_hydra_config=True,
                             overrides=[f"model_type={self.model_name}.yaml"]
                         )
-
+        print('PRINT DEFAULT CONFIG: ',def_cfg)
+        exit()
         if cfg is not None: # user overrides default config
             if os.path.isabs(cfg):
                 cfgdir, cfg_file = os.path.split(cfg)
@@ -69,7 +70,8 @@ class BaseModelAE(ABC, pl.LightningModule):
         
         # some variables should not be set for certain models
         self.cfg = self.__checkconfig(def_cfg)
-        
+        print(self.cfg)
+        exit()
         print("MODEL: ", self.model_name)
         self.print_config()
 

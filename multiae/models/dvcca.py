@@ -4,8 +4,7 @@ from ..base.constants import MODEL_DVCCA
 from ..base.base_model import BaseModelVAE
 
 class DVCCA(BaseModelVAE):
-    """Deep Variational Canonical Correlation Analysis: Wang, Weiran & Lee, Honglak & Livescu, Karen. (2016). Deep Variational Canonical Correlation Analysis.
-
+    r"""Deep Variational Canonical Correlation Analysis (DVCCA). 
     Args:
         cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
             model.beta (int, float): KL divergence weighting term.
@@ -19,6 +18,12 @@ class DVCCA(BaseModelVAE):
             decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
         input_dim (list): Dimensionality of the input data.
         z_dim (int): Number of latent dimensions. 
+    
+    References
+    ----------
+    Wang, Weiran & Lee, Honglak & Livescu, Karen. (2016). Deep Variational Canonical Correlation Analysis.
+
+
     """
     def __init__(
         self,
