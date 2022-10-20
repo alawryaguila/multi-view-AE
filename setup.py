@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 def setup_package():
     data = dict(
-        name="multiviewae",
+        name="multiae",
         version="0.0.2",
         packages=find_packages(exclude=["*tests"]),
         author="Ana Lawry Aguila",
