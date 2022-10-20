@@ -56,7 +56,7 @@ decoder:
   dec_dist:
     _target_: multiae.base.distributions.Default
   
-prior: #TODO: move to just variational models 
+prior: 
   _target_: multiae.base.distributions.Normal
   loc: 0
   scale: 1

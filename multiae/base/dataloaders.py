@@ -67,7 +67,7 @@ class MultiviewDataModule(pl.LightningDataModule):
 
         return train_data, test_data, train_labels, test_labels
 
-    def process_labels(self, labels):
+    def process_labels(self, labels): #TODO: get rid of this - doesn't work for multidims
         if isinstance(labels, pd.core.series.Series):
             return self.labels.values.reshape(-1)
         elif isinstance(labels, np.ndarray):
