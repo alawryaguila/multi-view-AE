@@ -5,6 +5,7 @@ User guide for initialising and running models from the ``multiAE`` library.
 
 Initialise model 
 ----------
+
 .. code-block:: python
 
    from multiae import mVAE, mcVAE
