@@ -19,6 +19,13 @@ extensions = [
     'sphinx.ext.viewcode',
 ]
 
+# -- sphinx.ext.autosummary
+autosummary_generate = True
+
+# -- sphinx.ext.autodoc
+autoclass_content = "both"
+autodoc_default_flags = ["members", "inherited-members"]
+autodoc_member_order = "bysource"  # default is alphabetical
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),

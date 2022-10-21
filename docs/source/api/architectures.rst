@@ -5,6 +5,7 @@ Architectures
     :local:
 
 .. currentmodule:: multiae.architectures
+    
 .. autosummary::
    :nosignatures:
 
