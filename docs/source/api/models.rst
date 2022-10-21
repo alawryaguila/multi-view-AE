@@ -13,7 +13,6 @@ Models
     {% endfor %}
 
 .. automodule:: multiae.models
-   :imported-members:
    :members:
    :inherited-members:
    :show-inheritance:
