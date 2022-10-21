@@ -5,7 +5,6 @@ Models
     :local:
 
 .. currentmodule:: multiae.models
-    
 .. autosummary::
    :nosignatures:
 
