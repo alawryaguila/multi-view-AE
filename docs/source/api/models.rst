@@ -14,5 +14,4 @@ Models
 
 .. automodule:: multiae.models
    :members:
-   :inherited-members:
    :show-inheritance:
