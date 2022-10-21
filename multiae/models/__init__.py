@@ -12,4 +12,5 @@ from .jmvae import *
 from .mopoevae import *
 
 __all__ = ["AE", "AAE", "jointAAE", "wAAE", "mcVAE", "mVAE", "JMVAE", "me_mVAE", "mmVAE", "mvtCAE", "DVCCA", "MoPoEVAE"]
-classes = __all__ #TODO: use constants instead
+classes = __all__ 
+#TODO: use constants instead

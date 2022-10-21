@@ -8,12 +8,12 @@ class jointAAE(BaseModelAAE):
 
     Args:
         cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
-            eps (float): 
-            discriminator._target_ (multiae.models.layers.Discriminator): 
-            discriminator.hidden_layer_dim (list): Number of nodes per hidden layer.
-            discriminator.bias (bool): Whether to include a bias term in hidden layers.
-            discriminator.non_linear (bool): Whether to include a ReLU() function between layers.
-            discriminator.dropout_threshold (float): Dropout threshold of layers.
+                eps (float): Value added for numerical stability.
+                discriminator._target_ (multiae.models.layers.Discriminator): Discriminator network class.
+                discriminator.hidden_layer_dim (list): Number of nodes per hidden layer.
+                discriminator.bias (bool): Whether to include a bias term in hidden layers.
+                discriminator.non_linear (bool): Whether to include a ReLU() function between layers.
+                discriminator.dropout_threshold (float): Dropout threshold of layers.
         input_dim (list): Dimensionality of the input data.
         z_dim (int): Number of latent dimensions. 
     """

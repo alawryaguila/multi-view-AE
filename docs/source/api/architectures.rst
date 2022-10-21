@@ -5,7 +5,6 @@ Architectures
     :local:
 
 .. currentmodule:: multiae.architectures
-    
 .. autosummary::
    :nosignatures:
 
@@ -15,4 +14,4 @@ Architectures
 
 .. automodule:: multiae.architectures
    :members:
-   :show-inheritance:
+   :undoc-members:
