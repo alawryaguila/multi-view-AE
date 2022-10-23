@@ -27,7 +27,7 @@ class BaseModelAE(ABC, pl.LightningModule):
         model_name (str): Type of autoencoder model.
         cfg (str): Path to configuration file.
         input_dim (list): Dimensionality of the input data.
-        z_dim (int): Number of latent dimensions. 
+        z_dim (int): Number of latent dimensions.
     """
     is_variational = False
 
@@ -183,17 +183,17 @@ class BaseModelAE(ABC, pl.LightningModule):
             for k in keys:
                 if k in CONFIG_KEYS:
                     save_cfg[k] = self.cfg[k]
-            OmegaConf.save(save_cfg, join(self.cfg.out_dir, 'config_{0}.yaml'.format(run_time)))            
+            OmegaConf.save(save_cfg, join(self.cfg.out_dir, 'config_{0}.yaml'.format(run_time)))
         else:
-            self.save_config(keys=CONFIG_KEYS)       
-            
+            self.save_config(keys=CONFIG_KEYS)
+
     def create_folder(self, dir_path):
         check_folder = isdir(dir_path)
         if not check_folder:
             os.makedirs(dir_path)
 
     ################################            abstract methods
- 
+
     @abstractmethod
     def encode(self, x):
         raise NotImplementedError()
@@ -238,7 +238,7 @@ class BaseModelAE(ABC, pl.LightningModule):
             [
                 hydra.utils.instantiate(
                     self.cfg.encoder,
-                    input_dim=d,    
+                    input_dim=d,
                     z_dim=self.z_dim,
                     _recursive_=False,
                     _convert_ = "all"
@@ -296,18 +296,18 @@ class BaseModelAE(ABC, pl.LightningModule):
                 raise ConfigError("Must use non-variational Decoder if decoder dist is Default/Bernoulli")
 
         if self.model_name in [MODEL_AE] + ADVERSARIAL_MODELS:
-            pattern = re.compile('multiae\.architectures\..*\.VariationalEncoder')
+            pattern = re.compile(r'multiae\.architectures\..*\.VariationalEncoder')
             if bool(pattern.match(cfg.encoder._target_)):
                 raise ConfigError("Must use non-variational encoder for adversarial models")
 
-            pattern = re.compile('multiae\.base\.distributions\..*Normal')
+            pattern = re.compile(r'multiae\.base\.distributions\..*Normal')
             if bool(pattern.match(cfg.encoder.enc_dist._target_)):
                 raise ConfigError("Must not use Normal/MultivariateNormal encoder dist for adversarial models")
 
         if self.model_name in VARIATIONAL_MODELS:
             self.is_variational = True
 
-            pattern = re.compile('multiae\.architectures\..*\.VariationalEncoder')
+            pattern = re.compile(r'multiae\.architectures\..*\.VariationalEncoder')
             if not bool(pattern.match(cfg.encoder._target_)):
                 raise ConfigError("Must use variational encoder for variational models")
 
@@ -362,7 +362,7 @@ class BaseModelAE(ABC, pl.LightningModule):
             if not (data[i].shape[1] == self.input_dim[i]):
                 raise InputError("modality's shape must be equal to corresponding input_dim's shape")
 
-        dataset = MVDataset(data, labels=None) #TODO: make flexible 
+        dataset = MVDataset(data, labels=None) #TODO: make flexible
 
         if batch_size is None:
             batch_size = data[0].shape[0]
@@ -486,7 +486,7 @@ class BaseModelAAE(BaseModelAE):
         model_name (str): Type of autoencoder model.
         cfg (str): Path to configuration file.
         input_dim (list): Dimensionality of the input data.
-        z_dim (int): Number of latent dimensions. 
+        z_dim (int): Number of latent dimensions.
     """
     is_wasserstein = False
 
@@ -566,7 +566,7 @@ class BaseModelAAE(BaseModelAE):
     def configure_optimizers(self):
         optimizers = []
         #Encoder optimizers
-        [   
+        [
             optimizers.append(
                 torch.optim.Adam(
                     list(self.encoders[i].parameters()), lr=self.learning_rate
