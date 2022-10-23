@@ -1,18 +1,7 @@
-# class ConfigError(Exception):
-#     pass
+class ConfigError(Exception):
+    def __init__(self, caught):
+        self.caught = caught
 
-# TODO: remove this if there's only 1
-class ModelInputError(Exception):
-    pass
-
-# class AutoencoderInputError(Exception):
-#     pass
-#
-# class EncoderInputError(Exception):
-#     pass
-#
-# class DecoderInputError(Exception):
-#     pass
-#
-# class TrainingInputError(Exception):
-#     pass
+class InputError(Exception):
+    def __init__(self, caught):
+        self.caught = caught

@@ -29,11 +29,10 @@ def test_models():
     test_3 = np.random.rand(50, 5)
 
     test_models = MODELS
-    twoview_models = TWOVIEW_MODELS
     module = importlib.import_module("multiae")
     for m in test_models:
         class_ = getattr(module, m)
-        if m not in twoview_models:
+        if m not in [MODEL_JMVAE]:
             model1 = class_(input_dim=[20])
             model1.fit(train_1)
             model1.fit(train_1, max_epochs=5, batch_size=10)
@@ -88,12 +87,12 @@ def test_userconfig():
     test_3 = np.random.rand(50, 5)
 
     tests = {
-            "./user_config/example_dvcca.yaml" : [MODEL_DVCCA],
-            "./user_config/example_sparse.yaml" : SPARSE_MODELS,
-            "./user_config/example_multivariatenormal.yaml": VARIATIONAL_MODELS,
-            "./user_config/example_multivariatenormal.yaml": SPARSE_MODELS,
+            "./user_config/dvcca.yaml" : [MODEL_DVCCA],
+            "./user_config/sparse.yaml" : SPARSE_MODELS,
+            "./user_config/multivariatenormal.yaml": VARIATIONAL_MODELS,
+            "./user_config/multivariatenormal.yaml": SPARSE_MODELS,
             }
-            
+
     module = importlib.import_module("multiae")
     train_twoviews = [train_1, train_2]
     test_twoviews = [test_1, test_2]
@@ -102,7 +101,7 @@ def test_userconfig():
 
     for cfg, test_models in tests.items():
         for m in test_models:
-            if m in TWOVIEW_MODELS:
+            if m in [MODEL_JMVAE]:
                 train = train_twoviews
                 test = test_twoviews
             else:
@@ -152,7 +151,7 @@ def test_mnist():
     data_test_2 = torch.rot90(data_test_2, 1, [1, 2])
     data_test_2 = data_test_2.reshape(-1,784)
 
-    cfg = "./user_config/example_mnist.yaml"
+    cfg = "./user_config/mnist.yaml"
     test_models = [MODEL_MCVAE, MODEL_DVCCA]
     max_epochs = 10
     batch_size = 2000
@@ -176,7 +175,35 @@ def test_mnist():
         print_results("recon", recon)
         print("")
 
+def test_validation():
+
+    tests = {
+            "./user_config/validation_decoder.yaml" : MODELS,
+            "./user_config/validation_adversarial1.yaml" : [MODEL_AE] + ADVERSARIAL_MODELS,
+            "./user_config/validation_adversarial2.yaml" : [MODEL_AE] + ADVERSARIAL_MODELS,
+            "./user_config/validation_variational1.yaml": VARIATIONAL_MODELS,
+            "./user_config/validation_variational2.yaml": VARIATIONAL_MODELS,
+            "./user_config/validation_prior1.yaml": MODELS,
+            "./user_config/validation_prior2.yaml": VARIATIONAL_MODELS,
+            }
+
+    module = importlib.import_module("multiae")
+
+    for cfg, test_models in tests.items():
+        print(cfg, test_models)
+        for m in test_models:
+            class_ = getattr(module, m)
+            try:
+                model = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=[20, 10])
+            except Exception as e:
+                print(f"Validation test OK: {m}\t{e}")
+            else:
+                print(f"Validation test NG: {m}")
+                exit()
+        print()
+
 if __name__ == "__main__":
     test_models()
     test_userconfig()
     test_mnist()
+    test_validation()

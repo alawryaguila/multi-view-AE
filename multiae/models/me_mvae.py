@@ -4,7 +4,6 @@ import hydra
 from ..base.constants import MODEL_MEMVAE
 from ..base.base_model import BaseModelVAE
 from ..base.distributions import Normal
-from ..base.exceptions import ModelInputError
 from ..base.representations import ProductOfExperts, MeanRepresentation
 
 class me_mVAE(BaseModelVAE):
@@ -17,15 +16,15 @@ class me_mVAE(BaseModelVAE):
     Args:
     cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
         model.beta (int, float): KL divergence weighting term.
-        model.join_type (str): Method of combining encoding distributions.       
+        model.join_type (str): Method of combining encoding distributions.
         model.sparse (bool): Whether to enforce sparsity of the encoding distribution.
         model.threshold (float): Dropout threshold applied to the latent dimensions. Default is 0.
-        encoder._target_ (multiae.models.layers.VariationalEncoder): Type of encoder class to use. 
+        encoder._target_ (multiae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
         encoder.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
-        decoder._target_ (multiae.models.layers.VariationalDecoder): Type of decoder class to use.
+        decoder._target_ (multiae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
         decoder.init_logvar(int, float): Initial value for log variance of decoder.
         decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
-        
+
     input_dim (list): Dimensionality of the input data.
     z_dim (int): Number of latent dimensions.
 
@@ -51,8 +50,6 @@ class me_mVAE(BaseModelVAE):
             self.join_z = ProductOfExperts()
         elif self.join_type == "Mean":
             self.join_z = MeanRepresentation()
-        else:
-            raise ModelInputError(f"[MVAE] Incorrect join method: {self.join_type}")
 
     def encode(self, x):
         mu = []

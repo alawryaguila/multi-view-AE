@@ -17,6 +17,7 @@ def setup_package():
             "torch>=1.12.0",
             "pytorch-lightning~=1.5.5",
             "hydra-core",
+            "schema"
         ],
         package_data={'': ['*yaml']},
         description="A library for running multiview autoencoder models",

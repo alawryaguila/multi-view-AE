@@ -1,0 +1,12 @@
+# @package _global_
+
+
+encoder:
+  _target_: multiae.architectures.mlp.Encoder
+
+  hidden_layer_dim: []
+  bias: True
+  non_linear: False
+
+  enc_dist:
+    _target_: multiae.base.distributions.Normal

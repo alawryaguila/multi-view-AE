@@ -9,67 +9,42 @@ def compute_log_alpha(mu, logvar):
     # clamp because dropout rate p in 0-99%, where p = alpha/(alpha+1)
     return (logvar - 2 * torch.log(torch.abs(mu) + 1e-8)).clamp(min=-8, max=8)
 
-class MultivariateNormal(MultivariateNormal):
-    """Multivariate normal distribution with diagonal covariance matrix. Inherits from torch.distributions.multivariate_normal.MultivariateNormal.
-
+class Default():
+    """Artificial distribution designed for data with unspecified distribution.
+    Used so that log_likelihood and _sample methods can be called by model class.
     Args:
-        loc (list, torch.Tensor): Mean of distribution.
-        scale (int, torch.Tensor): Standard deviation of distribution.
+        x (list): List of input data.
     """
     def __init__(
-            self,
-            **kwargs
-        ):
+        self,
+        **kwargs,
+    ):
+        self.x = kwargs['x']
 
-        self.loc = kwargs['loc']
-        self.scale = kwargs['scale']
-        
-        if isinstance(self.scale, int): # TODO: dont like this, check loc is always list?
-
-            self.covariance_matrix = torch.diag_embed(torch.ones(len(self.loc))*self.scale) #used when fitting prior distribution
-            self.loc = torch.Tensor(self.loc)
-        else:
-            self.loc = torch.Tensor(self.loc)
-            self.scale = torch.Tensor(self.scale)
-            self.covariance_matrix = torch.diag_embed(self.scale) #used when fitting encoder/decoder distribution or prior distribution with different mean and SD values
-            
-        #TODO: implement case where full covariance matrix is given (Need to enforce PSD)
-        super().__init__(loc=self.loc, covariance_matrix=self.covariance_matrix)
-
-    @property
-    def variance(self):
-        return self.scale.pow(2)
-
-    def kl_divergence(self, other):
-
-        kl = kl_divergence(torch.distributions.multivariate_normal.MultivariateNormal( \
-                        loc=self.loc, covariance_matrix=self.covariance_matrix), other)
-        sh = kl.shape
-        #return kl.reshape((sh[0], 1))
-        return torch.unsqueeze(kl,-1) 
-
-    def sparse_kl_divergence(self): 
-        mu = self.loc
-        logvar = torch.log(self.variance)
-        log_alpha = compute_log_alpha(mu, logvar)
-        k1, k2, k3 = 0.63576, 1.8732, 1.48695
-        neg_KL = (
-            k1 * torch.sigmoid(k2 + k3 * log_alpha)
-            - 0.5 * torch.log1p(torch.exp(-log_alpha))
-            - k1
-        )
-        return -neg_KL  
 
     def log_likelihood(self, x):
-        ll = self.log_prob(x)
-        sh = ll.shape
-        #return ll.reshape((sh[0], 1))
-        return torch.unsqueeze(ll,-1)
+        """calculates the mean squared error between input data and reconstruction.
 
-    def _sample(self, *kwargs, training=False):
-        if training:
-            return self.rsample(*kwargs)
-        return self.loc
+        Args:
+            x (torch.Tensor): data reconstruction.
+
+        Returns:
+            torch.Tensor: Mean squared error.
+        """
+        logits, x = broadcast_all(self.x, x)
+        return - (logits - x)**2
+
+    def rsample(self):
+        raise NotImplementedError
+
+    def kl_divergence(self):
+        raise NotImplementedError
+
+    def sparse_kl_divergence(self):
+        raise NotImplementedError
+
+    def _sample(self):
+        return self.x
 
 
 class Normal(Normal):
@@ -118,6 +93,64 @@ class Normal(Normal):
             return self.rsample(*kwargs)
         return self.loc
 
+
+class MultivariateNormal(MultivariateNormal):
+    """Multivariate normal distribution with diagonal covariance matrix. Inherits from torch.distributions.multivariate_normal.MultivariateNormal.
+
+    Args:
+        loc (list, torch.Tensor): Mean of distribution.
+        scale (int, torch.Tensor): Standard deviation of distribution.
+    """
+    def __init__(
+            self,
+            **kwargs
+        ):
+
+        self.loc = torch.Tensor(kwargs['loc'])
+        self.scale = torch.Tensor(kwargs['scale'])
+
+        #used when fitting encoder/decoder distribution or prior distribution with different mean and SD values
+        self.covariance_matrix = torch.diag_embed(self.scale)
+
+        #TODO: implement case where full covariance matrix is given (Need to enforce PSD)
+        super().__init__(loc=self.loc, covariance_matrix=self.covariance_matrix)
+
+    @property
+    def variance(self):
+        return self.scale.pow(2)
+
+    def kl_divergence(self, other):
+
+        kl = kl_divergence(torch.distributions.multivariate_normal.MultivariateNormal( \
+                        loc=self.loc, covariance_matrix=self.covariance_matrix), other)
+        sh = kl.shape
+        #return kl.reshape((sh[0], 1))
+        return torch.unsqueeze(kl,-1)
+
+    def sparse_kl_divergence(self):
+        mu = self.loc
+        logvar = torch.log(self.variance)
+        log_alpha = compute_log_alpha(mu, logvar)
+        k1, k2, k3 = 0.63576, 1.8732, 1.48695
+        neg_KL = (
+            k1 * torch.sigmoid(k2 + k3 * log_alpha)
+            - 0.5 * torch.log1p(torch.exp(-log_alpha))
+            - k1
+        )
+        return -neg_KL
+
+    def log_likelihood(self, x):
+        ll = self.log_prob(x)
+        sh = ll.shape
+        #return ll.reshape((sh[0], 1))
+        return torch.unsqueeze(ll,-1)
+
+    def _sample(self, *kwargs, training=False):
+        if training:
+            return self.rsample(*kwargs)
+        return self.loc
+
+
 class Bernoulli():
     """Artificial distribution designed for Bernoulli distributed data.
 
@@ -147,41 +180,3 @@ class Bernoulli():
 
     def _sample(self):
         return torch.distributions.bernoulli.Bernoulli(torch.sigmoid(self.x)).sample()
-
-
-class Default():
-    """Artificial distribution designed for data with unspecified distribution. 
-    Used so that log_likelihood and _sample methods can be called by model class.
-    Args:
-        x (list): List of input data.
-    """
-    def __init__(
-        self,
-        **kwargs,
-    ):
-        self.x = kwargs['x']
-
-
-    def log_likelihood(self, x):
-        """calculates the mean squared error between input data and reconstruction.
-
-        Args:
-            x (torch.Tensor): data reconstruction.
-
-        Returns:
-            torch.Tensor: Mean squared error.
-        """
-        logits, x = broadcast_all(self.x, x)
-        return - (logits - x)**2
-
-    def rsample(self):
-        raise NotImplementedError
-
-    def kl_divergence(self):
-        raise NotImplementedError
-
-    def sparse_kl_divergence(self):
-        raise NotImplementedError
-
-    def _sample(self):
-        return self.x

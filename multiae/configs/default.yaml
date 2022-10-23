@@ -25,8 +25,9 @@ model:
   z_dim: 5 #dimensionality of the latent space
   learning_rate: 0.001  # learning rate for both encoder/decoder
 
-  sparse: False #sparsity of the encoding distribution. NOTE: setting sparse to True enforces a uniform prior over the latents
-
+  #sparsity of the encoding distribution.
+  sparse: False  #NOTE: setting sparse to True enforces a uniform prior over the latents
+  threshold: 0
 
 datamodule:
   _target_: multiae.base.dataloaders.MultiviewDataModule
