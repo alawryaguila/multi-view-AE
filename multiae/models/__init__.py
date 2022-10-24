@@ -9,6 +9,6 @@ from .mvae import *
 from .mmvae import *
 from .mvtcae import *
 from .dvcca import *
-from .multi_mvae import *
+from .me_mvae import *
 from .jmvae import *
 from .mopoevae import *

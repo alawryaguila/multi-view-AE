@@ -1,0 +1,16 @@
+# @package _global_
+
+encoder:
+  _target_: multiae.architectures.mlp.VariationalEncoder
+
+  hidden_layer_dim: []
+  bias: True
+  non_linear: False
+
+  enc_dist:
+    _target_: multiae.base.distributions.MultivariateNormal
+
+prior:
+  _target_: multiae.base.distributions.MultivariateNormal
+  loc: 1
+  scale: [1., 2.3, 4]

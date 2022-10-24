@@ -1,0 +1,12 @@
+# @package _global_
+
+
+decoder:
+  _target_: multiae.architectures.mlp.VariationalDecoder
+
+  hidden_layer_dim: []
+  bias: True
+  non_linear: False
+
+  dec_dist:
+    _target_: multiae.base.distributions.Bernoulli

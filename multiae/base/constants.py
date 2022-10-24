@@ -12,6 +12,7 @@ MODEL_MMVAE     = "mmVAE"
 MODEL_MVTCAE    = "mvtCAE"
 MODEL_DVCCA     = "DVCCA"
 MODEL_MOPOEVAE  = "MoPoEVAE"
+
 MODELS = [
             MODEL_AE,
             MODEL_AAE,
@@ -25,6 +26,12 @@ MODELS = [
             MODEL_MVTCAE,
             MODEL_DVCCA,
             MODEL_MOPOEVAE
+        ]
+
+ADVERSARIAL_MODELS = [
+            MODEL_AAE,
+            MODEL_JOINTAAE,
+            MODEL_WAAE,
         ]
 
 VARIATIONAL_MODELS = [
@@ -44,9 +51,6 @@ SPARSE_MODELS = [
             MODEL_DVCCA
         ]
 
-TWOVIEW_MODELS = [
-            MODEL_JMVAE,
-]
 CONFIG_KEYS = [
             "model",
             "datamodule",

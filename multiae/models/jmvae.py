@@ -3,7 +3,6 @@ import hydra
 
 from ..base.constants import MODEL_JMVAE
 from ..base.base_model import BaseModelVAE
-from ..base.exceptions import ModelInputError
 
 class JMVAE(BaseModelVAE):
     r"""
@@ -11,9 +10,9 @@ class JMVAE(BaseModelVAE):
 
     Args:
     cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
-        encoder._target_ (multiae.models.layers.VariationalEncoder): Type of Encoder to use. 
+        encoder._target_ (multiae.architectures.mlp.VariationalEncoder): Type of Encoder to use.
         encoder.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
-        decoder._target_ (multiae.models.layers.VariationalDecoder): Type of decoder class to use.
+        decoder._target_ (multiae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
         decoder.init_logvar(int, float): Initial value for log variance of decoder.
         decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.       
     input_dim (list): Dimensionality of the input data.
@@ -34,7 +33,6 @@ class JMVAE(BaseModelVAE):
                         cfg=cfg,
                         input_dim=input_dim,
                         z_dim=z_dim)
-        assert len(input_dim)==2, 'JMVAE expects two input dimensions'
 
     def _setencoders(self):
         self.encoders = torch.nn.ModuleList(

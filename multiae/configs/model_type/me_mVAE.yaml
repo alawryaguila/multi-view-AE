@@ -5,10 +5,10 @@ model_name: "me_mVAE"
 
 model:
   beta: 1
-  join_type: "PoE"  # TODO: test MeanRepresentation, set restrictions with hydra?
+  join_type: "PoE"  # TODO: test MeanRepresentation
 
   sparse: False
-  threshold: 0
+
 encoder:
   _target_: multiae.architectures.mlp.VariationalEncoder
 
