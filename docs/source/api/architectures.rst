@@ -14,5 +14,4 @@ Architectures
 
 .. automodule:: multiae.architectures
    :members:
-   :inherited-members:
-   :show-inheritance:
+   :undoc-members:
