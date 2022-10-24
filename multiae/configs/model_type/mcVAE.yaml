@@ -8,6 +8,7 @@ model:
 
   sparse: False
   threshold: 0
+  
 encoder:
   _target_: multiae.architectures.mlp.VariationalEncoder
 

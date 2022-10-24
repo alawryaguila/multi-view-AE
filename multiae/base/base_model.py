@@ -1,20 +1,24 @@
 import os
 import numpy as np
 import hydra
+import re
 
 import torch
 import pytorch_lightning as pl
 
 from os.path import join, isdir
+from datetime import datetime
 from abc import ABC, abstractmethod
 from hydra import compose, initialize, initialize_config_dir
+from schema import Schema, SchemaError, And
 
 from torch.utils.data.dataloader import DataLoader
 from omegaconf import OmegaConf
 
-from .constants import MODELS, VARIATIONAL_MODELS, SPARSE_MODELS, CONFIG_KEYS
+from .constants import *
+from .validation import config_schema
 from .datasets import MVDataset
-from datetime import datetime
+from .exceptions import *
 
 class BaseModelAE(ABC, pl.LightningModule):
     """Base class for autoencoder models.
@@ -23,7 +27,7 @@ class BaseModelAE(ABC, pl.LightningModule):
         model_name (str): Type of autoencoder model.
         cfg (str): Path to configuration file.
         input_dim (list): Dimensionality of the input data.
-        z_dim (int): Number of latent dimensions. 
+        z_dim (int): Number of latent dimensions.
     """
     is_variational = False
 
@@ -36,12 +40,25 @@ class BaseModelAE(ABC, pl.LightningModule):
         z_dim = None
     ):
 
-        assert(model_name is not None)  # have to choose which model always
-        assert(input_dim is not None)
+        assert (model_name is not None and model_name in MODELS), \
+        "Model name is invalid"  # have to choose which model always
 
+        try:
+            # check input_dim
+            Schema([And(int, lambda x: x > 0)]).validate(input_dim)
+            Schema([And(int, lambda x: x > 0)]).validate(input_dim)
+
+            # check z_dim
+            if z_dim is not None:
+                Schema(And(int, lambda x: x > 0)).validate(z_dim)
+        except SchemaError as se:
+            raise ConfigError(se) from None
 
         super().__init__()
         self.model_name = model_name
+        self.input_dim = input_dim
+        self.n_views = len(self.input_dim)
+        self.z_dim = z_dim
 
         with initialize(version_base=None, config_path="../configs"):
             def_cfg = compose(
@@ -58,51 +75,54 @@ class BaseModelAE(ABC, pl.LightningModule):
                                 return_hydra_config=True
                             )
             else:
-                workdir = os.getcwd() 
+                workdir = os.getcwd()
                 with initialize_config_dir(version_base=None, config_dir=workdir):
                     user_cfg = compose(
                                 config_name=cfg,
                                 return_hydra_config=True
                             )
             def_cfg = self.__updateconfig(def_cfg, user_cfg)
-        
-        # some variables should not be set for certain models
+
+        # validate model configuration
         self.cfg = self.__checkconfig(def_cfg)
 
-        print("MODEL: ", self.model_name)
-        self.print_config()
+        if self.z_dim is not None:   # overrides hydra config... passed arg has precedence
+            self.cfg.model.z_dim = self.z_dim
 
         self.__dict__.update(self.cfg.model)
+
+        print("MODEL: ", self.model_name)
+        self.print_config() #TODO: put this in debug mode logging
 
         if all(k in self.cfg.model for k in ["seed_everything", "seed"]):
             pl.seed_everything(self.cfg.model.seed, workers=True)
 
-
-        self.input_dim = input_dim 
-        if z_dim is not None:   # overrides hydra config... passed arg has precedence
-            self.z_dim = z_dim  
-            self.cfg.model.z_dim = z_dim
-
-        assert isinstance(input_dim,list), 'input_dim must be a list of input dimensions'
-        assert (isinstance(dim, int) for dim in input_dim), 'Input dimensions must be integers' #TODO: this will have to change for conv model
-        assert isinstance(self.cfg.model.z_dim, int), 'z_dim must be an integer'
-
-        self.n_views = len(self.input_dim)
-
         self._setencoders()
         self._setdecoders()
+        self._setprior()
 
         # TODO: should this be in the end of instance init()?
         self.save_hyperparameters()
         self.create_folder(self.cfg.out_dir)
         self.save_config()
 
-        
+
     ################################            public methods
     def fit(self, *data, labels=None, max_epochs=None, batch_size=None):
 
-        data = list(data) 
-        assert all(data_.shape[0] == data[0].shape[0] for data_ in data), 'All modalities must have same number of entries'
+        data = list(data)
+
+        if not all(data_.shape[0] == data[0].shape[0] for data_ in data):
+            raise InputError('All modalities must have the same number of entries')
+
+        if not (len(data) == self.n_views):
+            raise InputError("number of modalities must be equal to number of views")
+
+        for i in range(self.n_views):
+            # TODO: this is only for 1D input, change to tuple
+            if not (data[i].shape[1] == self.input_dim[i]):
+                raise InputError("modality's shape must be equal to corresponding input_dim's shape")
+
         self._training = True
         if max_epochs is not None:
             self.max_epochs = max_epochs
@@ -115,11 +135,6 @@ class BaseModelAE(ABC, pl.LightningModule):
             self.cfg.datamodule.batch_size = batch_size
         else:
             self.batch_size = self.cfg.datamodule.batch_size
-
-        # check len(data) == n_views and data_dim == input_dim
-        assert(len(data) == self.n_views)
-        for i in range(self.n_views):
-            assert(data[i].shape[1] == self.input_dim[i])   # TODO: this is only for 1D input
 
         callbacks = []
         if self.cfg.datamodule.is_validate:
@@ -148,15 +163,19 @@ class BaseModelAE(ABC, pl.LightningModule):
     def predict_reconstruction(self, *data, batch_size=None):
         return self.__predict(*data, batch_size=batch_size, is_recon=True)
 
-    def print_config(self, keys=None):
+    def print_config(self, cfg=None, keys=None):
+        if cfg is None:
+            cfg = self.cfg
+
         if keys is not None:
+            print(f"{'model_name'}:\n  {cfg['model_name']}")
             for k in keys:
                 if k in CONFIG_KEYS:
-                    str = (OmegaConf.to_yaml(self.cfg[k])).replace("\n", "\n  ")
+                    str = (OmegaConf.to_yaml(cfg[k])).replace("\n", "\n  ")
                     print(f"{k}:\n  {str}")
         else:
-            self.print_config(keys=CONFIG_KEYS)
-    
+            self.print_config(cfg=cfg, keys=CONFIG_KEYS)
+
     def save_config(self, keys=None):
         run_time = datetime.now().strftime("%Y-%m-%d_%H%M")
         save_cfg = {}
@@ -164,17 +183,17 @@ class BaseModelAE(ABC, pl.LightningModule):
             for k in keys:
                 if k in CONFIG_KEYS:
                     save_cfg[k] = self.cfg[k]
-            OmegaConf.save(save_cfg, join(self.cfg.out_dir, 'config_{0}.yaml'.format(run_time)))            
+            OmegaConf.save(save_cfg, join(self.cfg.out_dir, 'config_{0}.yaml'.format(run_time)))
         else:
-            self.save_config(keys=CONFIG_KEYS)       
-            
+            self.save_config(keys=CONFIG_KEYS)
+
     def create_folder(self, dir_path):
         check_folder = isdir(dir_path)
         if not check_folder:
             os.makedirs(dir_path)
 
     ################################            abstract methods
- 
+
     @abstractmethod
     def encode(self, x):
         raise NotImplementedError()
@@ -219,7 +238,7 @@ class BaseModelAE(ABC, pl.LightningModule):
             [
                 hydra.utils.instantiate(
                     self.cfg.encoder,
-                    input_dim=d,    
+                    input_dim=d,
                     z_dim=self.z_dim,
                     _recursive_=False,
                     _convert_ = "all"
@@ -242,6 +261,11 @@ class BaseModelAE(ABC, pl.LightningModule):
             ]
         )
 
+    def _setprior(self):
+        if self.model_name not in VARIATIONAL_MODELS or \
+            (self.model_name in VARIATIONAL_MODELS and not self.sparse):
+            self.prior = hydra.utils.instantiate(self.cfg.prior)
+
     ################################            private methods
     def __updateconfig(self, orig, update):
 
@@ -253,22 +277,67 @@ class BaseModelAE(ABC, pl.LightningModule):
         return orig
 
     def __checkconfig(self, cfg):
-        
-        assert self.model_name in MODELS, "Model name is invalid"
-        
+
+        cfg_dict = OmegaConf.to_container(cfg)
+
+        try:
+            cfg_dict = config_schema.validate(cfg_dict)
+        except SchemaError as se:
+            raise ConfigError(se) from None
+
+        if self.model_name == MODEL_JMVAE and len(self.input_dim) != 2:
+            raise InputError('JMVAE expects two len(input_dim) == 2')
+
+        if cfg.decoder.dec_dist._target_ in \
+            ["multiae.base.distributions.Default", \
+            "multiae.base.distributions.Bernoulli"]:
+            pattern = re.compile(r'multiae\.architectures\..*\.Decoder')
+            if not bool(pattern.match(cfg.decoder._target_)):
+                raise ConfigError("Must use non-variational Decoder if decoder dist is Default/Bernoulli")
+
+        if self.model_name in [MODEL_AE] + ADVERSARIAL_MODELS:
+            pattern = re.compile(r'multiae\.architectures\..*\.VariationalEncoder')
+            if bool(pattern.match(cfg.encoder._target_)):
+                raise ConfigError("Must use non-variational encoder for adversarial models")
+
+            pattern = re.compile(r'multiae\.base\.distributions\..*Normal')
+            if bool(pattern.match(cfg.encoder.enc_dist._target_)):
+                raise ConfigError("Must not use Normal/MultivariateNormal encoder dist for adversarial models")
+
         if self.model_name in VARIATIONAL_MODELS:
             self.is_variational = True
-            assert 'VariationalEncoder' in cfg.encoder._target_, \
-            "Must use variational encoder for variational models"
+
+            pattern = re.compile(r'multiae\.architectures\..*\.VariationalEncoder')
+            if not bool(pattern.match(cfg.encoder._target_)):
+                raise ConfigError("Must use variational encoder for variational models")
+
+            if cfg.prior._target_ != cfg.encoder.enc_dist._target_:
+                raise ConfigError('Encoder and prior must have the same distribution for variational models')
+
+        if cfg.prior._target_ == "multiae.base.distributions.Normal":
+            if not isinstance(cfg.prior.loc, (int, float)):
+                raise ConfigError("loc must be int/float for Normal prior dist")
+
+            if not isinstance(cfg.prior.scale, (int, float)):
+                raise ConfigError("scale must be int/float for Normal prior dist")
+
+        else:   # MultivariateNormal
+            if isinstance(cfg.prior.loc, (int, float)):
+                cfg.prior.loc = [cfg.prior.loc] * cfg.model.z_dim
+
+            if isinstance(cfg.prior.scale, (int, float)):
+                cfg.prior.scale = [cfg.prior.scale] * cfg.model.z_dim
+
+            if  len(cfg.prior.loc) != len(cfg.prior.scale):
+                raise ConfigError("loc and scale must have the same length for MultivariateNormal prior dist")
+
+            if len(cfg.prior.loc) != cfg.model.z_dim:
+                raise ConfigError("loc and scale must have the same length as z_dim for MultivariateNormal prior dist")
 
         # should be always false for non-sparse models
         if self.model_name not in SPARSE_MODELS:
-            cfg.model.sparse = False
-        elif cfg.model.sparse:
-            assert (cfg.encoder.enc_dist._target_ == 'multiae.base.distributions.Normal'), \
-            "Must use Normal distribution for encoder for sparse models"
-        # else configurable
-    
+            cfg.model.sparse = False    # TODO: log warning if changing overriding value
+
         return cfg
 
     def __step(self, batch, batch_idx, stage):
@@ -285,12 +354,15 @@ class BaseModelAE(ABC, pl.LightningModule):
 
         data = list(data)
 
-        # check len(data) == n_views and data_dim == input_dim
-        assert(len(data) == self.n_views)
-        for i in range(self.n_views):
-            assert(data[i].shape[1] == self.input_dim[i])   # TODO: this is only for 1D input
+        if not (len(data) == self.n_views):
+            raise InputError("number of modalities must be equal to number of views")
 
-        dataset = MVDataset(data, labels=None) #TODO: make flexible 
+        for i in range(self.n_views):
+            # TODO: this is only for 1D input, change to tuple
+            if not (data[i].shape[1] == self.input_dim[i]):
+                raise InputError("modality's shape must be equal to corresponding input_dim's shape")
+
+        dataset = MVDataset(data, labels=None) #TODO: make flexible
 
         if batch_size is None:
             batch_size = data[0].shape[0]
@@ -336,7 +408,7 @@ class BaseModelVAE(BaseModelAE):
         model_name (str): Type of autoencoder model.
         cfg (str): Path to configuration file.
         input_dim (list): Dimensionality of the input data.
-        z_dim (int): Number of latent dimensions. 
+        z_dim (int): Number of latent dimensions.
     """
     @abstractmethod
     def __init__(
@@ -352,15 +424,12 @@ class BaseModelVAE(BaseModelAE):
                 input_dim=input_dim,
                 z_dim=z_dim)
 
-        self.__checkprior(self.cfg)
-
     ################################            class methods
     def apply_threshold(self, z):
         """
         Implementation from: https://github.com/ggbioing/mcvae
         """
 
-        assert self.threshold <= 1.0
         keep = (self.__dropout() < self.threshold).squeeze().cpu()
         z_keep = []
 
@@ -409,22 +478,6 @@ class BaseModelVAE(BaseModelAE):
         alpha = torch.exp(self.log_alpha.detach())
         return alpha / (alpha + 1)
 
-    def __checkprior(self, cfg):
-        #TODO: create rules for allowed combinations of distributions
-        assert (cfg.prior._target_ == cfg.encoder.enc_dist._target_), 'Prior and posterior must have same distribution'
-
-        assert (cfg.prior._target_ == 'multiae.base.distributions.Normal') \
-        or (cfg.prior._target_ == 'multiae.base.distributions.MultivariateNormal'), \
-        "Prior must be Normal or MultivariateNormal" #TODO: at the moment this doesn't allow users implementations
-
-        assert 'loc' in cfg.prior.keys(), "Must provide mean for prior distribution"
-        assert 'scale' in cfg.prior.keys(), "Must provide standard deviation for prior distribution"
-
-        if isinstance(cfg.prior.loc, int) and cfg.prior._target_ == 'multiae.base.distributions.MultivariateNormal': #TODO: move this
-            cfg.prior.loc = [cfg.prior.loc]*self.z_dim
-        if not self.sparse:
-            self.prior = hydra.utils.instantiate(cfg.prior)
-       
 ################################################################################
 class BaseModelAAE(BaseModelAE):
     """Base class for adversarial autoencoder models. Inherits from BaseModelAE.
@@ -433,7 +486,7 @@ class BaseModelAAE(BaseModelAE):
         model_name (str): Type of autoencoder model.
         cfg (str): Path to configuration file.
         input_dim (list): Dimensionality of the input data.
-        z_dim (int): Number of latent dimensions. 
+        z_dim (int): Number of latent dimensions.
     """
     is_wasserstein = False
 
@@ -460,7 +513,6 @@ class BaseModelAAE(BaseModelAE):
             is_wasserstein=self.is_wasserstein,
             _convert_="all"
         )
-        self.__checkprior(self.cfg)
 
     ################################            abstract methods
     @abstractmethod
@@ -514,7 +566,7 @@ class BaseModelAAE(BaseModelAE):
     def configure_optimizers(self):
         optimizers = []
         #Encoder optimizers
-        [   
+        [
             optimizers.append(
                 torch.optim.Adam(
                     list(self.encoders[i].parameters()), lr=self.learning_rate
@@ -549,18 +601,6 @@ class BaseModelAAE(BaseModelAE):
         return optimizers
 
     ################################            private methods
-    def __checkprior(self, cfg):
-
-        assert (cfg.prior._target_ == 'multiae.base.distributions.Normal') \
-        or (cfg.prior._target_ == 'multiae.base.distributions.MultivariateNormal'), \
-        "Prior must be Normal or MultivariateNormal"
-
-        assert 'loc' in cfg.prior.keys(), "Must provide mean for prior distribution"
-        assert 'scale' in cfg.prior.keys(), "Must provide standard deviation for prior distribution"
-        if isinstance(cfg.prior.loc, int) and cfg.prior._target_ == 'multiae.base.distributions.MultivariateNormal':
-            cfg.prior.loc = [cfg.prior.loc]*self.z_dim
-        self.prior = hydra.utils.instantiate(cfg.prior)
-
     def __optimise_batch(self, local_batch):
         fwd_return = self.forward_recon(local_batch)
         loss_recon = self.recon_loss(local_batch, fwd_return)
