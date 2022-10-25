@@ -14,8 +14,8 @@ The ``multiviewAE`` library is compatible, and has been tested, with the followi
 ### Installation
 Clone this repository and move to folder:
 ```bash
-git clone https://github.com/alawryaguila/multiAE
-cd multiAE
+git clone https://github.com/alawryaguila/multiviewAE
+cd multiviewAE
 ```
 
 Create the customised python environment:
