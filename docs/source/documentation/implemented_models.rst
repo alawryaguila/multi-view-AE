@@ -2,21 +2,34 @@ Models implemented
 ===========
 
 Below is a table with the models contained within this repository and links to the original papers.
- 
-| Model class      | Model name           | Number of views |
-| ------------- |:-------------:| -----:|
-| mcVAE      | Multi-Channel Variational Autoencoder (mcVAE) [1] | >=1 |
-| AE      | Multi-view Autoencoder    |   >=1 |
-| AAE | Multi-view Adversarial Autoencoder with separate latent representations     |    >=1 |
-| DVCCA | Deep Variational CCA [3] |    2 |
-|  jointAAE    | Multi-view Adversarial Autoencoder with joint latent representation  |   >=1 |
-| wAAE | Multi-view Adversarial Autoencoder with joint latent representation and wasserstein loss    |    >=1 |
-|  mmVAE    | Variational mixture-of-experts autoencoder (MMVAE) [4] |   >=1 |
-| mVAE | Multimodal Variational Autoencoder (MVAE) [5] |    >=1 |
-| me_mVAE | Multimodal Variational Autoencoder (MVAE) with separate ELBO terms for each view [5] |    >=1 |
-| JMVAE |  Joint Multimodal Variational Autoencoder(JMVAE-kl) [6] |    2 |
-| MVTCAE | Multi-View Total Correlation Auto-Encoder (MVTCAE) [8] |    >=1 |
-| MoPoEVAE |  Mixture-of-Products-of-Experts VAE [7] |    >=1 |
+     
++------------+---------------------------------------------------------------------------------------------+------------------+
+| Model class| Model name                                                                                  | Number of views  |
++============+=============================================================================================+==================+
+| mcVAE      | Multi-Channel Variational Autoencoder (mcVAE) [1]                                           | >=1              |
++------------+---------------------------------------------------------------------------------------------+------------------+
+| AE         | Multi-view Autoencoder                                                                      |   >=1            |
++------------+---------------------------------------------------------------------------------------------+------------------+
+| AAE        | Multi-view Adversarial Autoencoder with separate latent representations                     |    >=1           |
++------------+---------------------------------------------------------------------------------------------+------------------+
+| DVCCA      | Deep Variational CCA [3]                                                                    |    2             |
++------------+---------------------------------------------------------------------------------------------+------------------+
+| jointAAE   | Multi-view Adversarial Autoencoder with joint latent representation                         |   >=1            |
++------------+---------------------------------------------------------------------------------------------+------------------+
+| wAAE       | Multi-view Adversarial Autoencoder with joint latent representation and wasserstein loss    |    >=1           |
++------------+---------------------------------------------------------------------------------------------+------------------+
+| mmVAE      | Variational mixture-of-experts autoencoder (MMVAE) [4]                                      |   >=1            |
++------------+---------------------------------------------------------------------------------------------+------------------+
+| mVAE       | Multimodal Variational Autoencoder (MVAE) [5]                                               |    >=1           |
++------------+---------------------------------------------------------------------------------------------+------------------+
+| me_mVAE    | Multimodal Variational Autoencoder (MVAE) with separate ELBO terms for each view [5]        |    >=1           |
++------------+---------------------------------------------------------------------------------------------+------------------+
+| JMVAE      |  Joint Multimodal Variational Autoencoder(JMVAE-kl) [6]                                     |    2             |
++------------+---------------------------------------------------------------------------------------------+------------------+
+| MVTCAE     | Multi-View Total Correlation Auto-Encoder (MVTCAE) [8]                                      |    >=1           |
++------------+---------------------------------------------------------------------------------------------+------------------+
+| MoPoEVAE   |  Mixture-of-Products-of-Experts VAE [7]                                                     |    >=1           |
++------------+---------------------------------------------------------------------------------------------+------------------+
 
 [1] Antelmi, Luigi & Ayache, Nicholas & Robert, Philippe & Lorenzi, Marco. (2019). Sparse Multi-Channel Variational Autoencoder for the Joint Analysis of Heterogeneous Data. 
 
