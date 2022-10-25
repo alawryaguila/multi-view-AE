@@ -11,6 +11,7 @@ Documentation
 .. toctree::
    :maxdepth: 1
    :caption: Using multiAE
+   
    documentation/implemented_models
    documentation/user_guide
    documentation/model_frameworks
