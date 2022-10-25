@@ -14,4 +14,3 @@ Architectures
 
 .. automodule:: multiae.architectures
    :members:
-   :undoc-members:

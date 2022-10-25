@@ -84,10 +84,12 @@ class BaseModelAE(ABC, pl.LightningModule):
             def_cfg = self.__updateconfig(def_cfg, user_cfg)
 
         # validate model configuration
-        self.cfg = self.__checkconfig(def_cfg)
+        self.print_config(def_cfg)
 
         if self.z_dim is not None:   # overrides hydra config... passed arg has precedence
-            self.cfg.model.z_dim = self.z_dim
+            def_cfg.model.z_dim = self.z_dim
+
+        self.cfg = self.__checkconfig(def_cfg)
 
         self.__dict__.update(self.cfg.model)
 

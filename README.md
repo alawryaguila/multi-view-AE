@@ -1,43 +1,17 @@
 # Multi-view autoencoders models 
 
-This repository contains various multi-view autoencoder models built in Pytorch and Pytorch-Lightning.
+This repository contains various multi-view autoencoder models built in Pytorch and Pytorch-Lightning. 
 
-### Content 
- 
- Below is a table with the models contained within this repository and links to the original papers.
- 
-| Model class      | Model name           | Number of views |
-| ------------- |:-------------:| -----:|
-| mcVAE      | Multi-Channel Variational Autoencoder (mcVAE) [1] | >=1 |
-| AE      | Multi-view Autoencoder    |   >=1 |
-| AAE | Multi-view Adversarial Autoencoder with separate latent representations     |    >=1 |
-| DVCCA | Deep Variational CCA [3] |    2 |
-|  jointAAE    | Multi-view Adversarial Autoencoder with joint latent representation  |   >=1 |
-| wAAE | Multi-view Adversarial Autoencoder with joint latent representation and wasserstein loss    |    >=1 |
-|  mmVAE    | Variational mixture-of-experts autoencoder (MMVAE) [4] |   >=1 |
-| mVAE | Multimodal Variational Autoencoder (MVAE) [5] |    >=1 |
-| me_mVAE | Multimodal Variational Autoencoder (MVAE) with separate ELBO terms for each view [5] |    >=1 |
-| JMVAE |  Joint Multimodal Variational Autoencoder(JMVAE-kl) [6] |    2 |
-| MVTCAE | Multi-View Total Correlation Auto-Encoder (MVTCAE) [8] |    >=1 |
-| MoPoEVAE |  Mixture-of-Products-of-Experts VAE [7] |    >=1 |
+Documentation is available at https://multiae.readthedocs.io/en/latest/
 
-[1] Antelmi, Luigi & Ayache, Nicholas & Robert, Philippe & Lorenzi, Marco. (2019). Sparse Multi-Channel Variational Autoencoder for the Joint Analysis of Heterogeneous Data. 
+### Compatibility
+The ``multiviewAE`` library is compatible, and has been tested, with the following Python versions:
+* 3.6
+* 3.7
+* 3.8
+* 3.9
 
-[2] Sohn, K., Lee, H., & Yan, X. (2015). Learning Structured Output Representation using Deep Conditional Generative Models. NIPS.
-
-[3] Wang, Weiran & Lee, Honglak & Livescu, Karen. (2016). Deep Variational Canonical Correlation Analysis.
-
-[4] Yuge Shi, N. Siddharth, Brooks Paige, and Philip H. S. Torr. 2019. Variational mixture-of-experts autoencoders for multi-modal deep generative models. Proceedings of the 33rd International Conference on Neural Information Processing Systems. Curran Associates Inc., Red Hook, NY, USA, Article 1408, 15718–15729.
-
-[5] Wu, Mike & Goodman, Noah. (2018). Multimodal Generative Models for Scalable Weakly-Supervised Learning. 
-
-[6] Suzuki, Masahiro and Nakayama, Kotaro and Matsuo, Yutaka. (2016). Joint Multimodal Learning with Deep Generative Models.
-
-[7] Sutter, Thomas & Daunhawer, Imant & Vogt, Julia. (2021). Generalized Multimodal ELBO. 
-
-[8] Hwang, HyeongJoo and Kim, Geon-Hyeong and Hong, Seunghoon and Kim, Kee-Eung. Multi-View Representation Learning via Total Correlation Objective. 2021. NeurIPS
 ### Installation
-
 Clone this repository and move to folder:
 ```bash
 git clone https://github.com/alawryaguila/multiAE
@@ -54,7 +28,7 @@ Activate python environment:
 conda activate mvm
 ```
 
-Install multiAE package:
+Install the ``multiviewAE`` package:
 ```bash
-python setup.py install
+pip install ./
 ```

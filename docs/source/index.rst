@@ -8,10 +8,11 @@ Welcome to MultiAE's documentation!
 .. toctree::
    :maxdepth: 1
    :caption: Using multiAE
-   
+   documentation/implemented_models
    documentation/user_guide
    documentation/model_frameworks
    documentation/parameter_configurations
+   documentation/limitations
 
 
 .. toctree::
@@ -21,9 +22,3 @@ Welcome to MultiAE's documentation!
    api/models
    api/architectures
 
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`search`

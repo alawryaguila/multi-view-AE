@@ -14,4 +14,3 @@ Models
 
 .. automodule:: multiae.models
    :members:
-   :undoc-members:
