@@ -29,11 +29,9 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    'sphinx.ext.autosectionlabel',
 ]
 
 
-autosectionlabel_prefix_document = True
 
 # -- sphinx.ext.autosummary
 autosummary_generate = True
