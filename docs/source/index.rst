@@ -5,6 +5,9 @@ Welcome to MultiAE's documentation!
 
 --------
 
+Documentation
+=============
+
 .. toctree::
    :maxdepth: 1
    :caption: Using multiAE
@@ -14,7 +17,6 @@ Welcome to MultiAE's documentation!
    documentation/parameter_configurations
    documentation/limitations
 
-
 .. toctree::
    :maxdepth: 1
    :caption: Reference
@@ -22,3 +24,8 @@ Welcome to MultiAE's documentation!
    api/models
    api/architectures
 
+Indices and tables
+==================
+
+* :ref:`genindex`
+* :ref:`search`
