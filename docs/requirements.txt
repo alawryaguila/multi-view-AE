@@ -12,3 +12,4 @@ torchvision
 pytorch-lightning
 hydra-core
 schema
+ordereddict

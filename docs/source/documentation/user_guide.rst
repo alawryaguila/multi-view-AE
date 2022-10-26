@@ -82,7 +82,7 @@ We can use a trained model to predict the latent dimensions or reconstructions. 
    mcvae_reconstruction_view2_latent2 = mcvae_reconstruction[1][1] #view 2 reconstruction from latent 2
 
 
-Model loading.
+Model loading
 ----------
 Trained models can be loaded from the specified path. 
 

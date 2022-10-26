@@ -1,5 +1,5 @@
 scipy
-pytest
+pytest>=5.4.1
 pandas
 numpy
 matplotlib
@@ -8,3 +8,4 @@ torchvision
 pytorch-lightning
 hydra-core
 schema
+ordereddict
