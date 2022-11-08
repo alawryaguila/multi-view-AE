@@ -9,8 +9,10 @@ model:
   sparse: False
 
 encoder:
-  non_linear: True
+  default:
+    non_linear: True
 
 decoder:
-  non_linear: True
-  init_logvar: -4
+  default:
+    non_linear: True
+    init_logvar: -4

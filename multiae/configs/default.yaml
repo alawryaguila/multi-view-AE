@@ -37,27 +37,29 @@ datamodule:
 
   train_size: 0.9
 
-encoder:
-  _target_: multiae.architectures.mlp.Encoder
+encoder:  # uses default mlp for all inputs
+  default:
+      _target_: multiae.architectures.mlp.Encoder
 
-  hidden_layer_dim: []  
-  bias: True
-  non_linear: False
+      hidden_layer_dim: []
+      bias: True  # only applies to linear layers
+      non_linear: False
 
-  enc_dist:
-    _target_: multiae.base.distributions.Default
+      enc_dist:
+        _target_: multiae.base.distributions.Default
 
-decoder:
-  _target_: multiae.architectures.mlp.Decoder
+decoder: # uses default mlp for all inputs
+  default:
+      _target_: multiae.architectures.mlp.Decoder
 
-  hidden_layer_dim: []  
-  bias: True
-  non_linear: False
+      hidden_layer_dim: []
+      bias: True  # only applies to linear layers
+      non_linear: False
 
-  dec_dist:
-    _target_: multiae.base.distributions.Default
-  
-prior: 
+      dec_dist:
+        _target_: multiae.base.distributions.Default
+
+prior:
   _target_: multiae.base.distributions.Normal
   loc: 0
   scale: 1

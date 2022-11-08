@@ -1,13 +1,16 @@
-from schema import Schema, And, Or, Optional, SchemaError
+from schema import Schema, And, Or, Optional, SchemaError, Regex
 
 SUPPORTED_ENCODERS = [
             "multiae.architectures.mlp.Encoder",
-            "multiae.architectures.mlp.VariationalEncoder"
+            "multiae.architectures.mlp.VariationalEncoder",
+            "multiae.architectures.cnn.Encoder",
+            "multiae.architectures.cnn.VariationalEncoder"
         ]
 
 SUPPORTED_DECODERS = [
             "multiae.architectures.mlp.Decoder",
-            "multiae.architectures.mlp.VariationalDecoder"
+            "multiae.architectures.mlp.VariationalDecoder",
+            "multiae.architectures.cnn.Decoder"
         ]
 
 SUPPORTED_DISCRIMINATORS = [
@@ -69,26 +72,69 @@ config_schema = Schema({
         "train_size": And(float, lambda x: 0 < x < 1)
     },
     "encoder": {
-        "_target_" : eval(return_or(params=SUPPORTED_ENCODERS,
-                        msg="encoder._target_: unsupported or invalid encoder")),
-        "hidden_layer_dim": [And(int, lambda x: x > 0)],
-        "bias": bool,
-        "non_linear": bool,
-        "enc_dist": {
-                "_target_": eval(return_or(params=list_sub(SUPPORTED_DISTRIBUTIONS, UNSUPPORTED_ENC_DIST),
-                        msg="encoder.enc_dist._target_: unsupported or invalid encoder distribution"))
+        "default": {
+            "_target_" : eval(return_or(params=SUPPORTED_ENCODERS,
+                            msg="encoder._target_: unsupported or invalid encoder")),
+            Optional("hidden_layer_dim"): [And(int, lambda x: x > 0)],
+            Optional(Regex(r'^layer\d$')) : {
+                "layer": str, # TODO: fix this. should be specific torch.nn layers
+                # TODO: how about parameters of each layer? will raise error anyway...
+            },
+            "bias": bool,
+            "non_linear": bool,
+            "enc_dist": {
+                    "_target_": eval(return_or(params=list_sub(SUPPORTED_DISTRIBUTIONS, UNSUPPORTED_ENC_DIST),
+                            msg="encoder.enc_dist._target_: unsupported or invalid encoder distribution"))
+            }
+        },
+        Optional(Regex(r'^enc\d$')) : {
+            "_target_" : eval(return_or(params=SUPPORTED_ENCODERS,
+                            msg="encoder._target_: unsupported or invalid encoder")),
+            Optional("hidden_layer_dim"): [And(int, lambda x: x > 0)],
+            Optional(Regex(r'^layer\d$')) : {
+                "layer": str, # TODO: fix this. should be specific torch.nn layers
+                # TODO: how about parameters of each layer? will raise error anyway...
+            },
+            "bias": bool,
+            "non_linear": bool,
+            "enc_dist": {
+                    "_target_": eval(return_or(params=list_sub(SUPPORTED_DISTRIBUTIONS, UNSUPPORTED_ENC_DIST),
+                            msg="encoder.enc_dist._target_: unsupported or invalid encoder distribution"))
+            }
         }
     },
     "decoder": {
-        "_target_" : eval(return_or(params=SUPPORTED_DECODERS,
-                        msg="decoder._target_: unsupported or invalid decoder")),
-        "hidden_layer_dim": [And(int, lambda x: x > 0)],
-        "bias": bool,
-        "non_linear": bool,
-        Optional("init_logvar"): Or(int, float),
-        "dec_dist": {
-                "_target_": eval(return_or(params=SUPPORTED_DISTRIBUTIONS,
-                        msg="decoder.dec_dist._target_: unsupported or invalid decoder distribution"))
+        "default": {
+            "_target_" : eval(return_or(params=SUPPORTED_DECODERS,
+                            msg="decoder._target_: unsupported or invalid decoder")),
+            Optional("hidden_layer_dim"): [And(int, lambda x: x > 0)],
+            Optional(Regex(r'^layer\d$')) : {
+                "layer": str, # TODO: fix this. should be specific torch.nn layers
+                # TODO: how about parameters of each layer? will raise error anyway...
+            },
+            "bias": bool,
+            "non_linear": bool,
+            Optional("init_logvar"): Or(int, float),
+            "dec_dist": {
+                    "_target_": eval(return_or(params=SUPPORTED_DISTRIBUTIONS,
+                            msg="decoder.dec_dist._target_: unsupported or invalid decoder distribution"))
+            }
+        },
+        Optional(Regex(r'^dec\d$')) : {
+            "_target_" : eval(return_or(params=SUPPORTED_DECODERS,
+                            msg="decoder._target_: unsupported or invalid decoder")),
+            Optional("hidden_layer_dim"): [And(int, lambda x: x > 0)],
+            Optional(Regex(r'^layer\d$')) : {
+                "layer": str, # TODO: fix this. should be specific torch.nn layers
+                # TODO: how about parameters of each layer? will raise error anyway...
+            },
+            "bias": bool,
+            "non_linear": bool,
+            Optional("init_logvar"): Or(int, float),
+            "dec_dist": {
+                    "_target_": eval(return_or(params=SUPPORTED_DISTRIBUTIONS,
+                            msg="decoder.dec_dist._target_: unsupported or invalid decoder distribution"))
+            }
         }
     },
     Optional("discriminator"): {
@@ -111,7 +157,7 @@ config_schema = Schema({
        "max_epochs": And(int, lambda x: x > 0),
        "deterministic": bool,
        "log_every_n_steps": And(int, lambda x: x > 0),
-           "resume_from_checkpoint": Or(str, None) # TODO: check valid location?
+       "resume_from_checkpoint": Or(str, None) # TODO: check valid location?
     },
     "callbacks": {
         "model_checkpoint": {   #TODO: how about other params?

@@ -4,20 +4,20 @@ from ..base.base_model import BaseModelAAE
 
 class wAAE(BaseModelAAE):
     r"""
-    Multi-view Adversarial Autoencoder model with wasserstein loss. 
-    
+    Multi-view Adversarial Autoencoder model with wasserstein loss.
+
     Wasserstein autoencoders: https://arxiv.org/abs/1711.01558
 
     Args:
         cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
-            eps (float): 
-            discriminator._target_ (multiae.architectures.mlp.Discriminator): 
+            eps (float): Value added for numerical stability.
+            discriminator._target_ (multiae.architectures.mlp.Discriminator): Discriminator network class.
             discriminator.hidden_layer_dim (list): Number of nodes per hidden layer.
             discriminator.bias (bool): Whether to include a bias term in hidden layers.
             discriminator.non_linear (bool): Whether to include a ReLU() function between layers.
             discriminator.dropout_threshold (float): Dropout threshold of layers.
         input_dim (list): Dimensionality of the input data.
-        z_dim (int): Number of latent dimensions. 
+        z_dim (int): Number of latent dimensions.
     """
 
     def __init__(
@@ -83,17 +83,17 @@ class wAAE(BaseModelAAE):
         px_zs = fwd_rtn["px_zs"]
         ll = 0
         for i in range(self.n_views):
-            ll += - px_zs[0][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0) #first index is latent, second index is view 
+            ll += - px_zs[0][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view 
         return ll / self.n_views
 
     def generator_loss(self, fwd_rtn):
         d_fake = fwd_rtn["d_fake"]
-        gen_loss = -torch.mean(d_fake.sum(dim=-1)) 
+        gen_loss = -torch.mean(d_fake.sum(dim=-1))
         return gen_loss
 
     def discriminator_loss(self, fwd_rtn):
         d_real = fwd_rtn["d_real"]
         d_fake = fwd_rtn["d_fake"]
 
-        disc_loss = -torch.mean(d_real.sum(dim=-1)) + torch.mean(d_fake.sum(dim=-1)) 
+        disc_loss = -torch.mean(d_real.sum(dim=-1)) + torch.mean(d_fake.sum(dim=-1))
         return disc_loss
