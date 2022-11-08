@@ -1,5 +1,17 @@
 # Configuration file for the Sphinx documentation builder.
+
+# -- Path setup --------------------------------------------------------------
+
+# If extensions (or modules to document with autodoc) are in another directory,
+# add these directories to sys.path here. If the directory is relative to the
+# documentation root, use os.path.abspath to make it absolute, like shown here.
+#
+import os
+import sys
+import warnings
 import datetime
+
+sys.path.insert(0, os.path.abspath("../.."))
 # -- Project information
 
 project = 'MultiAE'
@@ -19,6 +31,12 @@ extensions = [
     'sphinx.ext.viewcode',
 ]
 
+# -- sphinx.ext.autosummary
+autosummary_generate = True
+
+# -- sphinx.ext.autodoc
+autodoc_member_order = "bysource"
+autoclass_content = "both"
 
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3/', None),
