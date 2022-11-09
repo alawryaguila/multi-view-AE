@@ -42,59 +42,75 @@ class MoPoEVAE(BaseModelVAE):
         self.subsets = self.set_subsets()
 
     def encode(self, x):
+        r"""Forward pass through encoder networks.
+
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            (list): list containing the MoE joint encoding distribution. If training, the model also returns the encoding distribution for each subset. 
+        """
         mu = []
-        var = []
+        logvar = []
 
         for i in range(self.n_views):
             mu_, logvar_ = self.encoders[i](x[i])
-            mu.append(mu_)
-            var_ = logvar_.exp()
-            var.append(var_)
+            mu.append(mu_) 
+            logvar.append(logvar_) 
         mu = torch.stack(mu)
-        var = torch.stack(var)
+        logvar = torch.stack(logvar)
 
         mu_out = []
-        var_out = []
+        logvar_out = []
         if self._training:
             qz_xs = []
             for subset in self.subsets:
                 mu_s = mu[subset]
-                var_s = var[subset]
-                mu_s, var_s = ProductOfExperts()(mu_s, var_s)
+                logvar_s = logvar[subset]
+                mu_s, logvar_s = ProductOfExperts()(mu_s, logvar_s)    
                 mu_out.append(mu_s)
-                var_out.append(var_s)
+                logvar_out.append(logvar_s)
                 qz_x = hydra.utils.instantiate( #TODO: okay to use default here?
-                    self.cfg.encoder.default.enc_dist, loc=mu_s, scale=var_s.pow(0.5)
+                    self.cfg.encoder.default.enc_dist, loc=mu_s, scale=logvar_s.exp().pow(0.5)
                 )
                 qz_xs.append(qz_x)
             mu_out = torch.stack(mu_out)
-            var_out = torch.stack(var_out)
-
-            moe_mu, moe_var = MixtureOfExperts()(mu_out, var_out)
-
+            logvar_out = torch.stack(logvar_out)
+            
+            moe_mu, moe_logvar = MixtureOfExperts()(mu_out, logvar_out)
+            
             qz_x = hydra.utils.instantiate( #TODO: okay to use default here?
-                self.cfg.encoder.default.enc_dist, loc=moe_mu, scale=moe_var.pow(0.5)
+                self.cfg.encoder.default.enc_dist, loc=moe_mu, scale=moe_logvar.exp().pow(0.5)
                 )
             return [qz_xs, qz_x]
         else:
             for subset in self.subsets:
                 mu_s = mu[subset]
-                var_s = var[subset]
-                mu_s, var_s = ProductOfExperts()(mu_s, var_s)
+                logvar_s = logvar[subset]
+                mu_s, logvar_s = ProductOfExperts()(mu_s, logvar_s)    
                 mu_out.append(mu_s)
-                var_out.append(var_s)
+                logvar_out.append(logvar_s)
 
             mu_out = torch.stack(mu_out)
-            var_out = torch.stack(var_out)
+            logvar_out = torch.stack(logvar_out)
 
-            moe_mu, moe_var = MixtureOfExperts()(mu_out, var_out)
-
+            moe_mu, moe_logvar = MixtureOfExperts()(mu_out, logvar_out)
+ 
             qz_x = hydra.utils.instantiate( #TODO: okay to use default here?
-                self.cfg.encoder.default.enc_dist, loc=moe_mu, scale=moe_var.pow(0.5)
+                self.cfg.encoder.default.enc_dist, loc=moe_mu, scale=moe_logvar.exp().pow(0.5)
                 )
             return [qz_x]
 
     def decode(self, qz_x):
+        r"""Forward pass of joint latent dimensions through decoder networks.
+
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            (list): A nested list of decoding distributions, px_zs. The outer list has a single element indicating the shared latent dimensions. 
+            The inner list is a n_view element list with the position in the list indicating the decoder index.
+        """    
         px_zs = []
         for i in range(self.n_views):
             px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
@@ -102,50 +118,48 @@ class MoPoEVAE(BaseModelVAE):
         return [px_zs]
 
     def forward(self, x):
+        r"""Apply encode and decode methods to input data to generate the joint and subset latent dimensions and data reconstructions. 
+        
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            fwd_rtn (dict): dictionary containing encoding and decoding distributions.
+        """
         qz_xs, qz_x = self.encode(x)
         px_zs = self.decode([qz_x])
         fwd_rtn = {"px_zs": px_zs, "qz_xs_subsets": qz_xs, "qz_x_joint": qz_x}
         return fwd_rtn
 
     def loss_function(self, x, fwd_rtn):
+        r"""Calculate MoPoE VAE loss.
+        Args:
+            x (list): list of input data of type torch.Tensor.
+            fwd_rtn (dict): dictionary containing encoding and decoding distributions.
+
+        Returns:
+            losses (dict): dictionary containing each element of the MoPoE VAE loss.
+        """
         px_zs = fwd_rtn["px_zs"]
         qz_xs = fwd_rtn["qz_xs_subsets"]
 
         kl = self.calc_kl_moe(qz_xs)
         ll = self.calc_ll(x, px_zs)
-        total = -ll + self.beta * kl
+
+        total = self.beta * kl - ll 
 
         losses = {"loss": total, "kl": kl, 'll': ll}
         return losses
 
-    def moe_fusion(self, mus, vars):
-        '''
-        Implemented from: https://github.com/thomassutter/MoPoE
-        '''
-        num_components = mus.shape[0]
-        num_samples = mus.shape[1]
-        weights = (1/num_components) * torch.ones(num_components)
-        idx_start = []
-        idx_end = []
-        for k in range(0, num_components):
-            if k == 0:
-                i_start = 0
-            else:
-                i_start = int(idx_end[k-1])
-            if k == num_components-1:
-                i_end = num_samples
-            else:
-                i_end = i_start + int(torch.floor(num_samples*weights[k]))
-            idx_start.append(i_start)
-            idx_end.append(i_end)
-        idx_end[-1] = num_samples
-
-        mu_sel = torch.cat([mus[k, idx_start[k]:idx_end[k], :] for k in range(num_components)])
-        var_sel = torch.cat([vars[k, idx_start[k]:idx_end[k], :] for k in range(num_components)])
-
-        return mu_sel, var_sel
-
     def calc_kl_moe(self, qz_xs):
+        r"""Calculate KL-divergence between the each PoE subset posterior and the prior distribution.
+
+        Args:
+            qz_xs (list): list of encoding distributions.
+
+        Returns:
+            (torch.Tensor): KL-divergence loss.
+        """
         weight = 1/len(qz_xs)
         kl = 0
         for qz_x in qz_xs:
@@ -154,13 +168,26 @@ class MoPoEVAE(BaseModelVAE):
         return kl*weight
 
     def set_subsets(self):
-        xs = list(range(0, self.n_views))
+        """Create combinations of subsets of views.
 
+        Returns:
+            subset_list (list): list of unique combinations of n_views.
+        """
+        xs = list(range(0, self.n_views))
         tmp = [list(combinations(xs, n+1)) for n in range(len(xs))]
         subset_list = [list(item) for sublist in tmp for item in sublist]
         return subset_list
 
     def calc_ll(self, x, px_zs):
+        r"""Calculate log-likelihood loss.
+
+        Args:
+            x (list): list of input data of type torch.Tensor.
+            px_zs (list): list of decoding distributions.
+
+        Returns:
+            ll (torch.Tensor): Log-likelihood loss.
+        """
         ll = 0
         for i in range(self.n_views):
             ll += px_zs[0][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view

@@ -1,5 +1,5 @@
 import torch
-from torch.distributions import Normal, kl_divergence
+from torch.distributions import Normal, kl_divergence, Laplace
 from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions.utils import broadcast_all
 from torch.nn.functional import binary_cross_entropy
@@ -141,8 +141,6 @@ class MultivariateNormal(MultivariateNormal):
 
     def log_likelihood(self, x):
         ll = self.log_prob(x)
-        sh = ll.shape
-        #return ll.reshape((sh[0], 1))
         return torch.unsqueeze(ll,-1)
 
     def _sample(self, *kwargs, training=False):
@@ -152,7 +150,8 @@ class MultivariateNormal(MultivariateNormal):
 
 
 class Bernoulli():
-    """Artificial distribution designed for Bernoulli distributed data.
+    """Artificial distribution designed for (approximately) Bernoulli distributed data. 
+    The data isn't restricted to bernoulli distribution, this class is designed as a wrapper for the log_likelihood() method which is required for the multiview models.
 
     Args:
         x (list): List of input data.
@@ -163,7 +162,7 @@ class Bernoulli():
     ):
         self.x = kwargs['x']
 
-    def log_likelihood(self, target):     
+    def log_likelihood(self, target):   
         x, target = broadcast_all(self.x, target)
         x = torch.sigmoid(x)
         bce = binary_cross_entropy(x, target, reduction='none')
@@ -179,4 +178,41 @@ class Bernoulli():
         raise NotImplementedError
 
     def _sample(self):
-        return torch.distributions.bernoulli.Bernoulli(torch.sigmoid(self.x)).sample()
+        return torch.sigmoid(self.x)
+
+class Laplace(Laplace):
+    """Laplace distribution. Inherits from torch.distributions.Laplace.
+
+    Args:
+        loc (list, torch.Tensor): Mean of distribution.
+        scale (int, torch.Tensor): Standard deviation of distribution.
+    """
+    def __init__(
+            self,
+            **kwargs
+        ):
+        if 'loc' in kwargs:
+            self.loc = kwargs['loc']
+        elif 'x' in kwargs:
+            self.loc = kwargs['x']
+
+        if 'scale' in kwargs:
+            self.scale = kwargs['scale']
+        else: 
+            self.scale = torch.tensor(0.75) * torch.ones(self.loc.shape)
+        super().__init__(loc=self.loc, scale=self.scale)
+
+    def kl_divergence(self):
+        raise NotImplementedError
+
+    def sparse_kl_divergence(self):
+        raise NotImplementedError
+        
+    def log_likelihood(self, x):
+        return self.log_prob(x)
+
+    def _sample(self, *kwargs, training=False):
+        if training:
+            return self.rsample(*kwargs)
+        return self.loc
+

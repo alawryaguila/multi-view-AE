@@ -35,6 +35,8 @@ class JMVAE(BaseModelVAE):
                         z_dim=z_dim)
 
     def _setencoders(self):
+        r"""Set the joint and individual encoder networks.
+        """
         self.encoders = torch.nn.ModuleList(
               [hydra.utils.instantiate( #TODO: okay to use default here?
                     self.cfg.encoder.default,
@@ -60,22 +62,15 @@ class JMVAE(BaseModelVAE):
             ]
         )
 
-    def _setdecoders(self):
-        self.decoders = torch.nn.ModuleList(
-            [
-                hydra.utils.instantiate(
-                    eval(f"self.cfg.decoder.dec{i}"),
-                    input_dim=d,
-                    z_dim=self.z_dim,
-                    _recursive_=False,
-                    _convert_ = "all"
-                )
-                for i, d in enumerate(self.input_dim)
-            ]
-        )
-
-
     def encode(self, x):
+        r"""Forward pass through joint encoder network. 
+
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            (list): Single element list containing joint encoding distribution, qz_xy.
+        """
         mu, logvar = self.encoders[0](torch.cat((x[0], x[1]),dim=1))
         qz_xy = hydra.utils.instantiate(    #TODO: okay to use default here?
             self.cfg.encoder.default.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
@@ -83,6 +78,15 @@ class JMVAE(BaseModelVAE):
         return [qz_xy]
 
     def encode_separate(self, x):
+        r"""Forward pass through separate encoder networks. 
+
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            qz_x: Encoding distribution for modality X.
+            qz_y: Encoding distribution for modality Y.
+        """
         mu, logvar = self.encoders[1](x[0])
         qz_x = hydra.utils.instantiate(     #TODO: correct to use enc0?
             self.cfg.encoder.enc0.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
@@ -94,27 +98,48 @@ class JMVAE(BaseModelVAE):
         return qz_x, qz_y
 
     def decode(self, qz_x):
+        r"""Forward pass of joint latent dimensions through decoder networks.
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            (list): A nested list of decoding distributions, px_zs. The outer list has a single element indicating the shared latent dimensions. 
+            The inner list is a 2 element list with the position in the list indicating the decoder index.
+        """       
         px_zs = []
         for i in range(self.n_views):
             px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
             px_zs.append(px_z)
         return [px_zs]
 
-    def decode_separate(self, qz_xs):
-        px_zs = []
-        for i in range(self.n_views):
-            px_z = self.decoders[i](qz_xs[i]._sample(training=self._training))
-            px_zs.append(px_z)
-        return [px_zs]
-
     def forward(self, x):
+        r"""Apply encode and decode methods to input data to generate latent dimensions and data reconstructions. 
+        
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            fwd_rtn (dict): dictionary containing encoding and decoding distributions.
+        """
         qz_xy = self.encode(x)
         qz_x, qz_y = self.encode_separate(x)
-        px_z, py_z = self.decode_separate([qz_x, qz_y])[0]
+        px_z, py_z = self.decode(qz_xy)[0]
         fwd_rtn = {"px_z": px_z, "py_z": py_z, "qz_x": qz_x, "qz_y": qz_y, "qz_xy": qz_xy}
         return fwd_rtn
 
     def calc_kl(self, qz_xy, qz_x, qz_y):
+        r"""Calculate JMVAE-kl KL-divergence loss.
+
+        Args:
+            qz_xy (list): Single element list containing shared encoding distribution.
+            qz_x (list): Single element list containing encoding distribution for modality X.
+            qz_y (list): Single element list containing encoding distribution for modality Y.
+
+
+        Returns:
+            (torch.Tensor): KL-divergence loss.
+        """
+
         kl_prior = qz_xy[0].kl_divergence(self.prior).mean(0).sum()
         kl_qz_x = qz_xy[0].kl_divergence(qz_x).mean(0).sum()
         kl_qz_y = qz_xy[0].kl_divergence(qz_y).mean(0).sum()
@@ -122,13 +147,29 @@ class JMVAE(BaseModelVAE):
         return kl_prior + kl_qz_x + kl_qz_y
 
     def calc_ll(self, x, px_zs):
+        r"""Calculate log-likelihood loss.
+
+        Args:
+            x (list): list of input data of type torch.Tensor.
+            px_zs (list): list of decoding distributions.
+
+        Returns:
+            ll (torch.Tensor): Log-likelihood loss.
+        """
         ll = 0
         for i in range(self.n_views):
             ll += px_zs[i].log_likelihood(x[i]).mean(0).sum()
         return ll
 
     def loss_function(self, x, fwd_rtn):
+        r"""Calculate JMVAE-kl loss.
+        Args:
+            x (list): list of input data of type torch.Tensor.
+            fwd_rtn (dict): dictionary containing encoding and decoding distributions.
 
+        Returns:
+            losses (dict): dictionary containing each element of the JMVAE loss.
+        """
         px_z = fwd_rtn["px_z"]
         py_z = fwd_rtn["py_z"]
         qz_x = fwd_rtn["qz_x"]

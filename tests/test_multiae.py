@@ -31,6 +31,8 @@ def test_models():
     test_models = MODELS
     module = importlib.import_module("multiae")
     for m in test_models:
+        print('MODEL CLASS')
+        print(m)
         class_ = getattr(module, m)
         if m not in [MODEL_JMVAE]:
             model1 = class_(input_dim=[20])
@@ -88,9 +90,12 @@ def test_userconfig():
 
     tests = {
             "./user_config/dvcca.yaml" : [MODEL_DVCCA],
-            # "./user_config/sparse.yaml" : SPARSE_MODELS,
-            # "./user_config/multivariatenormal.yaml": VARIATIONAL_MODELS,
-            # "./user_config/multivariatenormal.yaml": SPARSE_MODELS,
+            "./user_config/mmjsd.yaml" : [MODEL_MMJSD],
+            "./user_config/laplace.yaml": VARIATIONAL_MODELS,
+            "./user_config/sparse.yaml" : SPARSE_MODELS,
+            "./user_config/multivariatenormal.yaml": VARIATIONAL_MODELS,
+            "./user_config/multivariatenormal.yaml": SPARSE_MODELS,
+
             }
 
     module = importlib.import_module("multiae")
@@ -102,14 +107,15 @@ def test_userconfig():
 
     for cfg, test_models in tests.items():
         for m in test_models:
+            class_ = getattr(module, m)
             if m in [MODEL_JMVAE, MODEL_DVCCA]:
                 train = train_twoviews
                 test = test_twoviews
+                model = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=[20, 10])
             else:
                 train = train_threeviews
                 test = test_threeviews
-            class_ = getattr(module, m)
-            model = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=input_dim[:len(train)])
+                model = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=[20, 10, 5])
 
             model.fit(*train)
 
@@ -127,40 +133,32 @@ def test_userconfig():
 
 def test_mnist():
     MNIST_1 = datasets.MNIST('./data/MNIST', train=True, download=True, transform=transforms.Compose([
-        transforms.ToTensor()
-    ]))
-    MNIST_2 = datasets.MNIST('./data/MNIST', train=True, download=True, transform=transforms.Compose([
-        transforms.ToTensor(),
-    ]))
+            transforms.ToTensor(),
+        ]))
 
-    data_1 = MNIST_1.train_data.reshape(-1, 784).float() / 255.
-    target = MNIST_1.train_labels
-    data_2 = MNIST_2.train_data.float()
-    data_2 = torch.rot90(data_2, 1, [1, 2])
-    data_2 = data_2.reshape(-1,784)/255.
+
+
+    data_1 = MNIST_1.train_data[:, :, :14].reshape(-1,392).float()/255.
+    data_2 = MNIST_1.train_data[:, :, 14:].reshape(-1,392).float()/255.
+
 
     MNIST_1 = datasets.MNIST('./data/MNIST', train=False, download=True, transform=transforms.Compose([
             transforms.ToTensor()
         ]))
-    MNIST_2 = datasets.MNIST('./data/MNIST', train=False, download=True, transform=transforms.Compose([
-            transforms.ToTensor(),
-        ]))
 
-    data_test_1 = MNIST_1.test_data.reshape(-1, 784).float() / 255.
-    target_test = MNIST_1.test_labels.numpy()
-    data_test_2 = MNIST_2.test_data.float() / 255.
-    data_test_2 = torch.rot90(data_test_2, 1, [1, 2])
-    data_test_2 = data_test_2.reshape(-1,784)
+    data_test_1 = MNIST_1.test_data[:, :, :14].reshape(-1,392).float()/255.
+    data_test_2 = MNIST_1.test_data[:, :, 14:].reshape(-1,392).float()/255.
+
 
     cfg = "./user_config/mnist.yaml"
-    test_models = [MODEL_MCVAE, MODEL_DVCCA]
+    test_models = [MODEL_MCVAE, MODEL_DVCCA, MODEL_MMJSD]
     max_epochs = 10
     batch_size = 2000
 
     module = importlib.import_module("multiae")
     for m in test_models:
         class_ = getattr(module, m)
-        model = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=[784,784])
+        model = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=[392,392])
 
         model.fit(data_1, data_2, max_epochs=max_epochs, batch_size=batch_size)
 

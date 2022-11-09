@@ -21,7 +21,8 @@ SUPPORTED_DISTRIBUTIONS = [
             "multiae.base.distributions.Default",
             "multiae.base.distributions.Normal",
             "multiae.base.distributions.MultivariateNormal",
-            "multiae.base.distributions.Bernoulli"
+            "multiae.base.distributions.Bernoulli", 
+            "multiae.base.distributions.Laplace"
         ]
 
 SUPPORTED_JOIN = [

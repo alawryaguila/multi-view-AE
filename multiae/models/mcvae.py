@@ -42,6 +42,14 @@ class mcVAE(BaseModelVAE):
                         z_dim=z_dim)
 
     def encode(self, x):
+        r"""Forward pass through encoder networks.
+
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            qz_xs (list): list of encoding dimensions for each view.
+        """
         qz_xs = []
         for i in range(self.n_views):
             mu, logvar = self.encoders[i](x[i])
@@ -52,6 +60,15 @@ class mcVAE(BaseModelVAE):
         return qz_xs
 
     def decode(self, qz_xs):
+        r"""Forward pass through decoder networks. Each latent is passed through all of the decoders.
+
+        Args:
+            z (list): list of latent dimensions for each view of type torch.Tensor.
+
+        Returns:
+            px_zs (list): A nested list of decoding distributions. The outer list has a n_view element indicating latent dimensions index. 
+            The inner list is a n_view element list with the position in the list indicating the decoder index.
+        """
         px_zs = []
         for qz_x in qz_xs:
             px_z = [
@@ -63,12 +80,28 @@ class mcVAE(BaseModelVAE):
         return px_zs
 
     def forward(self, x):
+        r"""Apply encode and decode methods to input data to generate latent dimensions and data reconstructions. 
+        
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            fwd_rtn (dict): dictionary containing encoding (qz_xs) and decoding (px_zs) distributions.
+        """
         qz_xs = self.encode(x)
         px_zs = self.decode(qz_xs)
         fwd_rtn = {"px_zs": px_zs, "qz_xs": qz_xs}
         return fwd_rtn
 
     def loss_function(self, x, fwd_rtn):
+        r"""Calculate mcVAE loss.
+        Args:
+            x (list): list of input data of type torch.Tensor.
+            fwd_rtn (dict): dictionary containing encoding and decoding distributions.
+
+        Returns:
+            losses (dict): dictionary containing each element of the mcVAE loss.
+        """
         px_zs = fwd_rtn["px_zs"]
         qz_xs = fwd_rtn["qz_xs"]
         kl = self.calc_kl(qz_xs)
@@ -78,6 +111,13 @@ class mcVAE(BaseModelVAE):
         return losses
 
     def calc_kl(self, qz_xs):
+        r"""Calculate mcVAE KL-divergence loss.
+
+        Args:
+            qz_xs (list): list of encoding distributions.
+        Returns:
+            (torch.Tensor): KL-divergence loss across all views.
+        """
         kl = 0
         for qz_x in qz_xs:
             if self.sparse:
@@ -87,6 +127,15 @@ class mcVAE(BaseModelVAE):
         return self.beta * kl
 
     def calc_ll(self, x, px_zs):
+        r"""Calculate log-likelihood loss.
+
+        Args:
+            x (list): list of input data of type torch.Tensor.
+            px_zs (list): list of decoding distributions.
+
+        Returns:
+            ll (torch.Tensor): Log-likelihood loss.
+        """
         ll = 0
         for i in range(self.n_views):
             for j in range(self.n_views):

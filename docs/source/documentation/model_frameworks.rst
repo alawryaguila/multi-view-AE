@@ -10,7 +10,7 @@ There is one vanilla multi-view autoencoder framework, the ``AE`` model. The rem
   :align: centre
 
 
-The figure below shows the adversarial and variational groupings of models within the ``multiAE`` framework.
+The figure below shows the adversarial and variational groupings of models within the ``multiviewAE`` framework.
 
 .. figure:: ../../figures/model_type1.png
 
@@ -28,7 +28,7 @@ When extending autoencoders to multiple views, we can assume two latent models. 
    :align: centre
    
 
-The joint and coordinated models within the ``multiAE`` framework:
+The joint and coordinated models within the ``multiviewAE`` framework:
 
 .. figure:: ../../figures/model_type2.png
 

@@ -6,7 +6,7 @@ This file containing information on parameters settings in the configuration fil
 How to specify the yaml configuration file
 ---------------------------------
 
-Most parameters (with the exception of those discussed in the User Guide) are set using configuration yaml files. There are some example yaml files given in the ```multiviewAE/tests/user_config/``` folder. To specify a configuration file, the user must specify the absolute or relative path to the yaml file when initialising the relevant model:
+Most parameters (with the exception of those discussed in the User Guide) are set using configuration yaml files. There are some example yaml files given in the ``multiviewAE/tests/user_config/`` folder. To specify a configuration file, the user must specify the absolute or relative path to the yaml file when initialising the relevant model:
 
 .. code-block:: python
 

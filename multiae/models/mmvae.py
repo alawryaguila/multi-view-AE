@@ -40,6 +40,14 @@ class mmVAE(BaseModelVAE):
                         z_dim=z_dim)
 
     def encode(self, x):
+        r"""Forward pass through encoder networks.
+
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            (list): list of encoding distributions.
+        """
         qz_xs = []
         for i in range(self.n_views):
             mu, logvar = self.encoders[i](x[i])
@@ -50,6 +58,15 @@ class mmVAE(BaseModelVAE):
         return qz_xs
 
     def decode(self, qz_xs):
+        r"""Forward pass through decoder networks. Each latent is passed through all of the decoders.
+
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            (list): A nested list of decoding distributions. The outer list has a n_view element indicating latent dimensions index. 
+            The inner list is a n_view element list with the position in the list indicating the decoder index.
+        """    
         px_zs = []
         for qz_x in qz_xs:
             if self._training:
@@ -69,17 +86,41 @@ class mmVAE(BaseModelVAE):
         return px_zs
 
     def forward(self, x):
+        r"""Apply encode and decode methods to input data to generate latent dimensions and data reconstructions. 
+        
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            fwd_rtn (dict): dictionary containing encoding (qz_xs) and decoding (px_zs) distributions.
+        """
         qz_xs = self.encode(x)
         px_zs = self.decode(qz_xs)
         return {"qz_xs": qz_xs, "px_zs": px_zs}
 
     def loss_function(self, x, fwd_rtn):
+        r"""Wrapper function for mmVAE loss.
+        Args:
+            x (list): list of input data of type torch.Tensor.
+            fwd_rtn (dict): dictionary containing encoding and decoding distributions.
+
+        Returns:
+            losses (dict): dictionary containing mmVAE loss.
+        """
         qz_xs, px_zs = fwd_rtn["qz_xs"], fwd_rtn["px_zs"]
         total = -self.moe_iwae(x, qz_xs, px_zs)
         losses = {"loss": total}
         return losses
 
     def moe_iwae(self, x, qz_xs, px_zs):
+        r"""Calculate Mixture-of-Experts importance weighted autoencoder (IWAE) loss used for the mmVAE model.
+        Args:
+            x (list): list of input data of type torch.Tensor.
+            fwd_rtn (dict): dictionary containing encoding and decoding distributions.
+
+        Returns:
+            (torch.Tensor): the output tensor.
+        """
         lws = []
         zss = []
         for i in range(self.n_views):
@@ -108,4 +149,14 @@ class mmVAE(BaseModelVAE):
         )  # looser iwae bound 
 
     def log_mean_exp(self, value, dim=0, keepdim=False):
+        r"""Returns the log of the mean of the exponentials along the given dimension (dim).
+
+        Args:
+            value (torch.Tensor): the input tensor.
+            dim (int, optional): the dimension along which to take the mean.
+            keepdim (bool, optional): whether the output tensor has dim retained or not.
+
+        Returns:
+            (torch.Tensor): the output tensor.
+        """
         return torch.logsumexp(value, dim, keepdim=keepdim) - math.log(value.size(dim))
