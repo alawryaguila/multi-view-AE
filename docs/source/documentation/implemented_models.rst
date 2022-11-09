@@ -30,6 +30,8 @@ Below is a table with the models contained within this repository and links to t
 +------------+---------------------------------------------------------------------------------------------+------------------+
 | MoPoEVAE   |  Mixture-of-Products-of-Experts VAE [7]                                                     |    >=1           |
 +------------+---------------------------------------------------------------------------------------------+------------------+
+| mmJSD      |  Multimodal Jensen-Shannon divergence model (mmJSD) [9]                                     |    >=1           |
++------------+---------------------------------------------------------------------------------------------+------------------+
 
 [1] Antelmi, Luigi & Ayache, Nicholas & Robert, Philippe & Lorenzi, Marco. (2019). Sparse Multi-Channel Variational Autoencoder for the Joint Analysis of Heterogeneous Data. 
 
@@ -46,3 +48,5 @@ Below is a table with the models contained within this repository and links to t
 [7] Sutter, Thomas & Daunhawer, Imant & Vogt, Julia. (2021). Generalized Multimodal ELBO. 
 
 [8] Hwang, HyeongJoo and Kim, Geon-Hyeong and Hong, Seunghoon and Kim, Kee-Eung. Multi-View Representation Learning via Total Correlation Objective. 2021. NeurIPS
+
+[9] Sutter, Thomas & Daunhawer, Imant & Vogt, Julia. (2021). Multimodal Generative Learning Utilizing Jensen-Shannon-Divergence. Advances in Neural Information Processing Systems. 33. 

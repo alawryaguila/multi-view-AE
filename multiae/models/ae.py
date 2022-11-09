@@ -21,6 +21,14 @@ class AE(BaseModelAE):
                         z_dim=z_dim)
 
     def encode(self, x):
+        r"""Forward pass through encoder networks.
+
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            z (list): list of latent dimensions for each view of type torch.Tensor.
+        """   
         z = []
         for i in range(self.n_views):
             z_ = self.encoders[i](x[i])
@@ -28,6 +36,14 @@ class AE(BaseModelAE):
         return z
 
     def decode(self, z):
+        r"""Forward pass through decoder networks. Each latent is passed through all of the decoders.
+
+        Args:
+            z (list): list of latent dimensions for each view of type torch.Tensor.
+
+        Returns:
+            x_recon (list): list of data reconstructions.
+        """
         x_recon = []
         for i in range(self.n_views):
             temp_recon = [self.decoders[j](z[i]) for j in range(self.n_views)]
@@ -35,21 +51,36 @@ class AE(BaseModelAE):
         return x_recon
 
     def forward(self, x):
+        r"""Apply encode and decode methods to input data to generate latent dimensions and data reconstructions.
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            fwd_rtn (dict): dictionary containing list of data reconstructions (x_recon) and latent dimensions (z).
+        """
         self.zero_grad()
         z = self.encode(x)
         x_recon = self.decode(z)
         fwd_rtn = {"x_recon": x_recon, "z": z}
         return fwd_rtn
 
-    def loss_function(self, x, fwd_rtn):
-        x_recon = fwd_rtn["x_recon"]
-        recon = self.recon_loss(x, x_recon)
-        losses = {"loss": recon}
-        return losses
+    def loss_function(self, x, fwd_rtn):    
+        r"""Calculate reconstruction loss.
+        Args:
+            x (list): list of input data of type torch.Tensor.
+            fwd_rtn (dict): dictionary containing list of data reconstructions (x_recon) and latent dimensions (z).
 
-    def recon_loss(self, x, x_recon):
+        Returns:
+            losses (dict): dictionary containing reconstruction loss.
+        """
+        x_recon = fwd_rtn["x_recon"]
         recon = 0
         for i in range(self.n_views):
             for j in range(self.n_views):
                 recon += x_recon[j][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0) #first index is latent, second index is view
-        return recon / self.n_views / self.n_views
+        recon = recon / self.n_views / self.n_views
+        losses = {"loss": recon}
+        return losses
+
+
+

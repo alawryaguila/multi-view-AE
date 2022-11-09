@@ -1,31 +1,57 @@
 import torch
 import torch.nn as nn
-
 class ProductOfExperts(nn.Module):
     """Return parameters for product of independent experts.
     See https://arxiv.org/pdf/1410.7827.pdf for equations.
 
     Args:
     mu (torch.Tensor): Mean of experts distribution. M x D for M experts
-    var (torch.Tensor): Variance of experts distribution. M x D for M experts
+    logvar (torch.Tensor): Log of variance of experts distribution. M x D for M experts
     """
 
-    def forward(self, mu, var, eps=1e-8):
-        T = 1.0 / (var + eps)
+    def forward(self, mu, logvar, eps=1e-8):
+        var = torch.exp(logvar) + eps
+        T = 1. / var
         pd_mu = torch.sum(mu * T, dim=0) / torch.sum(T, dim=0)
-        pd_var = 1.0 / torch.sum(T, dim=0)
-        return pd_mu, pd_var
+        pd_var = 1. / torch.sum(T, dim=0)
+        pd_logvar = torch.log(pd_var + eps)
+        return pd_mu, pd_logvar
+
+class alphaProductOfExperts(nn.Module):
+    """Return parameters for product of independent experts.
+    See https://arxiv.org/pdf/1410.7827.pdf for equations.
+
+    Args:
+    mu (torch.Tensor): Mean of experts distribution. M x D for M experts
+    logvar (torch.Tensor): Log of variance of experts distribution. M x D for M experts
+    """
+
+    def forward(self, mu, logvar, weights=None, eps=1e-8):
+        if weights is None:
+            num_components = mu.shape[0]
+            weights = (1/num_components) * torch.ones(mu.shape)
+    
+        var = torch.exp(logvar) + eps
+        T = 1. / var
+        T = 1 / var
+        weights = torch.broadcast_to(weights, mu.shape)
+        pd_var = 1. / torch.sum(weights * T, dim=0)
+        pd_mu = pd_var * torch.sum(weights * mu * T, dim=0)
+        pd_logvar = torch.log(pd_var)
+        return pd_mu, pd_logvar
+
 
 class MixtureOfExperts(nn.Module):
     """Return parameters for mixture of independent experts.
     Implementation from: https://github.com/thomassutter/MoPoE
 
     Args:
-    mu (torch.Tensor): Mean of experts distribution. M x D for M experts
-    var (torch.Tensor): Variance of experts distribution. M x D for M experts
+    mus (torch.Tensor): Mean of experts distribution. M x D for M experts
+    logvars (torch.Tensor): Log of variance of experts distribution. M x D for M experts
     """
 
-    def forward(self, mus, vars):
+    def forward(self, mus, logvars):
+
         num_components = mus.shape[0]
         num_samples = mus.shape[1]
         weights = (1/num_components) * torch.ones(num_components)
@@ -45,9 +71,9 @@ class MixtureOfExperts(nn.Module):
         idx_end[-1] = num_samples
 
         mu_sel = torch.cat([mus[k, idx_start[k]:idx_end[k], :] for k in range(num_components)])
-        var_sel = torch.cat([vars[k, idx_start[k]:idx_end[k], :] for k in range(num_components)])
+        logvar_sel = torch.cat([logvars[k, idx_start[k]:idx_end[k], :] for k in range(num_components)])
 
-        return mu_sel, var_sel
+        return mu_sel, logvar_sel
 
 
 class MeanRepresentation(nn.Module):
@@ -55,10 +81,11 @@ class MeanRepresentation(nn.Module):
     
     Args:
     mu (torch.Tensor): Mean of distributions. M x D for M views.
-    var (torch.Tensor): Variance of distributions. M x D for M views.
+    logvar (torch.Tensor): Log of Variance of distributions. M x D for M views.
     """
 
-    def forward(self, mu, var):
+    def forward(self, mu, logvar, eps=1e-8):
         mean_mu = torch.mean(mu, axis=0)
-        mean_var = torch.mean(var, axis=0)
-        return mean_mu, mean_var
+        mean_logvar = torch.mean(logvar, axis=0)
+        
+        return mean_mu, mean_logvar

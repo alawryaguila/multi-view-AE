@@ -10,7 +10,7 @@ from .dvcca import *
 from .me_mvae import *
 from .jmvae import *
 from .mopoevae import *
-
-__all__ = ["AE", "AAE", "jointAAE", "wAAE", "mcVAE", "mVAE", "JMVAE", "me_mVAE", "mmVAE", "mvtCAE", "DVCCA", "MoPoEVAE"]
+from .mmJSD import *
+__all__ = ["AE", "AAE", "jointAAE", "wAAE", "mcVAE", "mVAE", "JMVAE", "me_mVAE", "mmVAE", "mvtCAE", "DVCCA", "MoPoEVAE", "mmJSD"]
 classes = __all__ 
 #TODO: use constants instead
