@@ -35,7 +35,7 @@ User designed network architectures
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 User designed networks must except and return the same parameters as the respective ``multiviewAE`` counterpart. 
 For example, variational encoder networks must return ``mu`` and ``logvar`` in the form of a ``Torch.tensor``. 
-Please see the :ref:`Reference:architectures` section for information on input and output parameters of encoder and decoder networks. 
+Please see the :ref:`Architectures` section for information on input and output parameters of encoder and decoder networks. 
 
 Implemented classes must have a ``forward`` method.
 
