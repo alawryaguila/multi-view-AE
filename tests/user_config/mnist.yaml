@@ -4,13 +4,15 @@ model:
   private: True
 
 encoder:
-  hidden_layer_dim: [512, 256]
-  non_linear: True
+  default:
+    hidden_layer_dim: [512, 256]
+    non_linear: True
 
 decoder:
-  _target_: multiae.architectures.mlp.Decoder
-  non_linear: True
-  hidden_layer_dim: [512, 256]
+  default:
+    _target_: multiae.architectures.mlp.Decoder
+    non_linear: True
+    hidden_layer_dim: [512, 256]
 
-  dec_dist:
-    _target_: multiae.base.distributions.Bernoulli
+    dec_dist:
+      _target_: multiae.base.distributions.Bernoulli

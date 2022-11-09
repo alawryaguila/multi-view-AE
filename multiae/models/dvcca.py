@@ -4,7 +4,7 @@ from ..base.constants import MODEL_DVCCA
 from ..base.base_model import BaseModelVAE
 
 class DVCCA(BaseModelVAE):
-    r"""Deep Variational Canonical Correlation Analysis (DVCCA). 
+    r"""Deep Variational Canonical Correlation Analysis (DVCCA).
     Args:
         cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
             model.beta (int, float): KL divergence weighting term.
@@ -17,8 +17,8 @@ class DVCCA(BaseModelVAE):
             decoder.init_logvar(int, float): Initial value for log variance of decoder.
             decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
         input_dim (list): Dimensionality of the input data.
-        z_dim (int): Number of latent dimensions. 
-    
+        z_dim (int): Number of latent dimensions.
+
     References
     ----------
     Wang, Weiran & Lee, Honglak & Livescu, Karen. (2016). Deep Variational Canonical Correlation Analysis.
@@ -50,7 +50,7 @@ class DVCCA(BaseModelVAE):
         self.encoders = torch.nn.ModuleList(
             [
                 hydra.utils.instantiate(
-                    self.cfg.encoder,
+                    self.cfg.encoder.default,   #TODO: should use enc0?
                     input_dim=self.input_dim[0],
                     z_dim=self.z_dim,
                     sparse=self.sparse,
@@ -66,7 +66,7 @@ class DVCCA(BaseModelVAE):
             self.private_encoders = torch.nn.ModuleList(
                 [
                     hydra.utils.instantiate(
-                        self.cfg.encoder,
+                        eval(f"self.cfg.encoder.enc{i}"),
                         input_dim=d,
                         z_dim=self.z_dim,
                         sparse=self.sparse,
@@ -74,13 +74,13 @@ class DVCCA(BaseModelVAE):
                         _recursive_=False,
                         _convert_="all"
                     )
-                    for d in self.input_dim
+                    for i, d in enumerate(self.input_dim)
                 ]
             )
             self.z_dim = self.z_dim + self.z_dim
             if self.sparse and self.threshold != 0.:
-                
-                self.log_alpha = torch.nn.Parameter(    
+
+                self.log_alpha = torch.nn.Parameter(
                     torch.FloatTensor(1, self.z_dim).normal_(0, 0.01)
                 )
 
@@ -119,13 +119,13 @@ class DVCCA(BaseModelVAE):
                 mu_ = torch.cat((mu, mu_p), 1)
                 logvar_ = torch.cat((logvar, logvar_p), 1)
                 qz_x = hydra.utils.instantiate(
-                    self.cfg.encoder.enc_dist, loc=mu_, scale=logvar_.exp().pow(0.5)
+                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_, scale=logvar_.exp().pow(0.5)
                 )
                 qz_xs.append(qz_x)
             return qz_xs
         else:
-            qz_x = hydra.utils.instantiate(
-                self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
+            qz_x = hydra.utils.instantiate( #TODO: should use enc0?
+                self.cfg.encoder.default.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
             )
             return [qz_x]
 
@@ -163,13 +163,13 @@ class DVCCA(BaseModelVAE):
             n = 1
         for i in range(n):
             if self.sparse:
-                kl += qz_x[i].sparse_kl_divergence().sum(1, keepdims=True).mean(0)
+                kl += qz_x[i].sparse_kl_divergence().mean(0).sum()
             else:
-                kl += qz_x[i].kl_divergence(self.prior).sum(1, keepdims=True).mean(0)
+                kl += qz_x[i].kl_divergence(self.prior).mean(0).sum()
         return self.beta * kl
 
     def calc_ll(self, x, px_zs):
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[0][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)  #first index is latent, second index is view
+            ll += px_zs[0][i].log_likelihood(x[i]).mean(0).sum()  #first index is latent, second index is view
         return ll

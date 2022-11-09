@@ -1,0 +1,114 @@
+model:
+  z_dim: 16
+
+encoder:
+  default:
+      _target_: multiae.architectures.cnn.VariationalEncoder
+
+      layer0:
+        layer: Conv2d
+        in_channels: 1
+        out_channels: 8
+        kernel_size: 4
+        stride: 2
+        padding: 1
+
+      layer1:
+        layer: Conv2d
+        in_channels: 8
+        out_channels: 16
+        kernel_size: 4
+        stride: 2
+        padding: 1
+
+      layer2:
+        layer: Conv2d
+        in_channels: 16
+        out_channels: 32
+        kernel_size: 4
+        stride: 2
+        padding: 1
+
+      layer3:
+        layer: Conv2d
+        in_channels: 32
+        out_channels: 64
+        kernel_size: 4
+        stride: 2
+        padding: 0
+
+      layer5:
+        layer: AdaptiveAvgPool2d
+        output_size: 1
+
+      layer6:
+        layer: Flatten
+        start_dim: 1
+
+      layer7:
+        layer: Linear
+        in_features: 64
+        out_features: 128
+
+      bias: True
+      non_linear: False
+
+      enc_dist:
+        _target_: multiae.base.distributions.Normal
+
+decoder:
+  default:
+      _target_: multiae.architectures.cnn.Decoder
+
+      layer0: # in_features = z_dim
+        layer: Linear
+        out_features: 128
+
+      layer1:
+        layer: Linear
+        in_features: 128
+        out_features: 64
+
+      layer2:
+        layer: Unflatten
+        dim: 1
+        unflattened_size: [64, 1, 1]  # TODO: cannot accept tuple
+
+      layer3:
+        layer: ConvTranspose2d
+        in_channels: 64
+        out_channels: 32
+        kernel_size: 4
+        stride: 2
+        padding: 0
+
+      layer4:
+        layer: ConvTranspose2d
+        in_channels: 32
+        out_channels: 16
+        kernel_size: 4
+        stride: 2
+        padding: 1
+
+      layer5:
+        layer: ConvTranspose2d
+        in_channels: 16
+        out_channels: 8
+        kernel_size: 4
+        stride: 2
+        padding: 1
+
+      layer6:
+        layer: ConvTranspose2d
+        in_channels: 8
+        out_channels: 1
+        kernel_size: 4
+        stride: 2
+        padding: 1
+
+      bias: True
+      non_linear: False
+      # init_logvar: -3
+
+      dec_dist:
+        _target_: multiae.base.distributions.Default

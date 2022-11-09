@@ -8,10 +8,10 @@ import torch.nn.functional as F
 from torch.nn import Parameter
 
 class Encoder(nn.Module):
-    """MLP Encoder 
+    """MLP Encoder
     Args:
         input_dim (list): Dimensionality of the input data.
-        z_dim (int): Number of latent dimensions. 
+        z_dim (int): Number of latent dimensions.
         hidden_layer_dim (list): Number of nodes per hidden layer.
         non_linear (bool): Whether to include a ReLU() function between layers.
         bias (bool): Whether to include a bias term in hidden layers.
@@ -32,7 +32,7 @@ class Encoder(nn.Module):
         self.z_dim = z_dim
         self.hidden_layer_dim = hidden_layer_dim
         self.bias = bias
-        self.enc_dist = enc_dist    
+        self.enc_dist = enc_dist
         self.non_linear = non_linear
         self.layer_sizes = [input_dim] + self.hidden_layer_dim + [z_dim]
         lin_layers = [
@@ -55,10 +55,10 @@ class Encoder(nn.Module):
         return h1
 
 class VariationalEncoder(Encoder):
-    """Variational MLP Encoder 
+    """Variational MLP Encoder
     Args:
         input_dim (list): Dimensionality of the input data.
-        z_dim (int): Number of latent dimensions. 
+        z_dim (int): Number of latent dimensions.
         hidden_layer_dim (list): Number of nodes per hidden layer.
         non_linear (bool): Whether to include a ReLU() function between layers.
         bias (bool): Whether to include a bias term in hidden layers.
@@ -120,10 +120,10 @@ class VariationalEncoder(Encoder):
 
 
 class Decoder(nn.Module):
-    """MLP Decoder 
+    """MLP Decoder
     Args:
         input_dim (list): Dimensionality of the input data.
-        z_dim (int): Number of latent dimensions. 
+        z_dim (int): Number of latent dimensions.
         hidden_layer_dim (list): Number of nodes per hidden layer. The layer order is reversed e.g. [100, 50, 5] becomes [5, 50, 100].
         non_linear (bool): Whether to include a ReLU() function between layers.
         bias (bool): Whether to include a bias term in hidden layers.
@@ -138,7 +138,7 @@ class Decoder(nn.Module):
         non_linear,
         bias,
         dec_dist,
-        init_logvar=None,
+        init_logvar=None
     ):
         super().__init__()
 
@@ -169,10 +169,10 @@ class Decoder(nn.Module):
         return x_rec
 
 class VariationalDecoder(Decoder):
-    """MLP Variational Decoder 
+    """MLP Variational Decoder
     Args:
         input_dim (list): Dimensionality of the input data.
-        z_dim (int): Number of latent dimensions. 
+        z_dim (int): Number of latent dimensions.
         hidden_layer_dim (list): Number of nodes per hidden layer. The layer order is reversed e.g. [100, 50, 5] becomes [5, 50, 100].
         non_linear (bool): Whether to include a ReLU() function between layers.
         bias (bool): Whether to include a bias term in hidden layers.
@@ -208,7 +208,6 @@ class VariationalDecoder(Decoder):
         tmp_noise_par = torch.FloatTensor(1, self.input_size).fill_(
             self.init_logvar
         )
-        tmp_noise_par = torch.FloatTensor(1, input_dim).fill_(init_logvar)
         self.logvar_out = Parameter(data=tmp_noise_par, requires_grad=True)
 
     def forward(self, z):
@@ -225,11 +224,11 @@ class VariationalDecoder(Decoder):
         return x_rec
 
 class Discriminator(nn.Module):
-    """MLP Discriminator 
+    """MLP Discriminator
     Args:
         input_dim (list): Dimensionality of the input data.
-        z_dim (int): Number of output dimensions. 
-        hidden_layer_dim (list): Number of nodes per hidden layer. 
+        z_dim (int): Number of output dimensions.
+        hidden_layer_dim (list): Number of nodes per hidden layer.
         non_linear (bool): Whether to include a ReLU() function between layers.
         bias (bool): Whether to include a bias term in hidden layers.
         dropout_threshold (float): Dropout threshold of layers.

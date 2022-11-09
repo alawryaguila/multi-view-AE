@@ -5,9 +5,9 @@ class AE(BaseModelAE):
     r"""Multi-view Autoencoder model with a separate latent representation for each view.
 
     Args:
-        cfg (str): Path to configuration file. 
+        cfg (str): Path to configuration file.
         input_dim (list): Dimensionality of the input data.
-        z_dim (int): Number of latent dimensions. 
+        z_dim (int): Number of latent dimensions.
     """
     def __init__(
         self,
@@ -51,5 +51,5 @@ class AE(BaseModelAE):
         recon = 0
         for i in range(self.n_views):
             for j in range(self.n_views):
-                recon += x_recon[j][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0) #first index is latent, second index is view
+                recon += x_recon[j][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view
         return recon / self.n_views / self.n_views

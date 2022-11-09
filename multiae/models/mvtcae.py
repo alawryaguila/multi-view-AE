@@ -8,11 +8,11 @@ from ..base.representations import ProductOfExperts
 class mvtCAE(BaseModelVAE):
     r"""
     Multi-View Total Correlation Auto-Encoder (MVTCAE).
-    
+
     Code is based on: https://github.com/gr8joo/MVTCAE
 
     NOTE: This implementation currently only caters for a PoE posterior distribution. MoE and MoPoE posteriors will be included in further work.
-    
+
     Args:
     cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
         model.beta (int, float): KL divergence weighting term.
@@ -22,14 +22,14 @@ class mvtCAE(BaseModelVAE):
         decoder._target_ (multiae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
         decoder.init_logvar(int, float): Initial value for log variance of decoder.
         decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
-        
+
     input_dim (list): Dimensionality of the input data.
     z_dim (int): Number of latent dimensions.
 
     References
     ----------
     Hwang, HyeongJoo and Kim, Geon-Hyeong and Hong, Seunghoon and Kim, Kee-Eung. Multi-View Representation Learning via Total Correlation Objective. 2021. NeurIPS
-    
+
     """
 
     def __init__(
@@ -50,7 +50,7 @@ class mvtCAE(BaseModelVAE):
             for i in range(self.n_views):
                 mu, logvar = self.encoders[i](x[i])
                 qz_x = hydra.utils.instantiate(
-                    self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
+                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu, scale=logvar.exp().pow(0.5)
                 )
                 qz_xs.append(qz_x)
             return qz_xs
@@ -65,8 +65,8 @@ class mvtCAE(BaseModelVAE):
             mu = torch.stack(mu)
             var = torch.stack(var)
             mu, var = ProductOfExperts()(mu, var)
-            qz_x = hydra.utils.instantiate(
-                self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
+            qz_x = hydra.utils.instantiate( # TODO: okay to use default here?
+                self.cfg.encoder.default.enc_dist, loc=mu, scale=var.pow(0.5)
             )
             return [qz_x]
 
@@ -80,8 +80,8 @@ class mvtCAE(BaseModelVAE):
             px_zs = []
             for i in range(self.n_views):
                 px_z = self.decoders[i](
-                    hydra.utils.instantiate(
-                        self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
+                    hydra.utils.instantiate(    #TODO: uses encoder. is this correct?
+                        eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu, scale=var.pow(0.5)
                     ).rsample()
                 )
                 px_zs.append(px_z)
@@ -127,7 +127,7 @@ class mvtCAE(BaseModelVAE):
         for i in range(self.n_views):
             kl += (
                 hydra.utils.instantiate(
-                    self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
+                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu, scale=var.pow(0.5)
                 )
                 .kl_divergence(qz_xs[i]).sum(1, keepdims=True).mean(0)
             )
@@ -141,7 +141,7 @@ class mvtCAE(BaseModelVAE):
         mu, var = ProductOfExperts()(mu, var)
         return (
             hydra.utils.instantiate(
-                self.cfg.encoder.enc_dist, loc=mu, scale=var.pow(0.5)
+                self.cfg.encoder.default.enc_dist, loc=mu, scale=var.pow(0.5)
             )
             .kl_divergence(self.prior).sum(1, keepdims=True).mean(0)
         )
@@ -149,5 +149,5 @@ class mvtCAE(BaseModelVAE):
     def calc_ll(self, x, px_zs):
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[0][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0) #first index is latent, second index is view 
+            ll += px_zs[0][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view
         return ll

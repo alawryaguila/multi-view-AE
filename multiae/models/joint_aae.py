@@ -15,7 +15,7 @@ class jointAAE(BaseModelAAE):
             discriminator.non_linear (bool): Whether to include a ReLU() function between layers.
             discriminator.dropout_threshold (float): Dropout threshold of layers.
         input_dim (list): Dimensionality of the input data.
-        z_dim (int): Number of latent dimensions. 
+        z_dim (int): Number of latent dimensions.
     """
     def __init__(
         self,
@@ -79,7 +79,7 @@ class jointAAE(BaseModelAAE):
         px_zs = fwd_rtn["px_zs"]
         ll = 0
         for i in range(self.n_views):
-            ll += - px_zs[0][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0) #first index is latent, second index is view
+            ll += - px_zs[0][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view
         return ll / self.n_views
 
     def generator_loss(self, fwd_rtn):

@@ -44,7 +44,7 @@ class mmVAE(BaseModelVAE):
         for i in range(self.n_views):
             mu, logvar = self.encoders[i](x[i])
             qz_x = hydra.utils.instantiate(
-                self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu, scale=logvar.exp().pow(0.5)
             )
             qz_xs.append(qz_x)
         return qz_xs

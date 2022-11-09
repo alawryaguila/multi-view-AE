@@ -2,6 +2,7 @@ import os
 import numpy as np
 import hydra
 import re
+import collections.abc
 
 import torch
 import pytorch_lightning as pl
@@ -10,15 +11,24 @@ from os.path import join, isdir
 from datetime import datetime
 from abc import ABC, abstractmethod
 from hydra import compose, initialize, initialize_config_dir
-from schema import Schema, SchemaError, And
+from schema import Schema, SchemaError, And, Or
 
 from torch.utils.data.dataloader import DataLoader
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, open_dict
 
 from .constants import *
 from .validation import config_schema
 from .datasets import MVDataset
 from .exceptions import *
+
+def update_dict(d, u, l):
+    for k, v in u.items():
+        if k in l:
+            if isinstance(v, collections.abc.Mapping):
+                d[k] = update_dict(d.get(k, {}), v, l=v.keys())
+            else:
+                d[k] = v
+    return d
 
 class BaseModelAE(ABC, pl.LightningModule):
     """Base class for autoencoder models.
@@ -45,12 +55,18 @@ class BaseModelAE(ABC, pl.LightningModule):
 
         try:
             # check input_dim
-            Schema([And(int, lambda x: x > 0)]).validate(input_dim)
-            Schema([And(int, lambda x: x > 0)]).validate(input_dim)
+            Schema(And(list, lambda x: len(x) > 0), error="input_dim should not be empty").validate(input_dim)
+            Schema([Or(int, tuple)], error="input_dim should be a list of int/tuple").validate(input_dim)
+            for d in input_dim:
+                if isinstance(d, int):
+                    Schema(lambda x: x > 0, error="each dim should be > 0").validate(d)
+                else:
+                    Schema(lambda x: all(a > 0 for a in x), error="each dim should be > 0").validate(d)
+                    # Schema(lambda x: len(x) in [1,2,3], error="each dim should be 1D or 2D").validate(d)
 
             # check z_dim
             if z_dim is not None:
-                Schema(And(int, lambda x: x > 0)).validate(z_dim)
+                Schema(And(int, lambda x: x > 0), error="z_dim must be > 0").validate(z_dim)
         except SchemaError as se:
             raise ConfigError(se) from None
 
@@ -66,6 +82,8 @@ class BaseModelAE(ABC, pl.LightningModule):
                             return_hydra_config=True,
                             overrides=[f"model_type={self.model_name}.yaml"]
                         )
+
+        user_cfg = None
         if cfg is not None: # user overrides default config
             if os.path.isabs(cfg):
                 cfgdir, cfg_file = os.path.split(cfg)
@@ -81,13 +99,14 @@ class BaseModelAE(ABC, pl.LightningModule):
                                 config_name=cfg,
                                 return_hydra_config=True
                             )
-            def_cfg = self.__updateconfig(def_cfg, user_cfg)
+
+        def_cfg = self.__updateconfig(def_cfg, user_cfg)
+
+        if self.z_dim is not None:   # overrides hydra config... passed arg has precedence
+            def_cfg.model.z_dim = self.z_dim
 
         # validate model configuration
         self.cfg = self.__checkconfig(def_cfg)
-
-        if self.z_dim is not None:   # overrides hydra config... passed arg has precedence
-            self.cfg.model.z_dim = self.z_dim
 
         self.__dict__.update(self.cfg.model)
 
@@ -119,8 +138,10 @@ class BaseModelAE(ABC, pl.LightningModule):
             raise InputError("number of modalities must be equal to number of views")
 
         for i in range(self.n_views):
-            # TODO: this is only for 1D input, change to tuple
-            if not (data[i].shape[1] == self.input_dim[i]):
+            data_dim = data[i].shape[1:]
+            if len(data_dim) == 1:
+                data_dim = data_dim[0]
+            if not (data_dim == self.input_dim[i]):
                 raise InputError("modality's shape must be equal to corresponding input_dim's shape")
 
         self._training = True
@@ -171,7 +192,10 @@ class BaseModelAE(ABC, pl.LightningModule):
             print(f"{'model_name'}:\n  {cfg['model_name']}")
             for k in keys:
                 if k in CONFIG_KEYS:
-                    str = (OmegaConf.to_yaml(cfg[k])).replace("\n", "\n  ")
+                    if cfg[k] is not None:
+                        str = (OmegaConf.to_yaml(cfg[k])).replace("\n", "\n  ")
+                    else:
+                        str = "null\n"
                     print(f"{k}:\n  {str}")
         else:
             self.print_config(cfg=cfg, keys=CONFIG_KEYS)
@@ -237,13 +261,13 @@ class BaseModelAE(ABC, pl.LightningModule):
         self.encoders = torch.nn.ModuleList(
             [
                 hydra.utils.instantiate(
-                    self.cfg.encoder,
+                    eval(f"self.cfg.encoder.enc{i}"),
                     input_dim=d,
                     z_dim=self.z_dim,
                     _recursive_=False,
                     _convert_ = "all"
                 )
-                for d in self.input_dim
+                for i, d in enumerate(self.input_dim)
             ]
         )
 
@@ -251,13 +275,13 @@ class BaseModelAE(ABC, pl.LightningModule):
         self.decoders = torch.nn.ModuleList(
             [
                 hydra.utils.instantiate(
-                    self.cfg.decoder,
+                    eval(f"self.cfg.decoder.dec{i}"),
                     input_dim=d,
                     z_dim=self.z_dim,
                     _recursive_=False,
                     _convert_ = "all"
                 )
-                for d in self.input_dim
+                for i, d in enumerate(self.input_dim)
             ]
         )
 
@@ -268,12 +292,31 @@ class BaseModelAE(ABC, pl.LightningModule):
 
     ################################            private methods
     def __updateconfig(self, orig, update):
+        OmegaConf.set_struct(orig, True)
+        with open_dict(orig):
+            # update default cfg with user config
+            if update is not None:
+                update_keys = list(set(update.keys()) & set(CONFIG_KEYS))
+                orig = update_dict(orig, update, l=update_keys)
 
-        update_keys = list(set(update.keys()) & set(CONFIG_KEYS))
-        for k in update_keys:
-            for key, val in update[k].items():
-                if key in orig[k].keys():
-                    orig[k][key] = val
+            # update encoder/decoder config
+            for i, d in enumerate(self.input_dim):
+                enc_key = f"enc{i}"
+                if enc_key not in orig.encoder.keys():
+                    if update is not None and "encoder" in update.keys() and \
+                        enc_key in update.encoder.keys(): # use user-defined
+                        orig.encoder[enc_key] = update.encoder[enc_key].copy()
+                    else: # use default
+                        orig.encoder[enc_key] = orig.encoder.default.copy()
+
+                dec_key = f"dec{i}"
+                if dec_key not in orig.decoder.keys():
+                    if update is not None and "decoder" in update.keys() and \
+                        dec_key in update.decoder.keys(): # use user-defined
+                        orig.decoder[dec_key] = updaate.decoder[dec_key].copy()
+                    else: # use default
+                        orig.decoder[dec_key] = orig.decoder.default.copy()
+
         return orig
 
     def __checkconfig(self, cfg):
@@ -284,35 +327,38 @@ class BaseModelAE(ABC, pl.LightningModule):
             cfg_dict = config_schema.validate(cfg_dict)
         except SchemaError as se:
             raise ConfigError(se) from None
-
+            
         if self.model_name == MODEL_JMVAE and len(self.input_dim) != 2:
             raise InputError('JMVAE expects two len(input_dim) == 2')
 
-        if cfg.decoder.dec_dist._target_ in \
+        pattern = re.compile(r'multiae\.architectures\..*\.Decoder')
+        for k in cfg.decoder.keys():
+            if eval(f"cfg.decoder.{k}.dec_dist._target_") in \
             ["multiae.base.distributions.Default", \
             "multiae.base.distributions.Bernoulli"]:
-            pattern = re.compile(r'multiae\.architectures\..*\.Decoder')
-            if not bool(pattern.match(cfg.decoder._target_)):
-                raise ConfigError("Must use non-variational Decoder if decoder dist is Default/Bernoulli")
+                if not bool(pattern.match(eval(f"cfg.decoder.{k}._target_"))):
+                    raise ConfigError(f"{k}: must use non-variational Decoder if decoder dist is Default/Bernoulli.")
 
         if self.model_name in [MODEL_AE] + ADVERSARIAL_MODELS:
-            pattern = re.compile(r'multiae\.architectures\..*\.VariationalEncoder')
-            if bool(pattern.match(cfg.encoder._target_)):
-                raise ConfigError("Must use non-variational encoder for adversarial models")
+            pattern1 = re.compile(r'multiae\.architectures\..*\.VariationalEncoder')
+            pattern2 = re.compile(r'multiae\.base\.distributions\..*Normal')
+            for k in cfg.encoder.keys():
+                if bool(pattern1.match(eval(f"cfg.encoder.{k}._target_"))):
+                    raise ConfigError(f"{k}: must use non-variational encoder for adversarial models.")
 
-            pattern = re.compile(r'multiae\.base\.distributions\..*Normal')
-            if bool(pattern.match(cfg.encoder.enc_dist._target_)):
-                raise ConfigError("Must not use Normal/MultivariateNormal encoder dist for adversarial models")
+                if bool(pattern2.match(eval(f"cfg.encoder.{k}.enc_dist._target_"))):
+                    raise ConfigError(f"{k}: must not use Normal/MultivariateNormal encoder dist for adversarial models")
 
         if self.model_name in VARIATIONAL_MODELS:
             self.is_variational = True
 
             pattern = re.compile(r'multiae\.architectures\..*\.VariationalEncoder')
-            if not bool(pattern.match(cfg.encoder._target_)):
-                raise ConfigError("Must use variational encoder for variational models")
+            for k in cfg.encoder.keys():
+                if not bool(pattern.match(eval(f"cfg.encoder.{k}._target_"))):
+                    raise ConfigError(f"{k}: must use variational encoder for variational models")
 
-            if cfg.prior._target_ != cfg.encoder.enc_dist._target_:
-                raise ConfigError('Encoder and prior must have the same distribution for variational models')
+                if cfg.prior._target_ != eval(f"cfg.encoder.{k}.enc_dist._target_"):
+                    raise ConfigError('Encoder and prior must have the same distribution for variational models')
 
         if cfg.prior._target_ == "multiae.base.distributions.Normal":
             if not isinstance(cfg.prior.loc, (int, float)):
@@ -358,8 +404,10 @@ class BaseModelAE(ABC, pl.LightningModule):
             raise InputError("number of modalities must be equal to number of views")
 
         for i in range(self.n_views):
-            # TODO: this is only for 1D input, change to tuple
-            if not (data[i].shape[1] == self.input_dim[i]):
+            data_dim = data[i].shape[1:]
+            if len(data_dim) == 1:
+                data_dim = data_dim[0]
+            if not (data_dim == self.input_dim[i]):
                 raise InputError("modality's shape must be equal to corresponding input_dim's shape")
 
         dataset = MVDataset(data, labels=None) #TODO: make flexible
@@ -436,8 +484,8 @@ class BaseModelVAE(BaseModelAE):
         for _ in z:
             _ = _._sample()
             _[:, ~keep] = 0
-            d = hydra.utils.instantiate(
-                self.cfg.encoder.enc_dist, loc=_, scale=1
+            d = hydra.utils.instantiate(    # TODO: okay to use default here?
+                self.cfg.encoder.default.enc_dist, loc=_, scale=1
             )
             z_keep.append(d)
             del _
@@ -458,7 +506,7 @@ class BaseModelVAE(BaseModelAE):
         self.encoders = torch.nn.ModuleList(
             [
                 hydra.utils.instantiate(
-                    self.cfg.encoder,
+                    eval(f"self.cfg.encoder.enc{i}"),
                     input_dim=d,
                     z_dim=self.z_dim,
                     sparse=self.sparse,
@@ -466,7 +514,7 @@ class BaseModelVAE(BaseModelAE):
                     _recursive_=False,
                     _convert_="all"
                 )
-                for d in self.input_dim
+                for i, d in enumerate(self.input_dim)
             ]
         )
 
