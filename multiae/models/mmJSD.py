@@ -15,11 +15,11 @@ class mmJSD(BaseModelVAE):
     cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
         model.private (bool): Whether to include private modality-specific latent dimensions.
         model.s_dim (int): Number of private latent dimensions.
-        encoder._target_ (multiae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
-        encoder.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
-        decoder._target_ (multiae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
-        decoder.init_logvar(int, float): Initial value for log variance of decoder.
-        decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
+        encoder.default._target_ (multiae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
+        encoder.default.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
+        decoder.default._target_ (multiae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
+        decoder.default.init_logvar(int, float): Initial value for log variance of decoder.
+        decoder.default.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
 
     input_dim (list): Dimensionality of the input data.
     z_dim (int): Number of latent dimensions.
@@ -75,11 +75,11 @@ class mmJSD(BaseModelVAE):
                 logvar_c.append(logvar[:,self.s_dim:])
 
                 qs_x = hydra.utils.instantiate(
-                self.cfg.encoder.enc_dist, loc=mu[:,:self.s_dim], scale=logvar[:,:self.s_dim].exp().pow(0.5)
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,:self.s_dim], scale=logvar[:,:self.s_dim].exp().pow(0.5)
                 )
                 qs_xs.append(qs_x)
                 qc_x = hydra.utils.instantiate(
-                self.cfg.encoder.enc_dist, loc=mu[:,self.s_dim:], scale=logvar[:,self.s_dim:].exp().pow(0.5)
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,self.s_dim:], scale=logvar[:,self.s_dim:].exp().pow(0.5)
                 )
                 qcs_xs.append(qc_x)
 
@@ -89,15 +89,15 @@ class mmJSD(BaseModelVAE):
             moe_mu_c, moe_logvar_c = MixtureOfExperts()(mu_c, logvar_c)
        
             poe_mu_c, poe_logvar_c = alphaProductOfExperts()(mu_c, logvar_c)
-            qc_x = hydra.utils.instantiate(
-                self.cfg.encoder.enc_dist, loc=poe_mu_c, scale=poe_logvar_c.exp().pow(0.5)
+            qc_x = hydra.utils.instantiate( #TODO: okay to use default here?
+            self.cfg.encoder.default.enc_dist, loc=poe_mu_c, scale=poe_logvar_c.exp().pow(0.5)
             )
             qscs_xs = []
             for i in range(self.n_views):       
                 mu_sc = torch.cat((mu_s[i], moe_mu_c), 1)
                 logvar_sc = torch.cat((logvar_s[i], moe_logvar_c), 1)
-                qsc_x = hydra.utils.instantiate(
-                    self.cfg.encoder.enc_dist, loc=mu_sc, scale=logvar_sc.exp().pow(0.5)
+                qsc_x = hydra.utils.instantiate( #TODO: okay to use default here?
+                self.cfg.encoder.default.enc_dist, loc=mu_sc, scale=logvar_sc.exp().pow(0.5)
                 )
                 qscs_xs.append(qsc_x)
 
@@ -113,7 +113,7 @@ class mmJSD(BaseModelVAE):
             mu.append(mu_) 
             logvar.append(logvar_) 
             qz_x = hydra.utils.instantiate(
-            self.cfg.encoder.enc_dist, loc=mu_, scale=logvar_.exp().pow(0.5)
+                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_, scale=logvar_.exp().pow(0.5)
             )
             qzs_xs.append(qz_x)
 
@@ -122,13 +122,13 @@ class mmJSD(BaseModelVAE):
 
         moe_mu, moe_logvar = MixtureOfExperts()(mu, logvar)
 
-        qz_xs = hydra.utils.instantiate(
-            self.cfg.encoder.enc_dist, loc=moe_mu, scale=moe_logvar.exp().pow(0.5)
+        qz_xs =  hydra.utils.instantiate( #TODO: okay to use default here?
+                self.cfg.encoder.default.enc_dist, loc=moe_mu, scale=moe_logvar.exp().pow(0.5)
             )
         if self._training:
             poe_mu, poe_logvar = ProductOfExperts()(mu, logvar)
-            qz_x = hydra.utils.instantiate(
-            self.cfg.encoder.enc_dist, loc=poe_mu, scale=poe_logvar.exp().pow(0.5)
+            qz_x = hydra.utils.instantiate( #TODO: okay to use default here?
+                self.cfg.encoder.default.enc_dist, loc=poe_mu, scale=poe_logvar.exp().pow(0.5)
             )
             return [[qz_xs], qzs_xs, [qz_x]]
 
@@ -196,7 +196,7 @@ class mmJSD(BaseModelVAE):
         """
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[0][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0) #first index is latent, second index is view 
+            ll += px_zs[0][i].log_likelihood(x[i]).mean(0) .sum()#first index is latent, second index is view 
         return ll
 
     def calc_jsd(self, qcs_xs, qc_x):

@@ -14,11 +14,11 @@ class mmVAE(BaseModelVAE):
     Args:
         cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
             model.K (int): Number of samples to take from encoding distribution.
-            encoder._target_ (multiae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
-            encoder.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
-            decoder._target_ (multiae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
-            decoder.init_logvar(int, float): Initial value for log variance of decoder.
-            decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
+            encoder.default._target_ (multiae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
+            encoder.default.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
+            decoder.default._target_ (multiae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
+            decoder.default.init_logvar (int, float): Initial value for log variance of decoder.
+            decoder.default.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
             
         input_dim (list): Dimensionality of the input data.
         z_dim (int): Number of latent dimensions. 

@@ -11,11 +11,11 @@ class DVCCA(BaseModelVAE):
             model.private (bool): Whether to include private view-specific latent dimensions.
             model.sparse (bool): Whether to enforce sparsity of the encoding distribution.
             model.threshold (float): Dropout threshold applied to the latent dimensions. Default is 0.
-            encoder._target_ (multiae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
-            encoder.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
-            decoder._target_ (multiae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
-            decoder.init_logvar(int, float): Initial value for log variance of decoder.
-            decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
+            encoder.default._target_ (multiae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
+            encoder.default.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
+            decoder.default._target_ (multiae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
+            decoder.default.init_logvar(int, float): Initial value for log variance of decoder.
+            decoder.default.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
         input_dim (list): Dimensionality of the input data.
         z_dim (int): Number of latent dimensions.
 
@@ -132,7 +132,7 @@ class DVCCA(BaseModelVAE):
         """
         mu, logvar = self.encoders[0](x[0])
         qz_x = hydra.utils.instantiate(
-            self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
+                    eval(f"self.cfg.encoder.enc0.enc_dist"), loc=mu, scale=logvar.exp().pow(0.5)
         )
         if self.private:
             qz_xs = []
@@ -140,7 +140,7 @@ class DVCCA(BaseModelVAE):
             for i in range(self.n_views):
                 mu_p, logvar_p = self.private_encoders[i](x[i])
                 qh_x = hydra.utils.instantiate(
-                    self.cfg.encoder.enc_dist, loc=mu_p, scale=logvar_p.exp().pow(0.5)
+                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_p, scale=logvar_p.exp().pow(0.5)
                 )
                 qh_xs.append(qh_x)
 
