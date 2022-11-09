@@ -1,0 +1,20 @@
+encoder:  # uses default mlp for all inputs
+  default:
+      _target_: multiae.architectures.mlp.Encoder
+
+      hidden_layer_dim: [10, 5]
+      bias: True
+      non_linear: False
+
+      enc_dist:
+        _target_: multiae.base.distributions.Default
+
+  enc0:
+      _target_: multiae.architectures.mlp.Encoder
+
+      hidden_layer_dim: [12, 6]
+      bias: True
+      non_linear: False
+
+      enc_dist:
+        _target_: multiae.base.distributions.Default

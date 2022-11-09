@@ -1,4 +1,5 @@
 import torch
+
 from ..base.constants import MODEL_AAE
 from ..base.base_model import BaseModelAAE
 
@@ -14,7 +15,7 @@ class AAE(BaseModelAAE):
             discriminator.non_linear (bool): Whether to include a ReLU() function between layers.
             discriminator.dropout_threshold (float): Dropout threshold of layers.
         input_dim (list): Dimensionality of the input data.
-        z_dim (int): Number of latent dimensions. 
+        z_dim (int): Number of latent dimensions.
     """
     def __init__(
         self,
@@ -22,12 +23,12 @@ class AAE(BaseModelAAE):
         input_dim = None,
         z_dim = None
     ):
-        
+
         super().__init__(model_name=MODEL_AAE,
                 cfg=cfg,
                 input_dim=input_dim,
                 z_dim=z_dim)
-        
+
     def encode(self, x):
         r"""Forward pass through encoder networks.
 
@@ -54,9 +55,9 @@ class AAE(BaseModelAAE):
         """
         px_zs = []
         for i in range(self.n_views):
-            px_z = [self.decoders[j](z[i]) for j in range(self.n_views)] 
+            px_z = [self.decoders[j](z[i]) for j in range(self.n_views)]
             px_zs.append(px_z)
-        return px_zs    
+        return px_zs
 
     def disc(self, z):
         r"""Forward pass of "real" samples from gaussian prior and "fake" samples from encoders through the discriminator network.
@@ -135,7 +136,7 @@ class AAE(BaseModelAAE):
         ll = 0
         for i in range(self.n_views):
             for j in range(self.n_views):
-                ll += - px_zs[j][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0) #first index is latent, second index is view
+                ll += - px_zs[j][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view
         return ll / self.n_views / self.n_views
 
     def generator_loss(self, fwd_rtn):
@@ -152,7 +153,7 @@ class AAE(BaseModelAAE):
         for i in range(self.n_views):
             gen_loss += torch.mean(1 - torch.log(d_fake[i] + self.eps))
         return gen_loss/self.n_views
-    
+
     def discriminator_loss(self, fwd_rtn):
         r"""Calculate the discriminator loss.
 
@@ -165,7 +166,7 @@ class AAE(BaseModelAAE):
         d_real = fwd_rtn["d_real"]
         d_fake = fwd_rtn["d_fake"]
 
-        disc_loss = -torch.mean(torch.log(d_real + self.eps)) 
+        disc_loss = -torch.mean(torch.log(d_real + self.eps))
         for i in range(self.n_views):
             disc_loss += -torch.mean(1 - torch.log(d_fake[i] + self.eps))
         return disc_loss / (self.n_views + 1)

@@ -11,18 +11,20 @@ model:
   threshold: 0
 
 encoder:
-  _target_: multiae.architectures.mlp.VariationalEncoder
+  default:
+    _target_: multiae.architectures.mlp.VariationalEncoder
 
-  non_linear: False
-  
-  enc_dist:
-    _target_: multiae.base.distributions.Normal
+    non_linear: False
+
+    enc_dist:
+      _target_: multiae.base.distributions.Normal
 
 decoder:
-  _target_: multiae.architectures.mlp.VariationalDecoder
+  default:
+    _target_: multiae.architectures.mlp.VariationalDecoder
 
-  non_linear: False
-  init_logvar: -3
+    non_linear: False
+    init_logvar: -3
 
-  dec_dist:
-    _target_: multiae.base.distributions.Normal
+    dec_dist:
+      _target_: multiae.base.distributions.Normal

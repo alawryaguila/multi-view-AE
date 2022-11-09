@@ -6,7 +6,7 @@ from ..base.base_model import BaseModelVAE
 
 class JMVAE(BaseModelVAE):
     r"""
-    JMVAE-kl. 
+    JMVAE-kl.
 
     Args:
     cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
@@ -14,13 +14,13 @@ class JMVAE(BaseModelVAE):
         encoder.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
         decoder._target_ (multiae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
         decoder.init_logvar(int, float): Initial value for log variance of decoder.
-        decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.       
+        decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
     input_dim (list): Dimensionality of the input data.
-    z_dim (int): Number of latent dimensions. 
+    z_dim (int): Number of latent dimensions.
 
     References
     ----------
-    Suzuki, Masahiro & Nakayama, Kotaro & Matsuo, Yutaka. (2016). Joint Multimodal Learning with Deep Generative Models. 
+    Suzuki, Masahiro & Nakayama, Kotaro & Matsuo, Yutaka. (2016). Joint Multimodal Learning with Deep Generative Models.
     """
 
     def __init__(
@@ -38,19 +38,19 @@ class JMVAE(BaseModelVAE):
         r"""Set the joint and individual encoder networks.
         """
         self.encoders = torch.nn.ModuleList(
-              [hydra.utils.instantiate(
-                    self.cfg.encoder,
-                    input_dim=self.input_dim[0]+self.input_dim[1],   
+              [hydra.utils.instantiate( #TODO: okay to use default here?
+                    self.cfg.encoder.default,
+                    input_dim=self.input_dim[0]+self.input_dim[1],
                     z_dim=self.z_dim,
                     sparse=False,
                     log_alpha=None,
                     _recursive_=False,
                     _convert_="all"
                 )]
-                + 
+                +
             [
                 hydra.utils.instantiate(
-                    self.cfg.encoder,
+                    eval(f"self.cfg.encoder.enc{i}"),
                     input_dim=d,
                     z_dim=self.z_dim,
                     sparse=False,
@@ -58,10 +58,9 @@ class JMVAE(BaseModelVAE):
                     _recursive_=False,
                     _convert_="all"
                 )
-                for d in self.input_dim
+                for i, d in enumerate(self.input_dim)
             ]
         )
-
 
     def encode(self, x):
         r"""Forward pass through joint encoder network. 
@@ -73,8 +72,8 @@ class JMVAE(BaseModelVAE):
             (list): Single element list containing joint encoding distribution, qz_xy.
         """
         mu, logvar = self.encoders[0](torch.cat((x[0], x[1]),dim=1))
-        qz_xy = hydra.utils.instantiate(
-            self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
+        qz_xy = hydra.utils.instantiate(    #TODO: okay to use default here?
+            self.cfg.encoder.default.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
         )
         return [qz_xy]
 
@@ -89,12 +88,12 @@ class JMVAE(BaseModelVAE):
             qz_y: Encoding distribution for modality Y.
         """
         mu, logvar = self.encoders[1](x[0])
-        qz_x = hydra.utils.instantiate(
-            self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
+        qz_x = hydra.utils.instantiate(     #TODO: correct to use enc0?
+            self.cfg.encoder.enc0.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
         )
         mu, logvar = self.encoders[2](x[1])
-        qz_y = hydra.utils.instantiate(
-            self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
+        qz_y = hydra.utils.instantiate(     #TODO: correct to use enc1?
+            self.cfg.encoder.enc1.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
         )
         return qz_x, qz_y
 
@@ -127,7 +126,7 @@ class JMVAE(BaseModelVAE):
         px_z, py_z = self.decode(qz_xy)[0]
         fwd_rtn = {"px_z": px_z, "py_z": py_z, "qz_x": qz_x, "qz_y": qz_y, "qz_xy": qz_xy}
         return fwd_rtn
-        
+
     def calc_kl(self, qz_xy, qz_x, qz_y):
         r"""Calculate JMVAE-kl KL-divergence loss.
 
@@ -140,9 +139,10 @@ class JMVAE(BaseModelVAE):
         Returns:
             (torch.Tensor): KL-divergence loss.
         """
-        kl_prior = qz_xy[0].kl_divergence(self.prior).sum(1, keepdims=True).mean(0)
-        kl_qz_x = qz_xy[0].kl_divergence(qz_x).sum(1, keepdims=True).mean(0)
-        kl_qz_y = qz_xy[0].kl_divergence(qz_y).sum(1, keepdims=True).mean(0)
+
+        kl_prior = qz_xy[0].kl_divergence(self.prior).mean(0).sum()
+        kl_qz_x = qz_xy[0].kl_divergence(qz_x).mean(0).sum()
+        kl_qz_y = qz_xy[0].kl_divergence(qz_y).mean(0).sum()
 
         return kl_prior + kl_qz_x + kl_qz_y
 
@@ -158,7 +158,7 @@ class JMVAE(BaseModelVAE):
         """
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0)  
+            ll += px_zs[i].log_likelihood(x[i]).mean(0).sum()
         return ll
 
     def loss_function(self, x, fwd_rtn):
@@ -179,7 +179,7 @@ class JMVAE(BaseModelVAE):
         kls = self.calc_kl(qz_xy, qz_x, qz_y)
         ll = self.calc_ll(x, [px_z, py_z])
 
-        total = kls - ll 
+        total = kls - ll
 
         losses = {"loss": total, "kls": kls, "ll": ll}
         return losses

@@ -4,7 +4,7 @@ import torch
 import importlib
 
 from multiae import *
-from os.path import abspath, dirname, join 
+from os.path import abspath, dirname, join
 from torchvision import datasets, transforms
 
 def print_results(key, res, idx=0):
@@ -95,6 +95,7 @@ def test_userconfig():
             "./user_config/sparse.yaml" : SPARSE_MODELS,
             "./user_config/multivariatenormal.yaml": VARIATIONAL_MODELS,
             "./user_config/multivariatenormal.yaml": SPARSE_MODELS,
+
             }
 
     module = importlib.import_module("multiae")
@@ -102,11 +103,12 @@ def test_userconfig():
     test_twoviews = [test_1, test_2]
     train_threeviews = [train_1, train_2, train_3]
     test_threeviews = [test_1, test_2, test_3]
+    input_dim = [20, 10, 5]
 
     for cfg, test_models in tests.items():
         for m in test_models:
             class_ = getattr(module, m)
-            if m in [MODEL_JMVAE]:
+            if m in [MODEL_JMVAE, MODEL_DVCCA]:
                 train = train_twoviews
                 test = test_twoviews
                 model = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=[20, 10])
@@ -199,8 +201,65 @@ def test_validation():
                 exit()
         print()
 
+def test_cnn():
+    train_n = 200
+    test_n = 50
+
+    module = importlib.import_module("multiae")
+
+    tests = {
+            "" : [[10, 10], MODELS],
+            "./user_config/mlp.yaml" : [[10, 10], [MODEL_AE] + ADVERSARIAL_MODELS],
+            "./user_config/cnn.yaml" : [[(1, 32, 32), (1, 32,32)], [MODEL_AE] + ADVERSARIAL_MODELS],
+            "./user_config/cnn_var.yaml" : [[(1, 32, 32), (1, 32,32)], [
+                        MODEL_MCVAE,
+                        MODEL_MVAE,
+                        # MODEL_JMVAE, # does not support cnn
+                        MODEL_MEMVAE,
+                        # MODEL_MMVAE,  # currently does not support cnn
+                        MODEL_MVTCAE,
+                        MODEL_DVCCA,
+                        MODEL_MOPOEVAE
+                    ]]
+            }
+
+    module = importlib.import_module("multiae")
+    for cfg, [dim, models] in tests.items():
+        train_data = []
+        test_data = []
+        for d in dim:
+            if isinstance(d, int):
+                train_data.append(np.random.rand(train_n, d))
+                test_data.append(np.random.rand(test_n, d))
+            else:
+                train_data.append(np.random.rand(train_n, *d))
+                test_data.append(np.random.rand(test_n, *d))
+
+        for m in models:
+            class_ = getattr(module, m)
+            if len(cfg) != 0:
+                model1 = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=dim)
+            else:
+                model1 = class_(input_dim=dim)
+
+            model1.fit(*train_data)
+            model1.fit(*train_data, max_epochs=5, batch_size=10)
+
+            print("RESULTS: ", m)
+            latent = model1.predict_latents(*test_data)
+            print_results("latent", latent)
+            recon = model1.predict_reconstruction(*test_data)
+            print_results("recon", recon)
+
+            latent = model1.predict_latents(*test_data, batch_size=10)
+            print_results("latent", latent)
+            recon = model1.predict_reconstruction(*test_data, batch_size=5)
+            print_results("recon", recon)
+
+
 if __name__ == "__main__":
     test_models()
     test_userconfig()
     test_mnist()
     test_validation()
+    test_cnn()

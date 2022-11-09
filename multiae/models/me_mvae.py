@@ -69,8 +69,8 @@ class me_mVAE(BaseModelVAE):
         mu = torch.stack(mu)
         logvar = torch.stack(logvar)
         mu_out, logvar_out = self.join_z(mu, logvar)
-        qz_x = hydra.utils.instantiate(
-            self.cfg.encoder.enc_dist, loc=mu_out, scale=logvar_out.exp().pow(0.5)
+        qz_x = hydra.utils.instantiate( #TODO: okay to use default here?
+            self.cfg.encoder.default.enc_dist, loc=mu_out, scale=logvar_out.exp().pow(0.5)
         )
         return [qz_x]
 
@@ -86,8 +86,8 @@ class me_mVAE(BaseModelVAE):
         qz_xs = []
         for i in range(self.n_views):
             mu_, logvar_ = self.encoders[i](x[i])
-            qz_x = hydra.utils.instantiate(
-                self.cfg.encoder.enc_dist, loc=mu_, scale=logvar_.exp().pow(0.5)
+            qz_x = hydra.utils.instantiate( #TODO: okay to use default here?
+                self.cfg.encoder.default.enc_dist, loc=mu_, scale=logvar_.exp().pow(0.5)
             )
             qz_xs.append(qz_x)
         return qz_xs
@@ -137,7 +137,7 @@ class me_mVAE(BaseModelVAE):
         px_zss = self.decode_separate(qz_xs)
         fwd_rtn = {"px_zs": px_zs, "px_zss": px_zss, "qz_x": qz_x, "qz_xs": qz_xs}
         return fwd_rtn
-        
+
     def calc_kl(self, qz_xs):
         r"""Calculate KL-divergence loss.
 
@@ -150,9 +150,9 @@ class me_mVAE(BaseModelVAE):
         kl = 0
         for i in range(len(qz_xs)):
             if self.sparse:
-                kl += qz_xs[i].sparse_kl_divergence().sum(1, keepdims=True).mean(0)
+                kl += qz_xs[i].sparse_kl_divergence().mean(0).sum()
             else:
-                kl += qz_xs[i].kl_divergence(self.prior).sum(1, keepdims=True).mean(0)
+                kl += qz_xs[i].kl_divergence(self.prior).mean(0).sum()
         return self.beta * kl
 
     def calc_ll(self, x, px_zs):
@@ -167,7 +167,7 @@ class me_mVAE(BaseModelVAE):
         """
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[0][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0) #first index is latent, second index is view 
+            ll += px_zs[0][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view
         return ll
 
     def loss_function(self, x, fwd_rtn):

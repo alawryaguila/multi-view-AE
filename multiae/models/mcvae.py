@@ -7,7 +7,7 @@ from ..base.distributions import Normal
 
 class mcVAE(BaseModelVAE):
     r"""
-    Multi-Channel Variational Autoencoder and Sparse Multi-Channel Variational Autoencoder. 
+    Multi-Channel Variational Autoencoder and Sparse Multi-Channel Variational Autoencoder.
 
     Code is based on: https://github.com/ggbioing/mcvae
 
@@ -21,13 +21,13 @@ class mcVAE(BaseModelVAE):
             decoder._target_ (multiae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
             decoder.init_logvar(int, float): Initial value for log variance of decoder.
             decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
-            
+
         input_dim (list): Dimensionality of the input data.
-        z_dim (int): Number of latent dimensions. 
-    
+        z_dim (int): Number of latent dimensions.
+
     References
     ----------
-    Antelmi, Luigi & Ayache, Nicholas & Robert, Philippe & Lorenzi, Marco. (2019). Sparse Multi-Channel Variational Autoencoder for the Joint Analysis of Heterogeneous Data. 
+    Antelmi, Luigi & Ayache, Nicholas & Robert, Philippe & Lorenzi, Marco. (2019). Sparse Multi-Channel Variational Autoencoder for the Joint Analysis of Heterogeneous Data.
     """
 
     def __init__(
@@ -54,7 +54,7 @@ class mcVAE(BaseModelVAE):
         for i in range(self.n_views):
             mu, logvar = self.encoders[i](x[i])
             qz_x = hydra.utils.instantiate(
-                self.cfg.encoder.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu, scale=logvar.exp().pow(0.5)
             )
             qz_xs.append(qz_x)
         return qz_xs
@@ -121,9 +121,9 @@ class mcVAE(BaseModelVAE):
         kl = 0
         for qz_x in qz_xs:
             if self.sparse:
-                kl += qz_x.sparse_kl_divergence().sum(1, keepdims=True).mean(0)
+                kl += qz_x.sparse_kl_divergence().mean(0).sum()
             else:
-                kl += qz_x.kl_divergence(self.prior).sum(1, keepdims=True).mean(0)
+                kl += qz_x.kl_divergence(self.prior).mean(0).sum()
         return self.beta * kl
 
     def calc_ll(self, x, px_zs):
@@ -139,5 +139,5 @@ class mcVAE(BaseModelVAE):
         ll = 0
         for i in range(self.n_views):
             for j in range(self.n_views):
-                ll += px_zs[j][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0) #first index is latent, second index is view   
+                ll += px_zs[j][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view
         return ll

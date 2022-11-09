@@ -67,8 +67,8 @@ class mVAE(BaseModelVAE):
         mu = torch.stack(mu)
         logvar = torch.stack(logvar)
         mu_out, logvar_out = self.join_z(mu, logvar)
-        qz_x = hydra.utils.instantiate(
-            self.cfg.encoder.enc_dist, loc=mu_out, scale=logvar_out.exp().pow(0.5)
+        qz_x = hydra.utils.instantiate( #TODO: okay to use default here?
+            self.cfg.encoder.default.enc_dist, loc=mu_out, scale=logvar_out.exp().pow(0.5)
         )
         return [qz_x]
 
@@ -110,9 +110,9 @@ class mVAE(BaseModelVAE):
             (torch.Tensor): KL-divergence loss.
         """
         if self.sparse:
-            kl = qz_x[0].sparse_kl_divergence().sum(1, keepdims=True).mean(0)
+            kl = qz_x[0].sparse_kl_divergence().mean(0).sum()
         else:
-            kl = qz_x[0].kl_divergence(self.prior).sum(1, keepdims=True).mean(0)
+            kl = qz_x[0].kl_divergence(self.prior).mean(0).sum()
         return self.beta * kl
 
     def calc_ll(self, x, px_zs):
@@ -127,7 +127,7 @@ class mVAE(BaseModelVAE):
         """
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[0][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0) #first index is latent, second index is view 
+            ll += px_zs[0][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view
         return ll
 
     def loss_function(self, x, fwd_rtn):

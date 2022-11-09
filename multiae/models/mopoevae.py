@@ -8,9 +8,9 @@ from ..base.representations import ProductOfExperts, MixtureOfExperts
 
 class MoPoEVAE(BaseModelVAE):
     r"""
-    Mixture-of-Product-of-Experts Variational Autoencoder.  
+    Mixture-of-Product-of-Experts Variational Autoencoder.
 
-    Code is based on: https://github.com/thomassutter/MoPoE 
+    Code is based on: https://github.com/thomassutter/MoPoE
 
     Args:
     cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
@@ -20,9 +20,9 @@ class MoPoEVAE(BaseModelVAE):
         decoder._target_ (multiae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
         decoder.init_logvar(int, float): Initial value for log variance of decoder.
         decoder.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
-        
+
     input_dim (list): Dimensionality of the input data.
-    z_dim (int): Number of latent dimensions. 
+    z_dim (int): Number of latent dimensions.
 
     References
     ----------
@@ -40,7 +40,7 @@ class MoPoEVAE(BaseModelVAE):
                         input_dim=input_dim,
                         z_dim=z_dim)
         self.subsets = self.set_subsets()
-    
+
     def encode(self, x):
         r"""Forward pass through encoder networks.
 
@@ -70,8 +70,8 @@ class MoPoEVAE(BaseModelVAE):
                 mu_s, logvar_s = ProductOfExperts()(mu_s, logvar_s)    
                 mu_out.append(mu_s)
                 logvar_out.append(logvar_s)
-                qz_x = hydra.utils.instantiate(
-                    self.cfg.encoder.enc_dist, loc=mu_s, scale=logvar_s.exp().pow(0.5)
+                qz_x = hydra.utils.instantiate( #TODO: okay to use default here?
+                    self.cfg.encoder.default.enc_dist, loc=mu_s, scale=logvar_s.exp().pow(0.5)
                 )
                 qz_xs.append(qz_x)
             mu_out = torch.stack(mu_out)
@@ -79,8 +79,8 @@ class MoPoEVAE(BaseModelVAE):
             
             moe_mu, moe_logvar = MixtureOfExperts()(mu_out, logvar_out)
             
-            qz_x = hydra.utils.instantiate(
-                self.cfg.encoder.enc_dist, loc=moe_mu, scale=moe_logvar.exp().pow(0.5)
+            qz_x = hydra.utils.instantiate( #TODO: okay to use default here?
+                self.cfg.encoder.default.enc_dist, loc=moe_mu, scale=moe_logvar.exp().pow(0.5)
                 )
             return [qz_xs, qz_x]
         else:
@@ -90,14 +90,14 @@ class MoPoEVAE(BaseModelVAE):
                 mu_s, logvar_s = ProductOfExperts()(mu_s, logvar_s)    
                 mu_out.append(mu_s)
                 logvar_out.append(logvar_s)
-            
+
             mu_out = torch.stack(mu_out)
             logvar_out = torch.stack(logvar_out)
 
             moe_mu, moe_logvar = MixtureOfExperts()(mu_out, logvar_out)
  
-            qz_x = hydra.utils.instantiate(
-                self.cfg.encoder.enc_dist, loc=moe_mu, scale=moe_logvar.exp().pow(0.5)
+            qz_x = hydra.utils.instantiate( #TODO: okay to use default here?
+                self.cfg.encoder.default.enc_dist, loc=moe_mu, scale=moe_logvar.exp().pow(0.5)
                 )
             return [qz_x]
 
@@ -163,8 +163,8 @@ class MoPoEVAE(BaseModelVAE):
         weight = 1/len(qz_xs)
         kl = 0
         for qz_x in qz_xs:
-            kl +=qz_x.kl_divergence(self.prior).sum(1, keepdims=True).mean(0)
-            
+            kl +=qz_x.kl_divergence(self.prior).mean(0).sum()
+
         return kl*weight
 
     def set_subsets(self):
@@ -177,7 +177,7 @@ class MoPoEVAE(BaseModelVAE):
         tmp = [list(combinations(xs, n+1)) for n in range(len(xs))]
         subset_list = [list(item) for sublist in tmp for item in sublist]
         return subset_list
-    
+
     def calc_ll(self, x, px_zs):
         r"""Calculate log-likelihood loss.
 
@@ -190,5 +190,5 @@ class MoPoEVAE(BaseModelVAE):
         """
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[0][i].log_likelihood(x[i]).sum(1, keepdims=True).mean(0) #first index is latent, second index is view 
+            ll += px_zs[0][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view
         return ll
