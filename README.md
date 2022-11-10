@@ -6,7 +6,6 @@ Documentation is available at https://multiae.readthedocs.io/en/latest/
 
 ### Compatibility
 The ``multiviewAE`` library is compatible, and has been tested, with the following Python versions:
-* 3.6
 * 3.7
 * 3.8
 * 3.9
