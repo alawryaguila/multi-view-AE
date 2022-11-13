@@ -7,7 +7,7 @@ import collections.abc
 import torch
 import pytorch_lightning as pl
 
-from os.path import join, isdir
+from os.path import join, isdir, exists
 from datetime import datetime
 from abc import ABC, abstractmethod
 from hydra import compose, initialize, initialize_config_dir
@@ -126,8 +126,7 @@ class BaseModelAE(ABC, pl.LightningModule):
         self.save_hyperparameters()
         self.create_folder(self.cfg.out_dir)
         self.save_config()
-
-
+        
     ################################            public methods
     def fit(self, *data, labels=None, max_epochs=None, batch_size=None):
 
@@ -170,14 +169,18 @@ class BaseModelAE(ABC, pl.LightningModule):
         if (self.cfg.trainer.resume_from_checkpoint is None) or \
             (not os.path.exists(self.cfg.trainer.resume_from_checkpoint)):
             self.cfg.trainer.resume_from_checkpoint = None
-        py_trainer = hydra.utils.instantiate(
-            self.cfg.trainer, callbacks=callbacks, logger=logger
-        )
-
+            
+        if exists(join(self.cfg.out_dir, "last.ckpt")):
+            py_trainer = hydra.utils.instantiate(
+                self.cfg.trainer, callbacks=callbacks, logger=logger, resume_from_checkpoint = join(self.cfg.out_dir, "last.ckpt")
+            )
+        else:
+            py_trainer = hydra.utils.instantiate(
+                self.cfg.trainer, callbacks=callbacks, logger=logger,
+            )
         datamodule = hydra.utils.instantiate(
            self.cfg.datamodule, data=data, labels=labels, _convert_="all"
         )
-
         py_trainer.fit(self, datamodule)
 
     def predict_latents(self, *data, batch_size=None):
@@ -315,10 +318,11 @@ class BaseModelAE(ABC, pl.LightningModule):
                 if dec_key not in orig.decoder.keys():
                     if update is not None and "decoder" in update.keys() and \
                         dec_key in update.decoder.keys(): # use user-defined
-                        orig.decoder[dec_key] = updaate.decoder[dec_key].copy()
+                        orig.decoder[dec_key] = update.decoder[dec_key].copy()
                     else: # use default
                         orig.decoder[dec_key] = orig.decoder.default.copy()
-
+        if update['out_dir'] is not None:
+            orig.out_dir = update.out_dir
         return orig
 
     def __checkconfig(self, cfg):
