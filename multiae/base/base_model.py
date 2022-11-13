@@ -7,7 +7,7 @@ import collections.abc
 import torch
 import pytorch_lightning as pl
 
-from os.path import join, isdir
+from os.path import join, isdir, exists
 from datetime import datetime
 from abc import ABC, abstractmethod
 from hydra import compose, initialize, initialize_config_dir
@@ -32,7 +32,6 @@ def update_dict(d, u, l):
 
 class BaseModelAE(ABC, pl.LightningModule):
     """Base class for autoencoder models.
-
     Args:
         model_name (str): Type of autoencoder model.
         cfg (str): Path to configuration file.
@@ -113,7 +112,7 @@ class BaseModelAE(ABC, pl.LightningModule):
         self.__dict__.update(self.cfg.model)
 
         print("MODEL: ", self.model_name)
-        self.print_config() 
+        self.print_config() #TODO: put this in debug mode logging
 
         if all(k in self.cfg.model for k in ["seed_everything", "seed"]):
             pl.seed_everything(self.cfg.model.seed, workers=True)
@@ -122,11 +121,11 @@ class BaseModelAE(ABC, pl.LightningModule):
         self._setdecoders()
         self._setprior()
 
+        # TODO: should this be in the end of instance init()?
         self.save_hyperparameters()
         self.create_folder(self.cfg.out_dir)
         self.save_config()
-
-
+        
     ################################            public methods
     def fit(self, *data, labels=None, max_epochs=None, batch_size=None):
 
@@ -169,14 +168,18 @@ class BaseModelAE(ABC, pl.LightningModule):
         if (self.cfg.trainer.resume_from_checkpoint is None) or \
             (not os.path.exists(self.cfg.trainer.resume_from_checkpoint)):
             self.cfg.trainer.resume_from_checkpoint = None
-        py_trainer = hydra.utils.instantiate(
-            self.cfg.trainer, callbacks=callbacks, logger=logger
-        )
-
+            
+        if exists(join(self.cfg.out_dir, "last.ckpt")):
+            py_trainer = hydra.utils.instantiate(
+                self.cfg.trainer, callbacks=callbacks, logger=logger, resume_from_checkpoint = join(self.cfg.out_dir, "last.ckpt")
+            )
+        else:
+            py_trainer = hydra.utils.instantiate(
+                self.cfg.trainer, callbacks=callbacks, logger=logger,
+            )
         datamodule = hydra.utils.instantiate(
            self.cfg.datamodule, data=data, labels=labels, _convert_="all"
         )
-
         py_trainer.fit(self, datamodule)
 
     def predict_latents(self, *data, batch_size=None):
@@ -314,10 +317,11 @@ class BaseModelAE(ABC, pl.LightningModule):
                 if dec_key not in orig.decoder.keys():
                     if update is not None and "decoder" in update.keys() and \
                         dec_key in update.decoder.keys(): # use user-defined
-                        orig.decoder[dec_key] = updaate.decoder[dec_key].copy()
+                        orig.decoder[dec_key] = update.decoder[dec_key].copy()
                     else: # use default
                         orig.decoder[dec_key] = orig.decoder.default.copy()
-
+        if update['out_dir'] is not None:
+            orig.out_dir = update.out_dir
         return orig
 
     def __checkconfig(self, cfg):
@@ -383,7 +387,7 @@ class BaseModelAE(ABC, pl.LightningModule):
 
         # should be always false for non-sparse models
         if self.model_name not in SPARSE_MODELS:
-            cfg.model.sparse = False   
+            cfg.model.sparse = False    # TODO: log warning if changing overriding value
 
         return cfg
 
@@ -411,7 +415,7 @@ class BaseModelAE(ABC, pl.LightningModule):
             if not (data_dim == self.input_dim[i]):
                 raise InputError("modality's shape must be equal to corresponding input_dim's shape")
 
-        dataset = MVDataset(data, labels=None) 
+        dataset = MVDataset(data, labels=None) #TODO: make flexible
 
         if batch_size is None:
             batch_size = data[0].shape[0]
@@ -452,7 +456,6 @@ class BaseModelAE(ABC, pl.LightningModule):
 ################################################################################
 class BaseModelVAE(BaseModelAE):
     """Base class for variational autoencoder models. Inherits from BaseModelAE.
-
     Args:
         model_name (str): Type of autoencoder model.
         cfg (str): Path to configuration file.
@@ -530,7 +533,6 @@ class BaseModelVAE(BaseModelAE):
 ################################################################################
 class BaseModelAAE(BaseModelAE):
     """Base class for adversarial autoencoder models. Inherits from BaseModelAE.
-
     Args:
         model_name (str): Type of autoencoder model.
         cfg (str): Path to configuration file.
@@ -705,6 +707,7 @@ class BaseModelAAE(BaseModelAE):
         return loss
 
 ################################################################################
+# TODO: use this
 class BaseEncoder(pl.LightningModule):
 
     def __init__(self, **kwargs):
