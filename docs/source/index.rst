@@ -1,7 +1,7 @@
-Welcome to MultiAE's documentation!
+Welcome to MultiviewAE's documentation!
 ===================================
 
-**MultiAE** is a Python library for multi-view autoencoder models. Please see the user guides below.
+**MultiviewAE** is a Python library for multi-view autoencoder models. Please see the user guides below.
 
 --------
 
@@ -10,7 +10,7 @@ Documentation
 
 .. toctree::
    :maxdepth: 1
-   :caption: Using multiAE
+   :caption: Using multiviewAE
    
    documentation/implemented_models
    documentation/user_guide

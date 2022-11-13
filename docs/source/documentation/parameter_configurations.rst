@@ -62,53 +62,235 @@ The parameters for the PyTorch data module class to access and process the data.
 
 When the batch size is set to ``null``  the full batch is used for training at each epoch. 
 
-Encoder
-^^^^^
+MLP Encoder
+^^^^^^^^^^^
 
-The encoder function parameters.
+The encoder function parameters. The default encoder function is a MLP encoder network:
 
 .. code-block:: python
 
-        encoder:
-          _target_: multiae.architectures.mlp.Encoder
+        encoder:  
+          default:
+              _target_: multiae.architectures.mlp.Encoder
 
-          hidden_layer_dim: []  
-          bias: True
-          non_linear: False
+              hidden_layer_dim: []
+              bias: True 
+              non_linear: False
 
-          enc_dist:
-            _target_: multiae.base.distributions.Default
- 
+              enc_dist:
+                _target_: multiae.base.distributions.Default
+
 The ``encoder._target_`` parameter specifies the encoder function class of which the in-built options include: ``multiae.architectures.mlp.Encoder`` and ``multiae.architectures.mlp.VariationalEncoder``.
 
 The ``encoder.enc_dist._target_`` parameter specifies the encoding distribution class of which the in-built options include: ``multiae.base.distributions.Default``, ``multiae.base.distributions.Normal`` and ``multiae.base.distributions.MultivariateNormal``. The ``multiae.base.distributions.Default`` class is used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
 
-Decoder
-^^^^^
+The user can specify separate parameters for the encoder network of each view. For example:
 
-The decoder function parameters.
+.. code-block:: python
+
+        encoder:  
+          enc0:
+              _target_: multiae.architectures.mlp.Encoder
+
+              hidden_layer_dim: [12, 6]
+              bias: True
+              non_linear: False
+
+              enc_dist:
+                _target_: multiae.base.distributions.Default
+          enc1:
+              _target_: multiae.architectures.mlp.Encoder
+
+              hidden_layer_dim: [50, 6]
+              bias: True
+              non_linear: True
+
+              enc_dist:
+                _target_: multiae.base.distributions.Default
+
+where ``enc0`` and ``enc1``provide the parameters for view 0 encoder and view 1 encoder respectively. If no view specific parameters are provided, the default network parameters are used.
+
+**NOTE** The ``default`` encoder parameters are used for joint encoding distributions.
+
+CNN Encoder
+^^^^^^^^^^^
+
+Alternatively, the user can specify a CNN architecture by setting the ``encoder._target_`` parameter:
+
+.. code-block:: python
+
+        encoder:
+          default:
+              _target_: multiae.architectures.cnn.Encoder
+
+              layer0:
+                layer: Conv2d
+                in_channels: 1
+                out_channels: 8
+                kernel_size: 4
+                stride: 2
+                padding: 1
+
+              layer1:
+                layer: Conv2d
+                in_channels: 8
+                out_channels: 16
+                kernel_size: 4
+                stride: 2
+                padding: 1
+
+              layer2:
+                layer: Conv2d
+                in_channels: 16
+                out_channels: 32
+                kernel_size: 4
+                stride: 2
+                padding: 1
+
+              layer3:
+                layer: Conv2d
+                in_channels: 32
+                out_channels: 64
+                kernel_size: 4
+                stride: 2
+                padding: 0
+
+              layer5:
+                layer: AdaptiveAvgPool2d
+                output_size: 1
+
+              layer6:
+                layer: Flatten
+                start_dim: 1
+
+              layer7:
+                layer: Linear
+                in_features: 64
+                out_features: 128
+
+              bias: True
+              non_linear: False
+
+              enc_dist:
+                _target_: multiae.base.distributions.Default
+
+In-built options include: ``multiae.architectures.cnn.Encoder`` and ``multiae.architectures.cnn.VariationalEncoder``. As with the MLP architectures, the user can chose to set view specific parameters.
+Each layer can be ``torch.nn`` ``Conv2d`` layers or any suitable 2D pooling or padding layers.
+
+**NOTE** The user is responsible for ensuring that the CNN encoder and decoder network architectures are compatible and create an output tensor of the correct dimensionality.
+
+MLP Decoder
+^^^^^^^^^^^
+
+The decoder function parameters. The default decoder function is a MLP decoder network:
 
 .. code-block:: python
 
         decoder:
-          _target_: multiae.architectures.mlp.Decoder
+          default:
+              _target_: multiae.architectures.mlp.Decoder
 
-          hidden_layer_dim: []
-          bias: True
-          non_linear: False
+              hidden_layer_dim: []
+              bias: True 
+              non_linear: False
 
-          dec_dist:
-            _target_: multiae.base.distributions.Default
+              dec_dist:
+                _target_: multiae.base.distributions.Default
  
 The ``decoder._target_`` parameter specifies the encoder function class of which the in-built options include: ``multiae.architectures.mlp.Decoder`` and ``multiae.models.layers.VariationalDecoder``.
 
 The ``decoder.dec_dist._target_`` parameter specifies the decoding distribution class of which the in-built options include: ``multiae.base.distributions.Default``, ``multiae.base.distributions.Normal``, ``multiae.base.distributions.MultivariateNormal`` and ``multiae.base.distributions.Bernoulli``. The ``multiae.base.distributions.Default`` class is used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
 
-**NOTE:** The order of the layer dimensions in ``hidden_layer_dim`` is flipped by the model. Such that ``hidden_layer_dim=[10, 5]`` indicates a decoder network architecture:
+The user can specify separate parameters for the encoder network of each view. For example:
 
 .. code-block:: python
 
-        z_dim --> 5 --> 10 --> input_dim
+        decoder:  
+          dec0:
+              _target_: multiae.architectures.mlp.Encoder
+
+              hidden_layer_dim: [6, 12]
+              bias: True
+              non_linear: False
+
+              dec_dist:
+                _target_: multiae.base.distributions.Default
+          dec1:
+              _target_: multiae.architectures.mlp.Encoder
+
+              hidden_layer_dim: [6, 50]
+              bias: True
+              non_linear: True
+
+              dec_dist:
+                _target_: multiae.base.distributions.Default
+
+where ``enc0`` and ``enc1``provide the parameters for view 0 encoder and view 1 encoder respectively. If no view specific parameters are provided, the default network parameters are used.
+
+CNN Decoder
+^^^^^^^^^^^
+
+Alternatively, the user can specify a CNN architecture by setting the ``encoder._target_`` parameter:
+
+.. code-block:: python
+
+        decoder:
+          default:
+              _target_: multiae.architectures.cnn.Decoder
+
+              layer0: 
+                layer: Linear
+                out_features: 128
+
+              layer1:
+                layer: Linear
+                in_features: 128
+                out_features: 64
+
+              layer2:
+                layer: Unflatten
+                dim: 1
+                unflattened_size: [64, 1, 1]  
+
+              layer3:
+                layer: ConvTranspose2d
+                in_channels: 64
+                out_channels: 32
+                kernel_size: 4
+                stride: 2
+                padding: 0
+
+              layer4:
+                layer: ConvTranspose2d
+                in_channels: 32
+                out_channels: 16
+                kernel_size: 4
+                stride: 2
+                padding: 1
+
+              layer5:
+                layer: ConvTranspose2d
+                in_channels: 16
+                out_channels: 8
+                kernel_size: 4
+                stride: 2
+                padding: 1
+
+              layer6:
+                layer: ConvTranspose2d
+                in_channels: 8
+                out_channels: 1
+                kernel_size: 4
+                stride: 2
+                padding: 1
+
+              bias: True
+              non_linear: False
+
+              dec_dist:
+                _target_: multiae.base.distributions.Default
+
+**NOTE** The user is responsible for ensuring that the CNN encoder and decoder network architectures are compatible and create an output tensor of the correct dimensionality.
 
 Prior
 ^^^^^
@@ -181,6 +363,7 @@ The parameters of the logger file.
           save_dir: ${out_dir}/logs
 
 In the ``multiviewAE`` we use TensorBoard for logging. However, the user is free to use whichever logging framework their prefer.
+**NOTE** other logging frameworks have not been tested. 
 
 Changing parameter settings
 --------------------------------

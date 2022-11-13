@@ -1,5 +1,5 @@
-Limitations
-===============
+Limitations and user implementations
+====================================
 
 There are a number of limitations and allowed parameter combinations within the ``multiviewAE`` framework. These restrictions are set in the ``multiae/base/validation.py`` file and will need to be updated should the user wish to add their own implementations.
 Allowed parameter types are also set in the ``multiae/base/validation.py`` file.
@@ -25,15 +25,22 @@ Encoder and prior distribution combinations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Currently, the encoder distribution must be the same as the prior distribution.
 
+Models which support CNN architectures
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Many of the autoencoder models in the ``multiviewAE`` support CNN encoder and decoder network architectures. The  ``JMVAE`` and  ``MMVAE`` models do not currently support these architectures. 
+This will be addressed in further work.   
 
 Adding user designed classes
 ----------------------------
-For the user to use their implemented class, they must have access to the source code and the class must be added to the supported classes in the 
+With the exception of network architectures, for the user to use their implemented class, they must have access to the source code and the class must be added to the supported classes in the 
 ``multiae/base/validation.py`` file.
 
 User designed network architectures
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-User designed networks must except and return the same parameters as the respective ``multiviewAE`` counterpart. 
+User designed MLP network classes must be implemented in a ``mlp.py`` file and named one of; ``Encoder``, ``VariationalEncoder``, ``Decoder``, and ``VariationalDecoder`` depending on the network type.
+CNN network classes must be implemented in a ``cnn.py`` file and named one of; ``Encoder``, ``VariationalEncoder``, and ``Decoder`` depending on the network type.
+
+Networks must except and return the same parameters as the respective ``multiviewAE`` counterpart. 
 For example, variational encoder networks must return ``mu`` and ``logvar`` in the form of a ``Torch.tensor``. 
 Please see the :ref:`Architectures` section for information on input and output parameters of encoder and decoder networks. 
 

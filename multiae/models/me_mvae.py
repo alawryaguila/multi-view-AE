@@ -69,7 +69,7 @@ class me_mVAE(BaseModelVAE):
         mu = torch.stack(mu)
         logvar = torch.stack(logvar)
         mu_out, logvar_out = self.join_z(mu, logvar)
-        qz_x = hydra.utils.instantiate( #TODO: okay to use default here?
+        qz_x = hydra.utils.instantiate( 
             self.cfg.encoder.default.enc_dist, loc=mu_out, scale=logvar_out.exp().pow(0.5)
         )
         return [qz_x]
@@ -86,8 +86,8 @@ class me_mVAE(BaseModelVAE):
         qz_xs = []
         for i in range(self.n_views):
             mu_, logvar_ = self.encoders[i](x[i])
-            qz_x = hydra.utils.instantiate( #TODO: okay to use default here?
-                self.cfg.encoder.default.enc_dist, loc=mu_, scale=logvar_.exp().pow(0.5)
+            qz_x = hydra.utils.instantiate( 
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_, scale=logvar_.exp().pow(0.5)
             )
             qz_xs.append(qz_x)
         return qz_xs

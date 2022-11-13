@@ -16,7 +16,7 @@ hydra:
 
 model:
   use_GPU: False #whether to use a GPU if available
-  save_model: True #whether to save the model
+  save_model: False #whether to save the model
 
   seed_everything: True
   seed: 42

@@ -67,7 +67,7 @@ class mVAE(BaseModelVAE):
         mu = torch.stack(mu)
         logvar = torch.stack(logvar)
         mu_out, logvar_out = self.join_z(mu, logvar)
-        qz_x = hydra.utils.instantiate( #TODO: okay to use default here?
+        qz_x = hydra.utils.instantiate(
             self.cfg.encoder.default.enc_dist, loc=mu_out, scale=logvar_out.exp().pow(0.5)
         )
         return [qz_x]

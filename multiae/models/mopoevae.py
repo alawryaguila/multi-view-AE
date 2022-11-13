@@ -70,8 +70,8 @@ class MoPoEVAE(BaseModelVAE):
                 mu_s, logvar_s = ProductOfExperts()(mu_s, logvar_s)    
                 mu_out.append(mu_s)
                 logvar_out.append(logvar_s)
-                qz_x = hydra.utils.instantiate( #TODO: okay to use default here?
-                    self.cfg.encoder.default.enc_dist, loc=mu_s, scale=logvar_s.exp().pow(0.5)
+                qz_x = hydra.utils.instantiate( 
+                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_s, scale=logvar_s.exp().pow(0.5)
                 )
                 qz_xs.append(qz_x)
             mu_out = torch.stack(mu_out)
@@ -79,7 +79,7 @@ class MoPoEVAE(BaseModelVAE):
             
             moe_mu, moe_logvar = MixtureOfExperts()(mu_out, logvar_out)
             
-            qz_x = hydra.utils.instantiate( #TODO: okay to use default here?
+            qz_x = hydra.utils.instantiate( 
                 self.cfg.encoder.default.enc_dist, loc=moe_mu, scale=moe_logvar.exp().pow(0.5)
                 )
             return [qz_xs, qz_x]
@@ -96,7 +96,7 @@ class MoPoEVAE(BaseModelVAE):
 
             moe_mu, moe_logvar = MixtureOfExperts()(mu_out, logvar_out)
  
-            qz_x = hydra.utils.instantiate( #TODO: okay to use default here?
+            qz_x = hydra.utils.instantiate( 
                 self.cfg.encoder.default.enc_dist, loc=moe_mu, scale=moe_logvar.exp().pow(0.5)
                 )
             return [qz_x]

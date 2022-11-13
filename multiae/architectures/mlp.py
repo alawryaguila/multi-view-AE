@@ -148,7 +148,7 @@ class Decoder(nn.Module):
         self.bias = bias
         self.dec_dist = dec_dist
         self.non_linear = non_linear
-        self.layer_sizes = [z_dim] + self.hidden_layer_dim[::-1] + [input_dim]
+        self.layer_sizes = [z_dim] + self.hidden_layer_dim + [input_dim]
         lin_layers = [
             nn.Linear(dim0, dim1, bias=self.bias)
             for dim0, dim1 in zip(

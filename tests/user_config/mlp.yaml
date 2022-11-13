@@ -12,7 +12,7 @@ encoder:  # uses default mlp for all inputs
   enc0:
       _target_: multiae.architectures.mlp.Encoder
 
-      hidden_layer_dim: [12, 6]
+      hidden_layer_dim: [6, 12]
       bias: True
       non_linear: False
 

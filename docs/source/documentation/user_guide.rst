@@ -11,18 +11,13 @@ Initialise model
    from multiae import mVAE, mcVAE
 
    MNIST_1 = datasets.MNIST('./data/MNIST', train=True, download=True, transform=transforms.Compose([
-        transforms.ToTensor(),
-    ]))
-
-   MNIST_2 = datasets.MNIST('./data/MNIST', train=True, download=True, transform=transforms.Compose([
-        transforms.ToTensor(),
-    ]))
+          transforms.ToTensor(),
+   ]))
 
 
-   data_1 = MNIST_1.train_data.reshape(-1,784).float()/255.
-   data_2 = MNIST_2.train_data.float()
-   data_2 = torch.rot90(data_2, 1, [1, 2])
-   data_2 = data_2.reshape(-1,784)/255.
+
+   data_1 = MNIST_1.train_data[:, :, :14].reshape(-1,392).float()/255.
+   data_2 = MNIST_1.train_data[:, :, 14:].reshape(-1,392).float()/255.
 
    mvae = mVAE(cfg='./config_folder/test_config.yaml',
         input_dim=[784, 784],
@@ -54,14 +49,8 @@ We can use a trained model to predict the latent dimensions or reconstructions. 
    MNIST_1 = datasets.MNIST('./data/MNIST', train=False, download=True, transform=transforms.Compose([
         transforms.ToTensor()]))
 
-   MNIST_2 = datasets.MNIST('./data/MNIST', train=False, download=True, transform=transforms.Compose([
-        transforms.ToTensor()]))
-
-   data_test_1 = MNIST_1.test_data.float()
-   data_test_1 = data_test_1.reshape(-1, 784)/255.
-   data_test_2 = MNIST_2.test_data.float()
-   data_test_2 = torch.rot90(data_test_2, 1, [1, 2])
-   data_test_2 = data_test_2.reshape(-1,784)/255.
+   data_test_1 = MNIST_1.test_data[:, :, :14].reshape(-1,392).float()/255.
+   data_test_2 = MNIST_1.test_data[:, :, 14:].reshape(-1,392).float()/255.
 
    mvae_latent = mvae.predict_latent(data_test_1, data_test_2)
 

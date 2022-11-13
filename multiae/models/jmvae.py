@@ -38,7 +38,7 @@ class JMVAE(BaseModelVAE):
         r"""Set the joint and individual encoder networks.
         """
         self.encoders = torch.nn.ModuleList(
-              [hydra.utils.instantiate( #TODO: okay to use default here?
+              [hydra.utils.instantiate( 
                     self.cfg.encoder.default,
                     input_dim=self.input_dim[0]+self.input_dim[1],
                     z_dim=self.z_dim,
@@ -72,7 +72,7 @@ class JMVAE(BaseModelVAE):
             (list): Single element list containing joint encoding distribution, qz_xy.
         """
         mu, logvar = self.encoders[0](torch.cat((x[0], x[1]),dim=1))
-        qz_xy = hydra.utils.instantiate(    #TODO: okay to use default here?
+        qz_xy = hydra.utils.instantiate(  
             self.cfg.encoder.default.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
         )
         return [qz_xy]
@@ -88,11 +88,11 @@ class JMVAE(BaseModelVAE):
             qz_y: Encoding distribution for modality Y.
         """
         mu, logvar = self.encoders[1](x[0])
-        qz_x = hydra.utils.instantiate(     #TODO: correct to use enc0?
+        qz_x = hydra.utils.instantiate(    
             self.cfg.encoder.enc0.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
         )
         mu, logvar = self.encoders[2](x[1])
-        qz_y = hydra.utils.instantiate(     #TODO: correct to use enc1?
+        qz_y = hydra.utils.instantiate(   
             self.cfg.encoder.enc1.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
         )
         return qz_x, qz_y

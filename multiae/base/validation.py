@@ -1,28 +1,28 @@
 from schema import Schema, And, Or, Optional, SchemaError, Regex
 
 SUPPORTED_ENCODERS = [
-            "multiae.architectures.mlp.Encoder",
-            "multiae.architectures.mlp.VariationalEncoder",
-            "multiae.architectures.cnn.Encoder",
-            "multiae.architectures.cnn.VariationalEncoder"
+            "mlp.Encoder",
+            "mlp.VariationalEncoder",
+            "cnn.Encoder",
+            "cnn.VariationalEncoder"
         ]
 
 SUPPORTED_DECODERS = [
-            "multiae.architectures.mlp.Decoder",
-            "multiae.architectures.mlp.VariationalDecoder",
-            "multiae.architectures.cnn.Decoder"
+            "mlp.Decoder",
+            "mlp.VariationalDecoder",
+            "cnn.Decoder"
         ]
 
 SUPPORTED_DISCRIMINATORS = [
-            "multiae.architectures.mlp.Discriminator"
+            "mlp.Discriminator"
         ]
 
 SUPPORTED_DISTRIBUTIONS = [
-            "multiae.base.distributions.Default",
-            "multiae.base.distributions.Normal",
-            "multiae.base.distributions.MultivariateNormal",
-            "multiae.base.distributions.Bernoulli", 
-            "multiae.base.distributions.Laplace"
+            "distributions.Default",
+            "distributions.Normal",
+            "distributions.MultivariateNormal",
+            "distributions.Bernoulli",
+            "distributions.Laplace"
         ]
 
 SUPPORTED_JOIN = [
@@ -31,12 +31,12 @@ SUPPORTED_JOIN = [
         ]
 
 UNSUPPORTED_ENC_DIST = [
-            "multiae.base.distributions.Bernoulli"
+            "distributions.Bernoulli"
         ]
 
 UNSUPPORTED_PRIOR_DIST = [
-            "multiae.base.distributions.Default",
-            "multiae.base.distributions.Bernoulli"
+            "distributions.Default",
+            "distributions.Bernoulli"
         ]
 
 def return_or(params=[], msg="invalid"):
@@ -44,6 +44,11 @@ def return_or(params=[], msg="invalid"):
 
     p = ', '.join('"{0}"'.format(str(w)) for w in params)
     return f"Or({p}, error='{msg}')"
+
+def return_regexor(params=[], msg="invalid"):
+    assert(len(params) > 0)
+    p = '|'.join('{0}'.format(str(w)) for w in params)
+    return f"Regex(r'(.*?).({p})$', error='{msg}')"
 
 def list_sub(a, b):
     return list(set(a) - set(b))
@@ -74,7 +79,7 @@ config_schema = Schema({
     },
     "encoder": {
         "default": {
-            "_target_" : eval(return_or(params=SUPPORTED_ENCODERS,
+            "_target_" : eval(return_regexor(params=SUPPORTED_ENCODERS,
                             msg="encoder._target_: unsupported or invalid encoder")),
             Optional("hidden_layer_dim"): [And(int, lambda x: x > 0)],
             Optional(Regex(r'^layer\d$')) : {
@@ -84,12 +89,12 @@ config_schema = Schema({
             "bias": bool,
             "non_linear": bool,
             "enc_dist": {
-                    "_target_": eval(return_or(params=list_sub(SUPPORTED_DISTRIBUTIONS, UNSUPPORTED_ENC_DIST),
+                    "_target_": eval(return_regexor(params=list_sub(SUPPORTED_DISTRIBUTIONS, UNSUPPORTED_ENC_DIST),
                             msg="encoder.enc_dist._target_: unsupported or invalid encoder distribution"))
             }
         },
         Optional(Regex(r'^enc\d$')) : {
-            "_target_" : eval(return_or(params=SUPPORTED_ENCODERS,
+            "_target_" : eval(return_regexor(params=SUPPORTED_ENCODERS,
                             msg="encoder._target_: unsupported or invalid encoder")),
             Optional("hidden_layer_dim"): [And(int, lambda x: x > 0)],
             Optional(Regex(r'^layer\d$')) : {
@@ -99,14 +104,14 @@ config_schema = Schema({
             "bias": bool,
             "non_linear": bool,
             "enc_dist": {
-                    "_target_": eval(return_or(params=list_sub(SUPPORTED_DISTRIBUTIONS, UNSUPPORTED_ENC_DIST),
+                    "_target_": eval(return_regexor(params=list_sub(SUPPORTED_DISTRIBUTIONS, UNSUPPORTED_ENC_DIST),
                             msg="encoder.enc_dist._target_: unsupported or invalid encoder distribution"))
             }
         }
     },
     "decoder": {
         "default": {
-            "_target_" : eval(return_or(params=SUPPORTED_DECODERS,
+            "_target_" : eval(return_regexor(params=SUPPORTED_DECODERS,
                             msg="decoder._target_: unsupported or invalid decoder")),
             Optional("hidden_layer_dim"): [And(int, lambda x: x > 0)],
             Optional(Regex(r'^layer\d$')) : {
@@ -117,12 +122,12 @@ config_schema = Schema({
             "non_linear": bool,
             Optional("init_logvar"): Or(int, float),
             "dec_dist": {
-                    "_target_": eval(return_or(params=SUPPORTED_DISTRIBUTIONS,
+                    "_target_": eval(return_regexor(params=SUPPORTED_DISTRIBUTIONS,
                             msg="decoder.dec_dist._target_: unsupported or invalid decoder distribution"))
             }
         },
         Optional(Regex(r'^dec\d$')) : {
-            "_target_" : eval(return_or(params=SUPPORTED_DECODERS,
+            "_target_" : eval(return_regexor(params=SUPPORTED_DECODERS,
                             msg="decoder._target_: unsupported or invalid decoder")),
             Optional("hidden_layer_dim"): [And(int, lambda x: x > 0)],
             Optional(Regex(r'^layer\d$')) : {
@@ -133,13 +138,13 @@ config_schema = Schema({
             "non_linear": bool,
             Optional("init_logvar"): Or(int, float),
             "dec_dist": {
-                    "_target_": eval(return_or(params=SUPPORTED_DISTRIBUTIONS,
+                    "_target_": eval(return_regexor(params=SUPPORTED_DISTRIBUTIONS,
                             msg="decoder.dec_dist._target_: unsupported or invalid decoder distribution"))
             }
         }
     },
     Optional("discriminator"): {
-        "_target_" : eval(return_or(params=SUPPORTED_DISCRIMINATORS,
+        "_target_" : eval(return_regexor(params=SUPPORTED_DISCRIMINATORS,
                         msg="discriminator._target_: unsupported or invalid discriminator")),
         "hidden_layer_dim": [And(int, lambda x: x > 0)],
         "bias": bool,
@@ -147,7 +152,7 @@ config_schema = Schema({
         "dropout_threshold": Or(0, And(float, lambda x: 0 < x < 1))
     },
     "prior": {
-       "_target_" : eval(return_or(params=list_sub(SUPPORTED_DISTRIBUTIONS, UNSUPPORTED_PRIOR_DIST),
+       "_target_" : eval(return_regexor(params=list_sub(SUPPORTED_DISTRIBUTIONS, UNSUPPORTED_PRIOR_DIST),
                         msg="prior._target_: unsupported or invalid prior")),
        "loc":  Or(Or(int, float), [Or(int, float)]),
        "scale": Or(And(Or(int, float), lambda x: x > 0), [And(Or(int, float), lambda x: x > 0)])

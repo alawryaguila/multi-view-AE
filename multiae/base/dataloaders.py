@@ -30,15 +30,13 @@ class MultiviewDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
         self.is_validate = is_validate
         self.train_size = train_size
-        self.data = data    # TODO: do not save?
-        self.labels = labels # TODO: do not save?
+        self.data = data  
+        self.labels = labels 
 
         if not isinstance(self.batch_size, int):
             self.batch_size = self.data[0].shape[0]
 
-    def setup(self, stage): #TODO: look into whether can add data here 
-        if self.labels is not None:
-            self.labels = self.process_labels(self.labels)
+    def setup(self, stage):
         if self.is_validate:
             train_data, test_data, train_labels, test_labels = self.train_test_split()
             self.train_dataset = MVDataset(data=train_data, labels=train_labels)
@@ -66,14 +64,6 @@ class MultiviewDataModule(pl.LightningDataModule):
             test_labels = self.labels[test_idx]
 
         return train_data, test_data, train_labels, test_labels
-
-    def process_labels(self, labels): #TODO: get rid of this - doesn't work for multidims
-        if isinstance(labels, pd.core.series.Series):
-            return self.labels.values.reshape(-1)
-        elif isinstance(labels, np.ndarray):
-            return self.labels.reshape(-1)
-        elif isinstance(labels, list):
-            return np.array(self.labels)
 
     def train_dataloader(self):
         return DataLoader(self.train_dataset, batch_size=self.batch_size, shuffle=False, num_workers=0) #use default num_workers for now, problem in windows! 

@@ -1,5 +1,4 @@
 from setuptools import setup, find_packages
-
 with open("requirements.txt", "r") as f:
     REQUIRED_PACKAGES = f.read()
 
@@ -8,8 +7,8 @@ def setup_package():
         name="multiae",
         version="0.0.2",
         packages=find_packages(exclude=["*tests"]),
-        author="Ana Lawry Aguila",
-        author_email="ana.lawryaguila@outlook.com",
+        author="Ana Lawry Aguila, Alejandra Jayme",
+        author_email="ana.lawryaguila@outlook.com, alejandra.jayme@icloud.com",
         url="https://github.com/alawryaguila/multiviewAE",
         install_requires=REQUIRED_PACKAGES,
         package_data={'': ['*yaml']},

@@ -76,7 +76,7 @@ class mvtCAE(BaseModelVAE):
 
             logvar = torch.stack(logvar)
             mu, logvar = ProductOfExperts()(mu, logvar)
-            qz_x = hydra.utils.instantiate( # TODO: okay to use default here?
+            qz_x = hydra.utils.instantiate( 
                 self.cfg.encoder.default.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
             )
             qz_x = [qz_x]
@@ -100,8 +100,8 @@ class mvtCAE(BaseModelVAE):
             px_zs = []
             for i in range(self.n_views):
                 px_z = self.decoders[i](
-                    hydra.utils.instantiate(    #TODO: uses encoder. is this correct?
-                        eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu, scale=logvar.exp().pow(0.5)
+                    hydra.utils.instantiate(
+                    self.cfg.encoder.default.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
                     ).rsample()
                 )
                 px_zs.append(px_z)

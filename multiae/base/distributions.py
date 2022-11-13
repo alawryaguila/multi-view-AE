@@ -123,8 +123,6 @@ class MultivariateNormal(MultivariateNormal):
 
         kl = kl_divergence(torch.distributions.multivariate_normal.MultivariateNormal( \
                         loc=self.loc, covariance_matrix=self.covariance_matrix), other)
-        sh = kl.shape
-        #return kl.reshape((sh[0], 1))
         return torch.unsqueeze(kl,-1)
 
     def sparse_kl_divergence(self):

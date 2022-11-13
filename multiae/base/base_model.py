@@ -486,7 +486,7 @@ class BaseModelVAE(BaseModelAE):
         for _ in z:
             _ = _._sample()
             _[:, ~keep] = 0
-            d = hydra.utils.instantiate(    # TODO: okay to use default here?
+            d = hydra.utils.instantiate(   
                 self.cfg.encoder.default.enc_dist, loc=_, scale=1
             )
             z_keep.append(d)
