@@ -52,6 +52,7 @@ class AE(BaseModelAE):
 
     def forward(self, x):
         r"""Apply encode and decode methods to input data to generate latent dimensions and data reconstructions.
+
         Args:
             x (list): list of input data of type torch.Tensor.
 
@@ -66,6 +67,7 @@ class AE(BaseModelAE):
 
     def loss_function(self, x, fwd_rtn):    
         r"""Calculate reconstruction loss.
+        
         Args:
             x (list): list of input data of type torch.Tensor.
             fwd_rtn (dict): dictionary containing list of data reconstructions (x_recon) and latent dimensions (z).

@@ -95,6 +95,7 @@ class mcVAE(BaseModelVAE):
 
     def loss_function(self, x, fwd_rtn):
         r"""Calculate mcVAE loss.
+
         Args:
             x (list): list of input data of type torch.Tensor.
             fwd_rtn (dict): dictionary containing encoding and decoding distributions.
@@ -115,6 +116,7 @@ class mcVAE(BaseModelVAE):
 
         Args:
             qz_xs (list): list of encoding distributions.
+            
         Returns:
             (torch.Tensor): KL-divergence loss across all views.
         """

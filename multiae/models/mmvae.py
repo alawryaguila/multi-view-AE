@@ -100,6 +100,7 @@ class mmVAE(BaseModelVAE):
 
     def loss_function(self, x, fwd_rtn):
         r"""Wrapper function for mmVAE loss.
+
         Args:
             x (list): list of input data of type torch.Tensor.
             fwd_rtn (dict): dictionary containing encoding and decoding distributions.
@@ -114,6 +115,7 @@ class mmVAE(BaseModelVAE):
 
     def moe_iwae(self, x, qz_xs, px_zs):
         r"""Calculate Mixture-of-Experts importance weighted autoencoder (IWAE) loss used for the mmVAE model.
+        
         Args:
             x (list): list of input data of type torch.Tensor.
             fwd_rtn (dict): dictionary containing encoding and decoding distributions.

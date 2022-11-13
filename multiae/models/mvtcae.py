@@ -84,6 +84,7 @@ class mvtCAE(BaseModelVAE):
 
     def decode(self, qz_xs):
         r"""Forward pass of joint latent dimensions through decoder networks.
+
         Args:
             x (list): list of input data of type torch.Tensor.
 
@@ -129,6 +130,7 @@ class mvtCAE(BaseModelVAE):
 
     def loss_function(self, x, fwd_rtn):
         r"""Calculate MVTCAE loss.
+        
         Args:
             x (list): list of input data of type torch.Tensor.
             fwd_rtn (dict): dictionary containing encoding and decoding distributions.

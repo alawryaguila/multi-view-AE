@@ -133,6 +133,7 @@ class MoPoEVAE(BaseModelVAE):
 
     def loss_function(self, x, fwd_rtn):
         r"""Calculate MoPoE VAE loss.
+        
         Args:
             x (list): list of input data of type torch.Tensor.
             fwd_rtn (dict): dictionary containing encoding and decoding distributions.

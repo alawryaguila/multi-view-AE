@@ -5,6 +5,7 @@ from ..base.base_model import BaseModelVAE
 
 class DVCCA(BaseModelVAE):
     r"""Deep Variational Canonical Correlation Analysis (DVCCA).
+
     Args:
         cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
             model.beta (int, float): KL divergence weighting term.
@@ -162,6 +163,7 @@ class DVCCA(BaseModelVAE):
 
     def decode(self, qz_x):
         r"""Forward pass through decoder networks.
+
         Args:
             x (list): list of input data of type torch.Tensor.
 
@@ -182,6 +184,7 @@ class DVCCA(BaseModelVAE):
         r"""Apply encode and decode methods to input data to generate latent dimensions and data reconstructions. 
         For DVCCA, the shared encoding distribution is passed to the decode method. 
         For DVCCA-private, the joint distribution of the shared and private latents for each view is passed to the decode method. 
+
         Args:
             x (list): list of input data of type torch.Tensor.
 
@@ -201,6 +204,7 @@ class DVCCA(BaseModelVAE):
 
     def loss_function(self, x, fwd_rtn):
         r"""Calculate DVCCA loss.
+        
         Args:
             x (list): list of input data of type torch.Tensor.
             fwd_rtn (dict): dictionary containing list of decoding distributions (px_zs), shared encoding distribution (qz_x), and (for DVCCA-private) private encoding distributions (qh_xs).

@@ -74,6 +74,7 @@ class mVAE(BaseModelVAE):
 
     def decode(self, qz_x):
         r"""Forward pass of joint latent dimensions through decoder networks.
+
         Args:
             x (list): list of input data of type torch.Tensor.
 
@@ -106,6 +107,7 @@ class mVAE(BaseModelVAE):
 
         Args:
             qz_xs (list): Single element list containing joint encoding distribution.
+
         Returns:
             (torch.Tensor): KL-divergence loss.
         """
@@ -132,6 +134,7 @@ class mVAE(BaseModelVAE):
 
     def loss_function(self, x, fwd_rtn):
         r"""Calculate Multimodal VAE loss.
+        
         Args:
             x (list): list of input data of type torch.Tensor.
             fwd_rtn (dict): dictionary containing encoding and decoding distributions.

@@ -94,6 +94,7 @@ class me_mVAE(BaseModelVAE):
 
     def decode(self, qz_x):
         r"""Forward pass of joint latent dimensions through decoder networks.
+        
         Args:
             x (list): list of input data of type torch.Tensor.
 
@@ -109,6 +110,7 @@ class me_mVAE(BaseModelVAE):
 
     def decode_separate(self, qz_xs):
         r"""Forward pass of each view specific latent dimensions through the respective decoder network.
+
         Args:
             x (list): list of input data of type torch.Tensor.
 
@@ -172,6 +174,7 @@ class me_mVAE(BaseModelVAE):
 
     def loss_function(self, x, fwd_rtn):
         r"""Calculate multi ELBO Multimodal VAE loss.
+        
         Args:
             x (list): list of input data of type torch.Tensor.
             fwd_rtn (dict): dictionary containing encoding and decoding distributions.

@@ -85,6 +85,7 @@ class wAAE(BaseModelAAE):
 
     def forward_recon(self, x):
         r"""Apply encode and decode methods to input data to generate latent dimensions and data reconstructions.
+        
         Args:
             x (list): list of input data of type torch.Tensor.
 

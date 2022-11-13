@@ -136,6 +136,7 @@ class mmJSD(BaseModelVAE):
 
     def decode(self, qz_x):
         r"""Forward pass of latent dimensions through decoder networks.
+
         Args:
             x (list): list of input data of type torch.Tensor.
 
@@ -216,6 +217,7 @@ class mmJSD(BaseModelVAE):
 
     def loss_function(self, x, fwd_rtn):
         r"""Calculate mmJSD loss.
+        
         Args:
             x (list): list of input data of type torch.Tensor.
             fwd_rtn (dict): dictionary containing encoding and decoding distributions.

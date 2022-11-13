@@ -99,6 +99,7 @@ class JMVAE(BaseModelVAE):
 
     def decode(self, qz_x):
         r"""Forward pass of joint latent dimensions through decoder networks.
+
         Args:
             x (list): list of input data of type torch.Tensor.
 
@@ -163,6 +164,7 @@ class JMVAE(BaseModelVAE):
 
     def loss_function(self, x, fwd_rtn):
         r"""Calculate JMVAE-kl loss.
+        
         Args:
             x (list): list of input data of type torch.Tensor.
             fwd_rtn (dict): dictionary containing encoding and decoding distributions.
