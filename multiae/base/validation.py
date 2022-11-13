@@ -72,7 +72,7 @@ config_schema = Schema({
                         msg="model.join_type: unsupported or invalid join type"))
     },
     "datamodule": {
-        "_target_": "multiae.base.dataloaders.MultiviewDataModule",    #TODO: how about user-defined classes?
+        "_target_": "multiae.base.dataloaders.MultiviewDataModule",   
         "batch_size": Or(And(int, lambda x: x > 0), None),
         "is_validate": bool,
         "train_size": And(float, lambda x: 0 < x < 1)
@@ -83,8 +83,7 @@ config_schema = Schema({
                             msg="encoder._target_: unsupported or invalid encoder")),
             Optional("hidden_layer_dim"): [And(int, lambda x: x > 0)],
             Optional(Regex(r'^layer\d$')) : {
-                "layer": str, # TODO: fix this. should be specific torch.nn layers
-                # TODO: how about parameters of each layer? will raise error anyway...
+                "layer": str, 
             },
             "bias": bool,
             "non_linear": bool,
@@ -98,8 +97,7 @@ config_schema = Schema({
                             msg="encoder._target_: unsupported or invalid encoder")),
             Optional("hidden_layer_dim"): [And(int, lambda x: x > 0)],
             Optional(Regex(r'^layer\d$')) : {
-                "layer": str, # TODO: fix this. should be specific torch.nn layers
-                # TODO: how about parameters of each layer? will raise error anyway...
+                "layer": str, 
             },
             "bias": bool,
             "non_linear": bool,
@@ -115,8 +113,7 @@ config_schema = Schema({
                             msg="decoder._target_: unsupported or invalid decoder")),
             Optional("hidden_layer_dim"): [And(int, lambda x: x > 0)],
             Optional(Regex(r'^layer\d$')) : {
-                "layer": str, # TODO: fix this. should be specific torch.nn layers
-                # TODO: how about parameters of each layer? will raise error anyway...
+                "layer": str, 
             },
             "bias": bool,
             "non_linear": bool,
@@ -131,8 +128,7 @@ config_schema = Schema({
                             msg="decoder._target_: unsupported or invalid decoder")),
             Optional("hidden_layer_dim"): [And(int, lambda x: x > 0)],
             Optional(Regex(r'^layer\d$')) : {
-                "layer": str, # TODO: fix this. should be specific torch.nn layers
-                # TODO: how about parameters of each layer? will raise error anyway...
+                "layer": str, 
             },
             "bias": bool,
             "non_linear": bool,
@@ -163,17 +159,17 @@ config_schema = Schema({
        "max_epochs": And(int, lambda x: x > 0),
        "deterministic": bool,
        "log_every_n_steps": And(int, lambda x: x > 0),
-       "resume_from_checkpoint": Or(str, None) # TODO: check valid location?
+       "resume_from_checkpoint": Or(str, None) 
     },
     "callbacks": {
-        "model_checkpoint": {   #TODO: how about other params?
+        "model_checkpoint": {   
            "_target_" : "pytorch_lightning.callbacks.ModelCheckpoint",
            "monitor": Or("train_loss", "val_loss"), # see training_step() and validation_step()
            "mode": Or("min", "max"),
            "save_last": bool,
-           "dirpath": str   # TODO: check valid location?
+           "dirpath": str   
         },
-        "early_stopping": { #TODO: how about other params?
+        "early_stopping": { 
            "_target_" : "pytorch_lightning.callbacks.EarlyStopping",
            "monitor": Or("train_loss", "val_loss"), # see training_step() and validation_step()
            "mode": Or("min", "max"),
@@ -183,7 +179,7 @@ config_schema = Schema({
         }
     },
     "logger": {
-       "_target_" : "pytorch_lightning.loggers.tensorboard.TensorBoardLogger",
-       "save_dir": str   # TODO: check valid location?
+       "_target_" : str,
+       "save_dir": str 
     }
 }, ignore_extra_keys=True)

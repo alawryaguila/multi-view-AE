@@ -113,7 +113,7 @@ class BaseModelAE(ABC, pl.LightningModule):
         self.__dict__.update(self.cfg.model)
 
         print("MODEL: ", self.model_name)
-        self.print_config() #TODO: put this in debug mode logging
+        self.print_config() 
 
         if all(k in self.cfg.model for k in ["seed_everything", "seed"]):
             pl.seed_everything(self.cfg.model.seed, workers=True)
@@ -122,7 +122,6 @@ class BaseModelAE(ABC, pl.LightningModule):
         self._setdecoders()
         self._setprior()
 
-        # TODO: should this be in the end of instance init()?
         self.save_hyperparameters()
         self.create_folder(self.cfg.out_dir)
         self.save_config()
@@ -384,7 +383,7 @@ class BaseModelAE(ABC, pl.LightningModule):
 
         # should be always false for non-sparse models
         if self.model_name not in SPARSE_MODELS:
-            cfg.model.sparse = False    # TODO: log warning if changing overriding value
+            cfg.model.sparse = False   
 
         return cfg
 
@@ -412,7 +411,7 @@ class BaseModelAE(ABC, pl.LightningModule):
             if not (data_dim == self.input_dim[i]):
                 raise InputError("modality's shape must be equal to corresponding input_dim's shape")
 
-        dataset = MVDataset(data, labels=None) #TODO: make flexible
+        dataset = MVDataset(data, labels=None) 
 
         if batch_size is None:
             batch_size = data[0].shape[0]
@@ -706,7 +705,6 @@ class BaseModelAAE(BaseModelAE):
         return loss
 
 ################################################################################
-# TODO: use this
 class BaseEncoder(pl.LightningModule):
 
     def __init__(self, **kwargs):

@@ -112,7 +112,6 @@ class MultivariateNormal(MultivariateNormal):
         #used when fitting encoder/decoder distribution or prior distribution with different mean and SD values
         self.covariance_matrix = torch.diag_embed(self.scale)
 
-        #TODO: implement case where full covariance matrix is given (Need to enforce PSD)
         super().__init__(loc=self.loc, covariance_matrix=self.covariance_matrix)
 
     @property

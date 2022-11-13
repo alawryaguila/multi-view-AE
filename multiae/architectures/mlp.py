@@ -9,6 +9,7 @@ from torch.nn import Parameter
 
 class Encoder(nn.Module):
     """MLP Encoder
+
     Args:
         input_dim (list): Dimensionality of the input data.
         z_dim (int): Number of latent dimensions.
@@ -56,6 +57,7 @@ class Encoder(nn.Module):
 
 class VariationalEncoder(Encoder):
     """Variational MLP Encoder
+
     Args:
         input_dim (list): Dimensionality of the input data.
         z_dim (int): Number of latent dimensions.
@@ -121,6 +123,7 @@ class VariationalEncoder(Encoder):
 
 class Decoder(nn.Module):
     """MLP Decoder
+    
     Args:
         input_dim (list): Dimensionality of the input data.
         z_dim (int): Number of latent dimensions.
@@ -170,6 +173,7 @@ class Decoder(nn.Module):
 
 class VariationalDecoder(Decoder):
     """MLP Variational Decoder
+
     Args:
         input_dim (list): Dimensionality of the input data.
         z_dim (int): Number of latent dimensions.
@@ -225,6 +229,7 @@ class VariationalDecoder(Decoder):
 
 class Discriminator(nn.Module):
     """MLP Discriminator
+    
     Args:
         input_dim (list): Dimensionality of the input data.
         z_dim (int): Number of output dimensions.

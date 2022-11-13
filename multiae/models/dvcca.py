@@ -53,7 +53,7 @@ class DVCCA(BaseModelVAE):
         self.encoders = torch.nn.ModuleList(
             [
                 hydra.utils.instantiate(
-                    self.cfg.encoder.default,   #TODO: should use enc0?
+                    self.cfg.encoder.default,  
                     input_dim=self.input_dim[0],
                     z_dim=self.z_dim,
                     sparse=self.sparse,
@@ -156,7 +156,7 @@ class DVCCA(BaseModelVAE):
                 return [[qz_x], qz_xs, qh_xs]
             return qz_xs
         else:
-            qz_x = hydra.utils.instantiate( #TODO: should use enc0?
+            qz_x = hydra.utils.instantiate( 
                 self.cfg.encoder.default.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
             )
             return [qz_x]

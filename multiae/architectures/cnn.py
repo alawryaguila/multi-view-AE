@@ -12,15 +12,16 @@ from torch.nn import Parameter
 class Encoder(nn.Module):
     """
     Configurable convolutional encoder.
-    :param num_filters: List[int], num filters for
-                        each convolutional layer.
-    :param input_shape: List[int], input shape to
-                        first conv layer.
-    :param kernel_size: List[int], kernel_size
-    :param stride: List[int]
-    :param padding: List[int]
-    :param padding_mode: str
-    :raises:
+
+    Args:
+        input_dim (list): Dimensionality of the input data.
+        num_filters (list[int]): Number of filters for each convolutional layer.
+        input_shape (list[int]): Input shape to first conv layer.
+        kernel_size (list[int]): kernel_size
+        stride (list[int])
+        padding (list[int])
+        padding_mode (str)
+
     """
     def __init__(
         self,
@@ -50,14 +51,13 @@ class Encoder(nn.Module):
         for k,v in conv_params.items():
             l = v["layer"]
             v.pop('layer', None)
-            layers.append(eval(f"nn.{l}(**v)")) # TODO: assumes bias for cnn layer is included config
+            layers.append(eval(f"nn.{l}(**v)"))
 
             out_size = [v1 for k1,v1 in v.items() if 'out_' in k1]
             if len(out_size) > 0:
                 self.layer_sizes.append(out_size[0])
 
         # z_dim layer
-        # TODO: assumes last layer is linear
         layers.append(nn.Linear(in_features=self.layer_sizes[-1], out_features=z_dim, bias=self.bias))
         self.layer_sizes.append(z_dim)
 
@@ -153,7 +153,6 @@ class Decoder(nn.Module):
         layers = []
 
         # z_dim layer
-        # TODO: assumes first layer is linear
         first_layer = list(conv_params)[0]
         out_dim = conv_params[first_layer]["out_features"]
         layers.append(nn.Linear(in_features=self.z_dim, out_features=out_dim, bias=self.bias))
@@ -164,7 +163,7 @@ class Decoder(nn.Module):
         for k,v in conv_params.items():
             l = v["layer"]
             v.pop('layer', None)
-            layers.append(eval(f"nn.{l}(**v)"))  # TODO: assumes bias for cnn layer is included config
+            layers.append(eval(f"nn.{l}(**v)")) 
 
             out_size = [v1 for k1,v1 in v.items() if 'out_' in k1]
             if len(out_size) > 0:
