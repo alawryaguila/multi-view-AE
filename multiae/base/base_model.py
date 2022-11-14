@@ -166,17 +166,12 @@ class BaseModelAE(ABC, pl.LightningModule):
 
         # NOTE: have to check file exists otherwise error raised
         if (self.cfg.trainer.resume_from_checkpoint is None) or \
-            (not os.path.exists(self.cfg.trainer.resume_from_checkpoint)):
+            (not exists(self.cfg.trainer.resume_from_checkpoint)):
             self.cfg.trainer.resume_from_checkpoint = None
-            
-        if exists(join(self.cfg.out_dir, "last.ckpt")):
-            py_trainer = hydra.utils.instantiate(
-                self.cfg.trainer, callbacks=callbacks, logger=logger, resume_from_checkpoint = join(self.cfg.out_dir, "last.ckpt")
-            )
-        else:
-            py_trainer = hydra.utils.instantiate(
-                self.cfg.trainer, callbacks=callbacks, logger=logger,
-            )
+
+        py_trainer = hydra.utils.instantiate(
+            self.cfg.trainer, callbacks=callbacks, logger=logger,
+        )
         datamodule = hydra.utils.instantiate(
            self.cfg.datamodule, data=data, labels=labels, _convert_="all"
         )
