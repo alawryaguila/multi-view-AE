@@ -125,7 +125,7 @@ class BaseModelAE(ABC, pl.LightningModule):
         self.save_hyperparameters()
         self.create_folder(self.cfg.out_dir)
         self.save_config()
-        
+        exit()
     ################################            public methods
     def fit(self, *data, labels=None, max_epochs=None, batch_size=None):
 
@@ -320,7 +320,7 @@ class BaseModelAE(ABC, pl.LightningModule):
                         orig.decoder[dec_key] = update.decoder[dec_key].copy()
                     else: # use default
                         orig.decoder[dec_key] = orig.decoder.default.copy()
-        if update['out_dir'] is not None:
+        if update.get('out_dir'):
             orig.out_dir = update.out_dir
         return orig
 
