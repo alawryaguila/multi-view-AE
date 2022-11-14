@@ -125,7 +125,7 @@ class BaseModelAE(ABC, pl.LightningModule):
         self.save_hyperparameters()
         self.create_folder(self.cfg.out_dir)
         self.save_config()
-        exit()
+        
     ################################            public methods
     def fit(self, *data, labels=None, max_epochs=None, batch_size=None):
 
