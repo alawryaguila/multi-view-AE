@@ -2,7 +2,7 @@
 
 This repository contains various multi-view autoencoder models built in Pytorch and Pytorch-Lightning. 
 
-Documentation is available at https://multiviewae.readthedocs.io/en/latest/
+Documentation is available at https://multi-view-ae.readthedocs.io/en/latest/
 
 ### Compatibility
 The ``multi-view-AE`` library is compatible, and has been tested, with the following Python versions:
