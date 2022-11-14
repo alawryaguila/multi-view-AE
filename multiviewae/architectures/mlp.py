@@ -16,7 +16,7 @@ class Encoder(nn.Module):
         hidden_layer_dim (list): Number of nodes per hidden layer.
         non_linear (bool): Whether to include a ReLU() function between layers.
         bias (bool): Whether to include a bias term in hidden layers.
-        enc_dist (multiae.base.distributions.Default): Encoder distribution.
+        enc_dist (multiviewae.base.distributions.Default): Encoder distribution.
     """
     def __init__(
         self,
@@ -66,7 +66,7 @@ class VariationalEncoder(Encoder):
         bias (bool): Whether to include a bias term in hidden layers.
         sparse (bool): Whether to enforce sparsity of the encoding distribution.
         log_alpha (float): Log of the dropout parameter.
-        enc_dist (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoder distribution.
+        enc_dist (multiviewae.base.distributions.Normal, multiviewae.base.distributions.MultivariateNormal): Encoder distribution.
     """
     def __init__(
         self,
@@ -130,7 +130,7 @@ class Decoder(nn.Module):
         hidden_layer_dim (list): Number of nodes per hidden layer. The layer order is reversed e.g. [100, 50, 5] becomes [5, 50, 100].
         non_linear (bool): Whether to include a ReLU() function between layers.
         bias (bool): Whether to include a bias term in hidden layers.
-        dec_dist (multiae.base.distributions.Default, multiae.base.distributions.Bernoulli): Decoder distribution.
+        dec_dist (multiviewae.base.distributions.Default, multiviewae.base.distributions.Bernoulli): Decoder distribution.
         init_logvar (int, float): Initial value for log variance of decoder. Unused in Decoder class.
     """
     def __init__(
@@ -181,7 +181,7 @@ class VariationalDecoder(Decoder):
         non_linear (bool): Whether to include a ReLU() function between layers.
         bias (bool): Whether to include a bias term in hidden layers.
         init_logvar (int, float): Initial value for log variance of decoder.
-        dec_dist (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoder distribution.
+        dec_dist (multiviewae.base.distributions.Normal, multiviewae.base.distributions.MultivariateNormal): Decoder distribution.
     """
     def __init__(
         self,

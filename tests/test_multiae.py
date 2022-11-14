@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import importlib
 
-from multiae import *
+from multiviewae import *
 from os.path import abspath, dirname, join
 from torchvision import datasets, transforms
 
@@ -29,7 +29,7 @@ def test_models():
     test_3 = np.random.rand(50, 5)
 
     test_models = MODELS
-    module = importlib.import_module("multiae")
+    module = importlib.import_module("multiviewae")
     for m in test_models:
         print('MODEL CLASS')
         print(m)
@@ -98,7 +98,7 @@ def test_userconfig():
 
             }
 
-    module = importlib.import_module("multiae")
+    module = importlib.import_module("multiviewae")
     train_twoviews = [train_1, train_2]
     test_twoviews = [test_1, test_2]
     train_threeviews = [train_1, train_2, train_3]
@@ -155,7 +155,7 @@ def test_mnist():
     max_epochs = 10
     batch_size = 2000
 
-    module = importlib.import_module("multiae")
+    module = importlib.import_module("multiviewae")
     for m in test_models:
         class_ = getattr(module, m)
         model = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=[392,392])
@@ -186,7 +186,7 @@ def test_validation():
             "./user_config/validation_prior2.yaml": VARIATIONAL_MODELS,
             }
 
-    module = importlib.import_module("multiae")
+    module = importlib.import_module("multiviewae")
 
     for cfg, test_models in tests.items():
         print(cfg, test_models)
@@ -205,7 +205,7 @@ def test_cnn():
     train_n = 200
     test_n = 50
 
-    module = importlib.import_module("multiae")
+    module = importlib.import_module("multiviewae")
 
     tests = {
             "" : [[10, 10], MODELS],
@@ -223,7 +223,7 @@ def test_cnn():
                     ]]
             }
 
-    module = importlib.import_module("multiae")
+    module = importlib.import_module("multiviewae")
     for cfg, [dim, models] in tests.items():
         train_data = []
         test_data = []

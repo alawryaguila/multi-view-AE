@@ -1,25 +1,25 @@
 Limitations and user implementations
 ====================================
 
-There are a number of limitations and allowed parameter combinations within the ``multiviewAE`` framework. These restrictions are set in the ``multiae/base/validation.py`` file and will need to be updated should the user wish to add their own implementations.
-Allowed parameter types are also set in the ``multiae/base/validation.py`` file.
+There are a number of limitations and allowed parameter combinations within the ``multiviewAE`` framework. These restrictions are set in the ``multiviewae/base/validation.py`` file and will need to be updated should the user wish to add their own implementations.
+Allowed parameter types are also set in the ``multiviewae/base/validation.py`` file.
 
 Limitations and allowed parameter combinations
 ----------------------------------------------
 
 Distribution classes
 ^^^^^^^^^^^^^^^^^^^^
-It should be noted that currently the multivariate normal class, ``multiae.base.distributions.MultivariateNormal``, implements a multivariate gaussian with a diagonal covariance matrix.
+It should be noted that currently the multivariate normal class, ``multiviewae.base.distributions.MultivariateNormal``, implements a multivariate gaussian with a diagonal covariance matrix.
 Further work will involve implementing a multivariate normal class where the off-diagonal elements of the covariance matrix can be specified or learnt.
 
 Encoder distribution
 ^^^^^^^^^^^^^^^^^^^^
-The ``multiae.base.distributions.Default`` class must be used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
+The ``multiviewae.base.distributions.Default`` class must be used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
 
-Either the ``multiae.base.distributions.Normal`` or ``multiae.base.distributions.MultivariateNormal`` classes must be used for variational models.
+Either the ``multiviewae.base.distributions.Normal`` or ``multiviewae.base.distributions.MultivariateNormal`` classes must be used for variational models.
 
-For adversarial autoencoders with gaussian posterior, i.e. gaussian encoding distributions, the ``multiae.base.distributions.Normal`` or ``multiae.base.distributions.MultivariateNormal`` classes can be used 
-if their are coupled with a variational encoder architecture, e.g. ``multiae.architectures.mlp.VariationalEncoder``.
+For adversarial autoencoders with gaussian posterior, i.e. gaussian encoding distributions, the ``multiviewae.base.distributions.Normal`` or ``multiviewae.base.distributions.MultivariateNormal`` classes can be used 
+if their are coupled with a variational encoder architecture, e.g. ``multiviewae.architectures.mlp.VariationalEncoder``.
 
 Encoder and prior distribution combinations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -33,7 +33,7 @@ This will be addressed in further work.
 Adding user designed classes
 ----------------------------
 With the exception of network architectures, for the user to use their implemented class, they must have access to the source code and the class must be added to the supported classes in the 
-``multiae/base/validation.py`` file.
+``multiviewae/base/validation.py`` file.
 
 User designed network architectures
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

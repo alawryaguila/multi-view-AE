@@ -4,7 +4,7 @@
 model_name: "wAAE"
 
 discriminator:
-  _target_: multiae.architectures.mlp.Discriminator
+  _target_: multiviewae.architectures.mlp.Discriminator
 
   hidden_layer_dim: []  
   bias: True

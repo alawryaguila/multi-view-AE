@@ -72,7 +72,7 @@ config_schema = Schema({
                         msg="model.join_type: unsupported or invalid join type"))
     },
     "datamodule": {
-        "_target_": "multiae.base.dataloaders.MultiviewDataModule",   
+        "_target_": "multiviewae.base.dataloaders.MultiviewDataModule",   
         "batch_size": Or(And(int, lambda x: x > 0), None),
         "is_validate": bool,
         "train_size": And(float, lambda x: 0 < x < 1)

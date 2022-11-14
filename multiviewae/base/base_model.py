@@ -331,17 +331,17 @@ class BaseModelAE(ABC, pl.LightningModule):
         if self.model_name == MODEL_JMVAE and len(self.input_dim) != 2:
             raise InputError('JMVAE expects two len(input_dim) == 2')
 
-        pattern = re.compile(r'multiae\.architectures\..*\.Decoder')
+        pattern = re.compile(r'multiviewae\.architectures\..*\.Decoder')
         for k in cfg.decoder.keys():
             if eval(f"cfg.decoder.{k}.dec_dist._target_") in \
-            ["multiae.base.distributions.Default", \
-            "multiae.base.distributions.Bernoulli"]:
+            ["multiviewae.base.distributions.Default", \
+            "multiviewae.base.distributions.Bernoulli"]:
                 if not bool(pattern.match(eval(f"cfg.decoder.{k}._target_"))):
                     raise ConfigError(f"{k}: must use non-variational Decoder if decoder dist is Default/Bernoulli.")
 
         if self.model_name in [MODEL_AE] + ADVERSARIAL_MODELS:
-            pattern1 = re.compile(r'multiae\.architectures\..*\.VariationalEncoder')
-            pattern2 = re.compile(r'multiae\.base\.distributions\..*Normal')
+            pattern1 = re.compile(r'multiviewae\.architectures\..*\.VariationalEncoder')
+            pattern2 = re.compile(r'multiviewae\.base\.distributions\..*Normal')
             for k in cfg.encoder.keys():
                 if bool(pattern1.match(eval(f"cfg.encoder.{k}._target_"))):
                     raise ConfigError(f"{k}: must use non-variational encoder for adversarial models.")
@@ -352,7 +352,7 @@ class BaseModelAE(ABC, pl.LightningModule):
         if self.model_name in VARIATIONAL_MODELS:
             self.is_variational = True
 
-            pattern = re.compile(r'multiae\.architectures\..*\.VariationalEncoder')
+            pattern = re.compile(r'multiviewae\.architectures\..*\.VariationalEncoder')
             for k in cfg.encoder.keys():
                 if not bool(pattern.match(eval(f"cfg.encoder.{k}._target_"))):
                     raise ConfigError(f"{k}: must use variational encoder for variational models")
@@ -360,7 +360,7 @@ class BaseModelAE(ABC, pl.LightningModule):
                 if cfg.prior._target_ != eval(f"cfg.encoder.{k}.enc_dist._target_"):
                     raise ConfigError('Encoder and prior must have the same distribution for variational models')
 
-        if cfg.prior._target_ == "multiae.base.distributions.Normal":
+        if cfg.prior._target_ == "multiviewae.base.distributions.Normal":
             if not isinstance(cfg.prior.loc, (int, float)):
                 raise ConfigError("loc must be int/float for Normal prior dist")
 

@@ -14,7 +14,7 @@ import datetime
 sys.path.insert(0, os.path.abspath("../.."))
 # -- Project information
 
-project = 'MultiviewAE'
+project = 'Multi-view-AE'
 author = 'Ana Lawry Aguila & Alejandra Jayme'
 copyright = f"{datetime.datetime.now().year}, {author}"
 release = '0.1'

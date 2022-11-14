@@ -1,19 +1,13 @@
 # @package _global_
 
-model:
-  use_GPU: True
-  seed: 1000
-
-  z_dim: 12
-  s_dim: 6
-  private: False
+# default parameters for JMVAE model
+model_name: "JMVAE"
 
 encoder:
   default:
     _target_: multiviewae.architectures.mlp.VariationalEncoder
-
     non_linear: False
-    
+
     enc_dist:
       _target_: multiviewae.base.distributions.Normal
 

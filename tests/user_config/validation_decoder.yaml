@@ -2,11 +2,11 @@
 
 
 decoder:
-  _target_: multiae.architectures.mlp.VariationalDecoder
+  _target_: multiviewae.architectures.mlp.VariationalDecoder
 
   hidden_layer_dim: []
   bias: True
   non_linear: False
 
   dec_dist:
-    _target_: multiae.base.distributions.Bernoulli
+    _target_: multiviewae.base.distributions.Bernoulli

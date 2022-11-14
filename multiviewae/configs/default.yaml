@@ -30,7 +30,7 @@ model:
   threshold: 0
 
 datamodule:
-  _target_: multiae.base.dataloaders.MultiviewDataModule
+  _target_: multiviewae.base.dataloaders.MultiviewDataModule
 
   batch_size: null
   is_validate: True
@@ -39,28 +39,28 @@ datamodule:
 
 encoder:  # uses default mlp for all inputs
   default:
-      _target_: multiae.architectures.mlp.Encoder
+      _target_: multiviewae.architectures.mlp.Encoder
 
       hidden_layer_dim: []
       bias: True  # only applies to linear layers
       non_linear: False
 
       enc_dist:
-        _target_: multiae.base.distributions.Default
+        _target_: multiviewae.base.distributions.Default
 
 decoder: # uses default mlp for all inputs
   default:
-      _target_: multiae.architectures.mlp.Decoder
+      _target_: multiviewae.architectures.mlp.Decoder
 
       hidden_layer_dim: []
       bias: True  # only applies to linear layers
       non_linear: False
 
       dec_dist:
-        _target_: multiae.base.distributions.Default
+        _target_: multiviewae.base.distributions.Default
 
 prior:
-  _target_: multiae.base.distributions.Normal
+  _target_: multiviewae.base.distributions.Normal
   loc: 0
   scale: 1
 

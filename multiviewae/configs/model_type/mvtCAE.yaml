@@ -9,19 +9,19 @@ model:
 
 encoder:
   default:
-    _target_: multiae.architectures.mlp.VariationalEncoder
+    _target_: multiviewae.architectures.mlp.VariationalEncoder
 
     non_linear: False
 
     enc_dist:
-      _target_: multiae.base.distributions.Normal
+      _target_: multiviewae.base.distributions.Normal
 
 decoder:
   default:
-    _target_: multiae.architectures.mlp.VariationalDecoder
+    _target_: multiviewae.architectures.mlp.VariationalDecoder
 
     non_linear: False
     init_logvar: -3
 
     dec_dist:
-      _target_: multiae.base.distributions.Normal
+      _target_: multiviewae.base.distributions.Normal

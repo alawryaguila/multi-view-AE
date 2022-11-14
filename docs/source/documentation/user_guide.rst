@@ -8,7 +8,7 @@ Initialise model
 
 .. code-block:: python
 
-   from multiae import mVAE, mcVAE
+   from multiviewae import mVAE, mcVAE
 
    MNIST_1 = datasets.MNIST('./data/MNIST', train=True, download=True, transform=transforms.Compose([
           transforms.ToTensor(),

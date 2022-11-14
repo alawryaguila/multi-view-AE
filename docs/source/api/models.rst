@@ -4,13 +4,13 @@ Models
 .. contents:: Contents
     :local:
 
-.. currentmodule:: multiae.models
+.. currentmodule:: multiviewae.models
 .. autosummary::
    :nosignatures:
 
-    {% for cls in multiae.models.classes %}
+    {% for cls in multiviewae.models.classes %}
     {{ cls }}
     {% endfor %}
 
-.. automodule:: multiae.models
+.. automodule:: multiviewae.models
    :members:

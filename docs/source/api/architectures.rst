@@ -6,13 +6,13 @@ Architectures
 .. contents:: Contents
     :local:
 
-.. currentmodule:: multiae.architectures
+.. currentmodule:: multiviewae.architectures
 .. autosummary::
    :nosignatures:
 
-    {% for cls in multiae.architectures.classes %}
+    {% for cls in multiviewae.architectures.classes %}
     {{ cls }}
     {% endfor %}
 
-.. automodule:: multiae.architectures
+.. automodule:: multiviewae.architectures
    :members:

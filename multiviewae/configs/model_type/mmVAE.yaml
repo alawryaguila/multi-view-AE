@@ -1,19 +1,17 @@
 # @package _global_
 
-model:
-  use_GPU: True
-  seed: 1000
+# default parameters for MMVAE model
+model_name: "mmVAE"
 
-  z_dim: 12
-  s_dim: 6
-  private: False
+model:
+  K: 20
 
 encoder:
   default:
     _target_: multiviewae.architectures.mlp.VariationalEncoder
 
     non_linear: False
-    
+
     enc_dist:
       _target_: multiviewae.base.distributions.Normal
 

@@ -1,7 +1,7 @@
 import torch
 from torchvision import datasets, transforms
 from collections import OrderedDict
-from multiae import mcVAE, DVCCA
+from multiviewae import mcVAE, DVCCA
 import matplotlib.pyplot as plt
 import pandas as pd
 

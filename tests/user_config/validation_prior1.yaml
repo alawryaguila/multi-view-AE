@@ -1,6 +1,6 @@
 # @package _global_
 
 prior:
-  _target_: multiae.base.distributions.Normal
+  _target_: multiviewae.base.distributions.Normal
   loc: 1
   scale: [1., 2.3]
