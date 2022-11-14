@@ -321,10 +321,10 @@ class BaseModelAE(ABC, pl.LightningModule):
                         orig.decoder[dec_key] = update.decoder[dec_key].copy()
                     else: # use default
                         orig.decoder[dec_key] = orig.decoder.default.copy()
-        if update.get('out_dir'):
+        if update is not None and update.get('out_dir'):
             orig.out_dir = update.out_dir
         return orig
-        
+
     def __checkconfig(self, cfg):
 
         cfg_dict = OmegaConf.to_container(cfg)
