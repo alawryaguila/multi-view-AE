@@ -61,8 +61,8 @@ decoder: # uses default mlp for all inputs
 
 prior:
   _target_: multiviewae.base.distributions.Normal
-  loc: 0
-  scale: 1
+  loc: 0.
+  scale: 1.
 
 trainer:
   _target_: pytorch_lightning.Trainer

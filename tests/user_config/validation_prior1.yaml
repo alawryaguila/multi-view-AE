@@ -2,5 +2,5 @@
 
 prior:
   _target_: multiviewae.base.distributions.Normal
-  loc: 1
+  loc: 1.
   scale: [1., 2.3]

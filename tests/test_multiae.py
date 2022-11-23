@@ -19,7 +19,6 @@ def print_results(key, res, idx=0):
         x = res._sample()
         print(" "*idx, key, type(res), x.shape)
 
-
 def test_models():
     train_1 = np.random.rand(200, 20)
     train_2 = np.random.rand(200, 10)

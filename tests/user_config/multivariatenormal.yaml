@@ -15,5 +15,5 @@ decoder:
 
 prior:
   _target_: multiviewae.base.distributions.MultivariateNormal
-  loc: 0
-  scale: 1
+  loc: 0.
+  scale: 1.

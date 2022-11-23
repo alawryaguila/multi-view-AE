@@ -199,7 +199,7 @@ The decoder function parameters. The default decoder function is a MLP decoder n
  
 The ``decoder._target_`` parameter specifies the encoder function class of which the in-built options include: ``multiviewae.architectures.mlp.Decoder`` and ``multiviewae.models.layers.VariationalDecoder``.
 
-The ``decoder.dec_dist._target_`` parameter specifies the decoding distribution class of which the in-built options include: ``multiviewae.base.distributions.Default``, ``multiviewae.base.distributions.Normal``, ``multiviewae.base.distributions.MultivariateNormal`` and ``multiviewae.base.distributions.Bernoulli``. The ``multiviewae.base.distributions.Default`` class is used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
+The ``decoder.dec_dist._target_`` parameter specifies the decoding distribution class of which the in-built options include: ``multiviewae.base.distributions.Default``, ``multiviewae.base.distributions.Normal``, ``multiviewae.base.distributions.MultivariateNormal``, ``multiviewae.base.distributions.Laplace`` and ``multiviewae.base.distributions.Bernoulli``. The ``multiviewae.base.distributions.Default`` class is used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
 
 The user can specify separate parameters for the encoder network of each view. For example:
 

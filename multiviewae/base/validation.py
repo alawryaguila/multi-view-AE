@@ -150,8 +150,8 @@ config_schema = Schema({
     "prior": {
        "_target_" : eval(return_regexor(params=list_sub(SUPPORTED_DISTRIBUTIONS, UNSUPPORTED_PRIOR_DIST),
                         msg="prior._target_: unsupported or invalid prior")),
-       "loc":  Or(Or(int, float), [Or(int, float)]),
-       "scale": Or(And(Or(int, float), lambda x: x > 0), [And(Or(int, float), lambda x: x > 0)])
+       "loc":  Or(float, [float]),
+       "scale": Or(And(float, lambda x: x > 0), [And(float, lambda x: x > 0)])
     },
     "trainer": {
        "_target_" : "pytorch_lightning.Trainer",
