@@ -25,14 +25,12 @@ data_test_2 = MNIST_1.test_data[:, :, 14:].reshape(-1,392).float()/255.
 target_test = MNIST_1.test_labels.numpy()
 
 #Define parameters
-
 input_dim=[392,392]
 max_epochs = 10
 batch_size = 2000
 latent_dim = 2
 
 #Define models
-
 mcvae = mcVAE(
         cfg="./config/example_mnist.yaml",
         input_dim=input_dim,

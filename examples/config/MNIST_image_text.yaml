@@ -1,0 +1,41 @@
+# @package _global_
+
+model:
+  z_dim: 10
+  sparse: False
+
+encoder:
+  default:
+      _target_: multiviewae.architectures.mlp.VariationalEncoder
+
+      hidden_layer_dim: [512, 512, 512]
+      bias: True
+      non_linear: True
+
+      enc_dist:
+        _target_: multiviewae.base.distributions.Normal
+
+decoder:
+  default:
+      _target_: multiviewae.architectures.mlp.VariationalDecoder
+
+      hidden_layer_dim: [512, 512, 512]
+      bias: True
+      non_linear: True
+
+      dec_dist:
+        _target_: multiviewae.base.distributions.Normal
+
+prior:
+  _target_: multiviewae.base.distributions.Normal
+  loc: 0
+  scale: 1
+
+callbacks:
+  early_stopping:
+    _target_: pytorch_lightning.callbacks.EarlyStopping
+    monitor: "val_loss"
+    mode: "min"
+    patience: 100
+    min_delta: 0.001
+    verbose: True

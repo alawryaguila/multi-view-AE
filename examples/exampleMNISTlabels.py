@@ -33,7 +33,7 @@ latent_dim = 20
 
 #Define model
 mmvae = mmVAE(
-        cfg="./MNIST_image_text.yaml",
+        cfg="./config/MNIST_image_text.yaml",
         input_dim=input_dims,
         z_dim=latent_dim,
     )

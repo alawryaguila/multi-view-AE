@@ -59,7 +59,7 @@ class Normal(Normal):
         **kwargs,
     ):
         self.loc = kwargs['loc']
-        self.scale = kwargs['scale']
+        self.scale = torch.tensor(kwargs['scale'])
         super().__init__(loc=self.loc, scale=self.scale)
 
     @property
@@ -106,8 +106,8 @@ class MultivariateNormal(MultivariateNormal):
             **kwargs
         ):
 
-        self.loc = torch.Tensor(kwargs['loc'])
-        self.scale = torch.Tensor(kwargs['scale'])
+        self.loc = torch.tensor(kwargs['loc'])
+        self.scale = torch.tensor(kwargs['scale'])
 
         #used when fitting encoder/decoder distribution or prior distribution with different mean and SD values
         self.covariance_matrix = torch.diag_embed(self.scale)

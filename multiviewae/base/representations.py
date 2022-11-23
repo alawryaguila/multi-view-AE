@@ -13,7 +13,7 @@ class ProductOfExperts(nn.Module):
         var = torch.exp(logvar) + eps
         T = 1. / var
         pd_mu = torch.sum(mu * T, dim=0) / torch.sum(T, dim=0)
-        pd_var = 1. / torch.sum(T, dim=0)
+        pd_var = 1. / torch.sum(T + eps, dim=0)
         pd_logvar = torch.log(pd_var + eps)
         return pd_mu, pd_logvar
 
@@ -33,9 +33,8 @@ class alphaProductOfExperts(nn.Module):
     
         var = torch.exp(logvar) + eps
         T = 1. / var
-        T = 1 / var
         weights = torch.broadcast_to(weights, mu.shape)
-        pd_var = 1. / torch.sum(weights * T, dim=0)
+        pd_var = 1. / torch.sum(weights * T + eps, dim=0)
         pd_mu = pd_var * torch.sum(weights * mu * T, dim=0)
         pd_logvar = torch.log(pd_var)
         return pd_mu, pd_logvar
@@ -74,7 +73,6 @@ class MixtureOfExperts(nn.Module):
         logvar_sel = torch.cat([logvars[k, idx_start[k]:idx_end[k], :] for k in range(num_components)])
 
         return mu_sel, logvar_sel
-
 
 class MeanRepresentation(nn.Module):
     """Return mean of separate VAE representations.
