@@ -108,9 +108,9 @@ The user can specify separate parameters for the encoder network of each view. F
               enc_dist:
                 _target_: multiviewae.base.distributions.Default
 
-where ``enc0`` and ``enc1``provide the parameters for view 0 encoder and view 1 encoder respectively. If no view specific parameters are provided, the default network parameters are used.
+where ``enc0`` and ``enc1`` provide the parameters for view 0 encoder and view 1 encoder respectively. If no view specific parameters are provided, the default network parameters are used.
 
-**NOTE** The ``default`` encoder parameters are used for joint encoding distributions.
+**NOTE:** The ``default`` encoder parameters are used for joint encoding distributions.
 
 CNN Encoder
 ^^^^^^^^^^^
@@ -177,7 +177,7 @@ Alternatively, the user can specify a CNN architecture by setting the ``encoder.
 In-built options include: ``multiviewae.architectures.cnn.Encoder`` and ``multiviewae.architectures.cnn.VariationalEncoder``. As with the MLP architectures, the user can chose to set view specific parameters.
 Each layer can be ``torch.nn`` ``Conv2d`` layers or any suitable 2D pooling or padding layers.
 
-**NOTE** The user is responsible for ensuring that the CNN encoder and decoder network architectures are compatible and create an output tensor of the correct dimensionality.
+**NOTE:** The user is responsible for ensuring that the CNN encoder and decoder network architectures are compatible and create an output tensor of the correct dimensionality.
 
 MLP Decoder
 ^^^^^^^^^^^
@@ -225,7 +225,7 @@ The user can specify separate parameters for the encoder network of each view. F
               dec_dist:
                 _target_: multiviewae.base.distributions.Default
 
-where ``enc0`` and ``enc1``provide the parameters for view 0 encoder and view 1 encoder respectively. If no view specific parameters are provided, the default network parameters are used.
+where ``enc0`` and ``enc1`` provide the parameters for view 0 encoder and view 1 encoder respectively. If no view specific parameters are provided, the default network parameters are used.
 
 CNN Decoder
 ^^^^^^^^^^^
@@ -290,7 +290,7 @@ Alternatively, the user can specify a CNN architecture by setting the ``encoder.
               dec_dist:
                 _target_: multiviewae.base.distributions.Default
 
-**NOTE** The user is responsible for ensuring that the CNN encoder and decoder network architectures are compatible and create an output tensor of the correct dimensionality.
+**NOTE:** The user is responsible for ensuring that the CNN encoder and decoder network architectures are compatible and create an output tensor of the correct dimensionality.
 
 Prior
 ^^^^^
@@ -363,7 +363,7 @@ The parameters of the logger file.
           save_dir: ${out_dir}/logs
 
 In the ``multiviewAE`` we use TensorBoard for logging. However, the user is free to use whichever logging framework their prefer.
-**NOTE** other logging frameworks have not been tested. 
+**NOTE:** other logging frameworks have not been tested. 
 
 Changing parameter settings
 --------------------------------

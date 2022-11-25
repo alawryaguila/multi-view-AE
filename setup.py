@@ -5,7 +5,7 @@ with open("requirements.txt", "r") as f:
 def setup_package():
     data = dict(
         name="multiviewae",
-        version="0.0.2",
+        version="1.0.0",
         packages=find_packages(exclude=["*tests"]),
         package_data={'': ['*yaml']},
         author="Ana Lawry Aguila, Alejandra Jayme",
