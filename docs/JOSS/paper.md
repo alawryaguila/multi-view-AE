@@ -27,7 +27,7 @@ affiliations:
     index: 1
   - name: Engineering Mathematics and Computing Lab (EMCL), Heidelberg, Germany
     index: 2
-date: 23 November 2022
+date: 25 November 2022
 bibliography: paper.bib
 ---
 Often, data can be naturally described via multiple views or modalities. For example, we could consider an image and the corresponding text as different modalities. These modalities contain complementary information which can be modelled jointly using multi-view methods. The joint modelling of multiple modalities has been explored in many research fields such as medical imaging [@Serra2018], chemistry [@Sjostrom1983], and natural language processing [@Sadr2020]. 
