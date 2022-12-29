@@ -27,11 +27,3 @@ When extending autoencoders to multiple views, we can assume two latent models. 
    :alt: latent models
    :align: centre
    
-
-The joint and coordinated models within the ``multiviewAE`` framework:
-
-.. figure:: ../../figures/model_type2.png
-
-   :scale: 10 %
-   :alt: model grouping 2
-   :align: centre
