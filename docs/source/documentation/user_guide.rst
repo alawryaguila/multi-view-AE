@@ -9,7 +9,8 @@ Initialise model
 .. code-block:: python
 
    from multiviewae import mVAE, mcVAE
-
+   from torchvision import datasets, transforms
+   
    MNIST_1 = datasets.MNIST('./data/MNIST', train=True, download=True, transform=transforms.Compose([
           transforms.ToTensor(),
    ]))
@@ -19,11 +20,11 @@ Initialise model
    data_1 = MNIST_1.train_data[:, :, :14].reshape(-1,392).float()/255.
    data_2 = MNIST_1.train_data[:, :, 14:].reshape(-1,392).float()/255.
 
-   mvae = mVAE(cfg='./config_folder/test_config.yaml',
+   mvae = mVAE(cfg="./examples/config/example_mnist.yaml",
         input_dim=[784, 784],
         z_dim=64)
 
-   mcvae = mcVAE(cfg='./config_folder/test_config.yaml',
+   mcvae = mcVAE(cfg="./examples/config/example_mnist.yaml",
         input_dim=[784, 784],
         z_dim=64)
 
@@ -35,7 +36,8 @@ Model fit
 
 .. code-block:: python
 
-   mvae.fit(data_1, data_2,  max_epochs=50, batch_size=1000)
+   mvae.fit(data_1, data_2,  max_epochs=500, batch_size=1000)
+   mcvae.fit(data_1, data_2,  max_epochs=500, batch_size=1000)
 
 When fitting the model, the user must provide input each view of the training data. The user can optionally provide the ``max_epochs`` and ``batch_size``. These would override the settings in the configuration file. 
 
@@ -79,5 +81,7 @@ Trained models can be loaded from the specified path.
 
    import torch
    from os.path import join
+
+   #change the path below to your model path
    mvae = torch.load(join('path/to/model', 'model.pkl'))
 
