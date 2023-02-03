@@ -29,7 +29,7 @@ class alphaProductOfExperts(nn.Module):
     def forward(self, mu, logvar, weights=None, eps=1e-8):
         if weights is None:
             num_components = mu.shape[0]
-            weights = (1/num_components) * torch.ones(mu.shape)
+            weights = (1/num_components) * torch.ones(mu.shape).to(mu[0].device)
     
         var = torch.exp(logvar) + eps
         T = 1. / var
@@ -53,7 +53,7 @@ class MixtureOfExperts(nn.Module):
 
         num_components = mus.shape[0]
         num_samples = mus.shape[1]
-        weights = (1/num_components) * torch.ones(num_components)
+        weights = (1/num_components) * torch.ones(num_components).to(mus[0].device)
         idx_start = []
         idx_end = []
         for k in range(0, num_components):

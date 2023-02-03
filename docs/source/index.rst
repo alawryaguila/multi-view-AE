@@ -25,6 +25,13 @@ Documentation
    api/models
    api/architectures
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Developer information
+
+   developer_info/contributions
+   developer_info/support
+
 Indices and tables
 ==================
 
