@@ -10,12 +10,12 @@ Please report bugs by submitting an issue at https://github.com/alawryaguila/mul
 
 If you are reporting a bug, please include the following information:
 
-- A quick summary and/or background.
-- Your operating system name and version.
-- Details about your local setup that might be helpful in troubleshooting e.g. python version, library versions
-- Detailed steps to reproduce the bug.
-- What you expected to happen.
-- What actually happens.
+* A quick summary and/or background.
+* Your operating system name and version.
+* Details about your local setup that might be helpful in troubleshooting e.g. python version, library versions
+* Detailed steps to reproduce the bug.
+* What you expected to happen.
+* What actually happens.
 
 Proposing a new feature
 ----------
@@ -24,9 +24,9 @@ The best way to propose a new feature is by submitting an issue https://github.c
 
 To propose a feature please include:
 
-- Describe in detail how the new feature would work.
-- Explain the use case of the new feature.
-- Please keep the scope as narrow and specific as possible, to make it easier to implement.
+* Describe in detail how the new feature would work.
+* Explain the use case of the new feature.
+* Please keep the scope as narrow and specific as possible, to make it easier to implement.
 
 Writing documentation
 ----------
