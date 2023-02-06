@@ -32,3 +32,6 @@ Install the ``multi-view-AE`` package:
 ```bash
 pip install ./
 ```
+
+### Contribution guidelines
+Contribution guidelines are available at https://multi-view-ae.readthedocs.io/en/latest/
