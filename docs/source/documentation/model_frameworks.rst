@@ -20,10 +20,8 @@ The figure below shows the adversarial and variational groupings of models withi
 
 When extending autoencoders to multiple views, we can assume two latent models. The figure below shows the latent model for (a) a coordinated model which assumes separate latents for each view which are associated with each other and (b) a joint model which assumes a shared latent across views for data X and Y.
 
-
 .. figure:: ../../figures/latent_models.png
 
    :scale: 10 %
    :alt: latent models
    :align: centre
-   
