@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+
 class ProductOfExperts(nn.Module):
     """Return parameters for product of independent experts.
     See https://arxiv.org/pdf/1410.7827.pdf for equations.
@@ -11,9 +12,9 @@ class ProductOfExperts(nn.Module):
 
     def forward(self, mu, logvar, eps=1e-8):
         var = torch.exp(logvar) + eps
-        T = 1. / var
+        T = 1. / (var + eps)
         pd_mu = torch.sum(mu * T, dim=0) / torch.sum(T, dim=0)
-        pd_var = 1. / torch.sum(T + eps, dim=0)
+        pd_var = 1. / torch.sum(T, dim=0)
         pd_logvar = torch.log(pd_var + eps)
         return pd_mu, pd_logvar
 
@@ -32,11 +33,11 @@ class alphaProductOfExperts(nn.Module):
             weights = (1/num_components) * torch.ones(mu.shape).to(mu[0].device)
     
         var = torch.exp(logvar) + eps
-        T = 1. / var
+        T = 1. / (var + eps)
         weights = torch.broadcast_to(weights, mu.shape)
         pd_var = 1. / torch.sum(weights * T + eps, dim=0)
         pd_mu = pd_var * torch.sum(weights * mu * T, dim=0)
-        pd_logvar = torch.log(pd_var)
+        pd_logvar = torch.log(pd_var + eps)
         return pd_mu, pd_logvar
 
 
