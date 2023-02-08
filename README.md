@@ -9,6 +9,7 @@ The ``multi-view-AE`` library is compatible, and has been tested, with the follo
 * 3.7
 * 3.8
 * 3.9
+* 3.10
 
 ### Installation
 Clone this repository and move to folder:
@@ -31,3 +32,6 @@ Install the ``multi-view-AE`` package:
 ```bash
 pip install ./
 ```
+
+### Contribution guidelines
+Contribution guidelines are available at https://multi-view-ae.readthedocs.io/en/latest/

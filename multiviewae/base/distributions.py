@@ -197,6 +197,7 @@ class Laplace(Laplace):
             self.scale = kwargs['scale']
         else: 
             self.scale = torch.tensor(0.75) * torch.ones(self.loc.shape)
+            self.scale = self.scale.to(self.mu.device)
         super().__init__(loc=self.loc, scale=self.scale)
 
     def kl_divergence(self):
