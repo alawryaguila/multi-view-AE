@@ -14,19 +14,20 @@ class me_mVAE(BaseModelVAE):
     me_mVAE stands for multi ELBO Multimodal VAE
 
     Args:
-    cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
-        model.beta (int, float): KL divergence weighting term.
-        model.join_type (str): Method of combining encoding distributions.
-        model.sparse (bool): Whether to enforce sparsity of the encoding distribution.
-        model.threshold (float): Dropout threshold applied to the latent dimensions. Default is 0.
-        encoder.default._target_ (multiae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
-        encoder.default.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
-        decoder.default._target_ (multiae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
-        decoder.default.init_logvar (int, float): Initial value for log variance of decoder.
-        decoder.default.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
-
-    input_dim (list): Dimensionality of the input data.
-    z_dim (int): Number of latent dimensions.
+        cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
+            
+            - model.beta (int, float): KL divergence weighting term.
+            - model.join_type (str): Method of combining encoding distributions.
+            - model.sparse (bool): Whether to enforce sparsity of the encoding distribution.
+            - model.threshold (float): Dropout threshold applied to the latent dimensions. Default is 0.
+            - encoder.default._target_ (multiae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
+            - encoder.default.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
+            - decoder.default._target_ (multiae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
+            - decoder.default.init_logvar (int, float): Initial value for log variance of decoder.
+            - decoder.default.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
+    
+        input_dim (list): Dimensionality of the input data.
+        z_dim (int): Number of latent dimensions.
 
     References
     ----------
