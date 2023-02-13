@@ -1,10 +1,10 @@
 How to contribute
-===========
+=================
 
 Contributions to the ``multiviewAE`` library are welcome and greatly appreciated! Here are some ways you can contribute:
 
 Reporting a bug
-----------
+---------------
 
 Please report bugs by submitting an issue at https://github.com/alawryaguila/multi-view-AE/issues
 
@@ -18,7 +18,7 @@ If you are reporting a bug, please include the following information:
 * What actually happens.
 
 Proposing a new feature
-----------
+-----------------------
 
 The best way to propose a new feature is by submitting an issue https://github.com/alawryaguila/multi-view-AE/issues
 
@@ -29,14 +29,15 @@ To propose a feature please include:
 * Please keep the scope as narrow and specific as possible, to make it easier to implement.
 
 Writing documentation
-----------
+---------------------
 
 The latest documentation for the ``multiviewAE`` library is available at https://multi-view-ae.readthedocs.io/en/latest/
 
 If any documentation is unclear or requires correction, please submit an issue.
 
 Submitting changes
-----------
+------------------
+
 To submit your code when fixing bugs, documentation, or implementing new features, please follow the steps below.
 
 1. Fork the ``multiviewAE`` repository on GitHub.

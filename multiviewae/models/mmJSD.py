@@ -12,17 +12,18 @@ class mmJSD(BaseModelVAE):
     Code is based on: https://github.com/thomassutter/mmjsd
 
     Args:
-    cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
-        model.private (bool): Whether to include private modality-specific latent dimensions.
-        model.s_dim (int): Number of private latent dimensions.
-        encoder.default._target_ (multiae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
-        encoder.default.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
-        decoder.default._target_ (multiae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
-        decoder.default.init_logvar(int, float): Initial value for log variance of decoder.
-        decoder.default.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
-
-    input_dim (list): Dimensionality of the input data.
-    z_dim (int): Number of latent dimensions.
+        cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
+            
+            - model.private (bool): Whether to include private modality-specific latent dimensions.
+            - model.s_dim (int): Number of private latent dimensions.
+            - encoder.default._target_ (multiae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
+            - encoder.default.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
+            - decoder.default._target_ (multiae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
+            - decoder.default.init_logvar(int, float): Initial value for log variance of decoder.
+            - decoder.default.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
+    
+        input_dim (list): Dimensionality of the input data.
+        z_dim (int): Number of latent dimensions.
 
     References
     ----------
