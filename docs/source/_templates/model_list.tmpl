@@ -1,6 +1,6 @@
 .. -*- mode: rst -*-
 
-{% set ls = data.scandir("multiviewae/configs/model_type") %}
+{% set ls = data.scandir("../../multiviewae/configs/model_type") %}
 {% for item in ls|sort(attribute="name") %}
 {{ data.path.splitext(item.name)[0] }}
 ---------------
