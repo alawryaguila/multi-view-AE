@@ -2,7 +2,7 @@ import torch
 from torchvision import datasets, transforms
 from collections import OrderedDict
 from multiviewae import mcVAE, DVCCA
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt #NOTE: matplotlib is not installed with the library and must be installed separately
 import pandas as pd
 
 #Load the MNIST data
