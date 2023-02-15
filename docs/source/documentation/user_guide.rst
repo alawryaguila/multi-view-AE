@@ -21,11 +21,11 @@ Initialise model
    data_2 = MNIST_1.train_data[:, :, 14:].reshape(-1,392).float()/255.
 
    mvae = mVAE(cfg="./examples/config/example_mnist.yaml",
-        input_dim=[784, 784],
+        input_dim=[392, 392],
         z_dim=64)
 
    mcvae = mcVAE(cfg="./examples/config/example_mnist.yaml",
-        input_dim=[784, 784],
+        input_dim=[392, 392],
         z_dim=64)
 
 
@@ -54,9 +54,10 @@ We can use a trained model to predict the latent dimensions or reconstructions. 
    data_test_1 = MNIST_1.test_data[:, :, :14].reshape(-1,392).float()/255.
    data_test_2 = MNIST_1.test_data[:, :, 14:].reshape(-1,392).float()/255.
 
-   mvae_latent = mvae.predict_latent(data_test_1, data_test_2)
+   mvae_latent = mvae.predict_latents(data_test_1, data_test_2)
 
-   mcvae_latent = mcvae.predict_latent(data_test_1, data_test_2)
+   mcvae_latent = mcvae.predict_latents(data_test_1, data_test_2)
+
    mcvae_latent_view1, mcvae_latent_view2 = mcvae_latent[0], mcvae_latent[1]
 
    mvae_reconstruction = mvae.predict_reconstruction(data_test_1, data_test_2)
@@ -72,8 +73,40 @@ We can use a trained model to predict the latent dimensions or reconstructions. 
    mcvae_reconstruction_view1_latent2 = mcvae_reconstruction[1][0] #view 1 reconstruction from latent 2
    mcvae_reconstruction_view2_latent2 = mcvae_reconstruction[1][1] #view 2 reconstruction from latent 2
 
+Model results
+-------------
 
-Model loading
+We can explore the model results, for example using ``matplotlib``. 
+
+.. code-block:: python
+
+   import matplotlib.pyplot as plt #NOTE: matplotlib is not installed with the library and must be installed separately 
+   
+   #Reconstruction plots - how well can the VAE do same view reconstruction?
+
+   data_sample = data_test_1[20]
+   #indices: view 1 latent, view 1 decoder, sample 21
+   pred_sample = mcvae_reconstruction_view1_latent1[20]
+
+   fig, axarr = plt.subplots(1, 2)
+   axarr[0].imshow(data_sample.reshape(28,14))
+   axarr[1].imshow(pred_sample.reshape(28,14))
+   plt.show()
+   plt.close()
+   
+   #Reconstruction plots - how well can the VAE do cross view reconstruction?
+
+   #indices: view 1 latent, view 2 decoder, sample 21
+   data_sample = data_test_2[20]
+   pred_sample = mcvae_reconstruction_view2_latent1[20]
+
+   fig, axarr = plt.subplots(1, 2)
+   axarr[0].imshow(data_sample.reshape(28,14))
+   axarr[1].imshow(pred_sample.reshape(28,14))
+   plt.show()
+   plt.close()
+   
+Model loading   
 ----------
 Trained models can be loaded from the specified path. 
 
