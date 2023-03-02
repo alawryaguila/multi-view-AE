@@ -105,10 +105,11 @@ plt.close()
 
 data_sample = data_1[20]
 #indices: view 1 latent, view 2 decoder, sample 21
-pred_sample = pred[1][1][20]
+pred_sample = pred[0][1][20]
 
 fig, axarr = plt.subplots(1, 2)
 axarr[0].imshow(data_sample.reshape(28,14))
 axarr[1].imshow(pred_sample.reshape(28,14))
 plt.show()
 plt.close()
+
