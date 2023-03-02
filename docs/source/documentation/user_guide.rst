@@ -117,4 +117,3 @@ Trained models can be loaded from the specified path.
 
    #change the path below to your model path
    mvae = torch.load(join('path/to/model', 'model.pkl'))
-

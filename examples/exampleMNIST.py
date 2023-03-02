@@ -2,7 +2,7 @@ import torch
 from torchvision import datasets, transforms
 from collections import OrderedDict
 from multiviewae import mcVAE, DVCCA
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt #NOTE: matplotlib is not installed with the library and must be installed separately
 import pandas as pd
 
 #Load the MNIST data
@@ -26,7 +26,7 @@ target_test = MNIST_1.test_labels.numpy()
 
 #Define parameters
 input_dim=[392,392]
-max_epochs = 10
+max_epochs = 500
 batch_size = 2000
 latent_dim = 2
 
@@ -97,11 +97,10 @@ data_sample = data_1[20]
 pred_sample = pred[0][0][20]
 
 fig, axarr = plt.subplots(1, 2)
-plt.rc('text', usetex=True)
-plt.rc('font', family='serif')
 axarr[0].imshow(data_sample.reshape(28,14))
 axarr[1].imshow(pred_sample.reshape(28,14))
-
+plt.show()
+plt.close()
 #Reconstruction plots - how well can the VAE do cross view reconstruction?
 
 data_sample = data_1[20]
@@ -109,7 +108,8 @@ data_sample = data_1[20]
 pred_sample = pred[0][1][20]
 
 fig, axarr = plt.subplots(1, 2)
-plt.rc('text', usetex=True)
-plt.rc('font', family='serif')
 axarr[0].imshow(data_sample.reshape(28,14))
 axarr[1].imshow(pred_sample.reshape(28,14))
+plt.show()
+plt.close()
+

@@ -1,5 +1,5 @@
 Welcome to Multi-view-AE's documentation!
-===================================
+=========================================
 
 **Multi-view-AE** is a Python library for multi-view autoencoder models. Please see the user guides below.
 
@@ -24,7 +24,8 @@ Documentation
 
    api/models
    api/architectures
-
+   api/parameters
+      
 .. toctree::
    :maxdepth: 1
    :caption: Developer information
