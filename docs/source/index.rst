@@ -12,6 +12,7 @@ Documentation
    :maxdepth: 1
    :caption: Using multi-view-AE
    
+   documentation/installation
    documentation/implemented_models
    documentation/user_guide
    documentation/model_frameworks
