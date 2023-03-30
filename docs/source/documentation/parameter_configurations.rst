@@ -32,7 +32,6 @@ The global model parameter settings.
 .. code-block:: yaml
 
         model:
-          use_GPU: False
           save_model: True
 
           seed_everything: True
