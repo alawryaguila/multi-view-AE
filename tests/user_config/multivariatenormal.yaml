@@ -6,14 +6,14 @@ model:
 encoder:
   default:
     enc_dist:
-      _target_: multiae.base.distributions.MultivariateNormal
+      _target_: multiviewae.base.distributions.MultivariateNormal
 
 decoder:
   default:
     dec_dist:
-      _target_: multiae.base.distributions.MultivariateNormal
+      _target_: multiviewae.base.distributions.MultivariateNormal
 
 prior:
-  _target_: multiae.base.distributions.MultivariateNormal
-  loc: 0
-  scale: 1
+  _target_: multiviewae.base.distributions.MultivariateNormal
+  loc: 0.
+  scale: 1.

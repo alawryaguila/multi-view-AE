@@ -3,7 +3,7 @@ model:
 
 encoder:
   default:
-      _target_: multiae.architectures.cnn.VariationalEncoder
+      _target_: multiviewae.architectures.cnn.VariationalEncoder
 
       layer0:
         layer: Conv2d
@@ -54,11 +54,11 @@ encoder:
       non_linear: False
 
       enc_dist:
-        _target_: multiae.base.distributions.Normal
+        _target_: multiviewae.base.distributions.Normal
 
 decoder:
   default:
-      _target_: multiae.architectures.cnn.Decoder
+      _target_: multiviewae.architectures.cnn.Decoder
 
       layer0: # in_features = z_dim
         layer: Linear
@@ -111,4 +111,4 @@ decoder:
       # init_logvar: -3
 
       dec_dist:
-        _target_: multiae.base.distributions.Default
+        _target_: multiviewae.base.distributions.Default

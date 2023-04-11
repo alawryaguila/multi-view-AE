@@ -1,16 +1,6 @@
 Models
 ==================
 
-.. contents:: Contents
-    :local:
-
-.. currentmodule:: multiae.models
-.. autosummary::
-   :nosignatures:
-
-    {% for cls in multiae.models.classes %}
-    {{ cls }}
-    {% endfor %}
-
-.. automodule:: multiae.models
-   :members:
+.. automodule:: multiviewae.models
+    :members:
+    

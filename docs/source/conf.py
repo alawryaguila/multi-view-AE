@@ -14,7 +14,7 @@ import datetime
 sys.path.insert(0, os.path.abspath("../.."))
 # -- Project information
 
-project = 'MultiviewAE'
+project = 'Multi-view-AE'
 author = 'Ana Lawry Aguila & Alejandra Jayme'
 copyright = f"{datetime.datetime.now().year}, {author}"
 release = '0.1'
@@ -23,13 +23,15 @@ version = '0.0.2'
 # -- General configuration
 
 extensions = [
+    'sphinx_rtd_theme',
     'sphinx.ext.duration',
     'sphinx.ext.doctest',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
-    'sphinx.ext.autosectionlabel'
+    'sphinx.ext.autosectionlabel',
+    'sphinxcontrib.datatemplates'
 ]
 
 

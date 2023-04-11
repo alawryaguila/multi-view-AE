@@ -1,5 +1,5 @@
 Models implemented
-===========
+==================
 
 Below is a table with the models contained within this repository and links to the original papers.
      

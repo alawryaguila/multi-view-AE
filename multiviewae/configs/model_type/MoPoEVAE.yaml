@@ -1,0 +1,26 @@
+# @package _global_
+
+# default parameters for MoPoEVAE model
+model_name: "MoPoEVAE"
+
+model:
+  beta: 1
+
+encoder:
+  default:
+    _target_: multiviewae.architectures.mlp.VariationalEncoder
+
+    non_linear: False
+
+    enc_dist:
+      _target_: multiviewae.base.distributions.Normal
+
+decoder:
+  default:
+    _target_: multiviewae.architectures.mlp.VariationalDecoder
+
+    non_linear: False
+    init_logvar: -3
+
+    dec_dist:
+      _target_: multiviewae.base.distributions.Normal

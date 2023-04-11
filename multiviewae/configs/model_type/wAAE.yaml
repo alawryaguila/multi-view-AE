@@ -1,0 +1,13 @@
+# @package _global_
+
+# default parameters for wAAE model
+model_name: "wAAE"
+
+discriminator:
+  _target_: multiviewae.architectures.mlp.Discriminator
+
+  hidden_layer_dim: []  
+  bias: True
+  non_linear: False
+
+  dropout_threshold: 0  #Discriminator layer dropout

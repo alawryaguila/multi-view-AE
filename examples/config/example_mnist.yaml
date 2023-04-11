@@ -3,20 +3,21 @@
 model:
   z_dim: 64
   s_dim: 30
-
+  learning_rate: 0.00001
+  
 encoder:
   default:
     hidden_layer_dim: [256, 256]
     bias: True
     non_linear: True
     enc_dist:
-      _target_: multiae.base.distributions.Normal
+      _target_: multiviewae.base.distributions.Normal
 
 decoder:
   default:
-    _target_: multiae.architectures.mlp.Decoder
+    _target_: multiviewae.architectures.mlp.Decoder
     non_linear: True
     hidden_layer_dim: [256, 256]
     bias: True
     dec_dist:
-      _target_: multiae.base.distributions.Bernoulli
+      _target_: multiviewae.base.distributions.Bernoulli

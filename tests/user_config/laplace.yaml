@@ -6,9 +6,9 @@ model:
 encoder:
   default:  
     enc_dist:
-      _target_: multiae.base.distributions.Normal
+      _target_: multiviewae.base.distributions.Normal
 
 decoder:
   default:
     dec_dist:
-      _target_: multiae.base.distributions.Laplace
+      _target_: multiviewae.base.distributions.Laplace

@@ -1,0 +1,27 @@
+# @package _global_
+
+# default parameters for mmJSD model
+model_name: "mmJSD"
+
+model:
+  private: True
+  s_dim: 2
+
+encoder:
+  default:
+    _target_: multiviewae.architectures.mlp.VariationalEncoder
+
+    non_linear: False
+    
+    enc_dist:
+      _target_: multiviewae.base.distributions.Normal
+
+decoder:
+  default:
+    _target_: multiviewae.architectures.mlp.VariationalDecoder
+
+    non_linear: False
+    init_logvar: -3
+
+    dec_dist:
+      _target_: multiviewae.base.distributions.Normal

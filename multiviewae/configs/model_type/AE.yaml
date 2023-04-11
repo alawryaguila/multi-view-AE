@@ -1,0 +1,4 @@
+# @package _global_
+
+# default parameters for AE model
+model_name: "AE"
