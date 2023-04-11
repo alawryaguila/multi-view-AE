@@ -55,7 +55,6 @@ def list_sub(a, b):
 
 config_schema = Schema({
     "model": {
-        "use_GPU": bool,
         "save_model": bool,
         "seed_everything": bool,
         "seed": And(int, lambda x: 0 <= x <= 4294967295),

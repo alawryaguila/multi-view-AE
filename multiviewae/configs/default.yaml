@@ -15,7 +15,6 @@ hydra:
     dir: ${out_dir}
 
 model:
-  use_GPU: False #whether to use a GPU if available
   save_model: False #whether to save the model
 
   seed_everything: True
