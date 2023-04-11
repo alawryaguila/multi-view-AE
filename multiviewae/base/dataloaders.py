@@ -44,6 +44,8 @@ class MultiviewDataModule(pl.LightningDataModule):
         else:
             self.train_dataset = MVDataset(data=self.data, labels=self.labels) 
             self.test_dataset = None
+        #delete data from memory
+        del self.data
 
     def train_test_split(self):
 

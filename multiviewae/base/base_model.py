@@ -127,22 +127,22 @@ class BaseModelAE(ABC, pl.LightningModule):
         self.save_config()
         
     ################################            public methods
-    def fit(self, *data, labels=None, max_epochs=None, batch_size=None):
+    def fit(self, *data, is_list=False, labels=None, max_epochs=None, batch_size=None):
 
         data = list(data)
+        if not is_list:
+            if not all(data_.shape[0] == data[0].shape[0] for data_ in data):
+                raise InputError('All modalities must have the same number of entries')
 
-        if not all(data_.shape[0] == data[0].shape[0] for data_ in data):
-            raise InputError('All modalities must have the same number of entries')
+            if not (len(data) == self.n_views):
+                raise InputError("number of modalities must be equal to number of views")
 
-        if not (len(data) == self.n_views):
-            raise InputError("number of modalities must be equal to number of views")
-
-        for i in range(self.n_views):
-            data_dim = data[i].shape[1:]
-            if len(data_dim) == 1:
-                data_dim = data_dim[0]
-            if not (data_dim == self.input_dim[i]):
-                raise InputError("modality's shape must be equal to corresponding input_dim's shape")
+            for i in range(self.n_views):
+                data_dim = data[i].shape[1:]
+                if len(data_dim) == 1:
+                    data_dim = data_dim[0]
+                if not (data_dim == self.input_dim[i]):
+                    raise InputError("modality's shape must be equal to corresponding input_dim's shape")
 
         self._training = True
         if max_epochs is not None:
@@ -395,20 +395,20 @@ class BaseModelAE(ABC, pl.LightningModule):
             )
         return loss["loss"]
 
-    def __predict(self, *data, batch_size=None, is_recon=False):
+    def __predict(self, *data, is_list=False, batch_size=None, is_recon=False):
         self._training = False
 
         data = list(data)
+        if not is_list:
+            if not (len(data) == self.n_views):
+                raise InputError("number of modalities must be equal to number of views")
 
-        if not (len(data) == self.n_views):
-            raise InputError("number of modalities must be equal to number of views")
-
-        for i in range(self.n_views):
-            data_dim = data[i].shape[1:]
-            if len(data_dim) == 1:
-                data_dim = data_dim[0]
-            if not (data_dim == self.input_dim[i]):
-                raise InputError("modality's shape must be equal to corresponding input_dim's shape")
+            for i in range(self.n_views):
+                data_dim = data[i].shape[1:]
+                if len(data_dim) == 1:
+                    data_dim = data_dim[0]
+                if not (data_dim == self.input_dim[i]):
+                    raise InputError("modality's shape must be equal to corresponding input_dim's shape")
 
         dataset = MVDataset(data, labels=None) #TODO: make flexible
 
