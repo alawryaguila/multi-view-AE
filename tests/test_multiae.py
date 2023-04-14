@@ -277,6 +277,18 @@ def test_architectures():
             recon = model1.predict_reconstruction(*test_data, batch_size=5)
             print_results("recon", recon)
 
+def test_model_loading():
+    """
+    Tests the ability to load a model from a saved checkpoint. The test will fail if the model fails to load.
+    """
+    train_1 = np.random.rand(200, 20)
+    train_2 = np.random.rand(200, 10)
+    model = mcVAE(input_dim=[20,10])
+    model.fit(train_1, train_2, max_epochs=1, batch_size=200)
+    loaded_model = mcVAE.load_from_checkpoint(join(model.cfg.out_dir, "last.ckpt"))
+    recon = loaded_model.predict_reconstruction(train_1, train_2)
+    loaded_model = mcVAE.load_from_checkpoint(join(model.cfg.out_dir, "model.ckpt"))
+    recon = loaded_model.predict_reconstruction(train_1, train_2)
 
 if __name__ == "__main__":
     test_models()
@@ -284,3 +296,4 @@ if __name__ == "__main__":
     test_mnist()
     test_validation()
     test_architectures()
+    test_model_loading()

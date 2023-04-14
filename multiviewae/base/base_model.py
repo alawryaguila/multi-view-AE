@@ -122,9 +122,10 @@ class BaseModelAE(ABC, pl.LightningModule):
         self._setprior()
 
         # TODO: should this be in the end of instance init()?
-        self.save_hyperparameters()
+        
         self.create_folder(self.cfg.out_dir)
         self.save_config()
+        self.save_hyperparameters()
         
     ################################            public methods
     def fit(self, *data, is_list=False, labels=None, max_epochs=None, batch_size=None):
@@ -242,7 +243,6 @@ class BaseModelAE(ABC, pl.LightningModule):
 
     def on_train_end(self):
         self.trainer.save_checkpoint(join(self.cfg.out_dir, "model.ckpt"))
-        torch.save(self, join(self.cfg.out_dir, "model.pkl"))
 
     def configure_optimizers(self):
         optimizers = [
@@ -410,12 +410,14 @@ class BaseModelAE(ABC, pl.LightningModule):
                 if not (data_dim == self.input_dim[i]):
                     raise InputError("modality's shape must be equal to corresponding input_dim's shape")
 
-        dataset = MVDataset(data, labels=None) #TODO: make flexible
+        datamodule = hydra.utils.instantiate(
+           self.cfg.datamodule, data=data, labels=None, _recursive_=False
+        )
 
-        if batch_size is None:
-            batch_size = data[0].shape[0]
-
+        datamodule.setup(stage="test")
+        dataset = datamodule.train_dataset
         generator = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+        
         with torch.no_grad():
             z_ = None
             for batch_idx, local_batch in enumerate(generator):
