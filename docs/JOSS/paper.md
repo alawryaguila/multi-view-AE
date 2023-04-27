@@ -20,7 +20,7 @@ authors:
   - name: Vincent Heuveline
   - orchid: 0000-0002-2217-7558
     affiliation: 2
-  - name: Andre Altmann
+  - name: André Altmann
     orchid: 0000-0002-9265-2393
     affiliation: 1
 
