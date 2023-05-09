@@ -159,9 +159,8 @@ class BaseModelAE(ABC, pl.LightningModule):
             self.batch_size = self.cfg.datamodule.batch_size
 
         callbacks = []
-        if self.cfg.datamodule.is_validate:
-            for _, cb_conf in self.cfg.callbacks.items():
-                callbacks.append(hydra.utils.instantiate(cb_conf))
+        for _, cb_conf in self.cfg.callbacks.items():
+            callbacks.append(hydra.utils.instantiate(cb_conf))
 
         logger = hydra.utils.instantiate(self.cfg.logger)
 
