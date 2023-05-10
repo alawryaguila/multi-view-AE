@@ -3,6 +3,7 @@
 [![Python Version](https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9%20%7C%203.10%20-blue)](https://github.com/alawryaguila/multi-view-ae)
 
 # Multi-view-AE: Multi-modal subspace learning using autoencoders
+<img src="https://github.com/alawryaguila/multi-view-AE/blob/master/docs/figures/logo.png" width="800px">
 
 This repository contains various multi-view autoencoder models built in Pytorch and Pytorch-Lightning. 
 
