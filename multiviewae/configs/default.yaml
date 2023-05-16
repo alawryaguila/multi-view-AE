@@ -33,8 +33,9 @@ datamodule:
 
   batch_size: null
   is_validate: True
-
   train_size: 0.9
+  dataset:
+    _target_: multiviewae.base.datasets.MVDataset
 
 encoder:  # uses default mlp for all inputs
   default:

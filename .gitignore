@@ -1,6 +1,7 @@
 # Created by https://www.toptal.com/developers/gitignore/api/python,windows
 # Edit at https://www.toptal.com/developers/gitignore?templates=python,windows
 
+
 ### Python ###
 # Byte-compiled / optimized / DLL files
 __pycache__/

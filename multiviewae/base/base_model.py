@@ -18,7 +18,6 @@ from omegaconf import OmegaConf, open_dict
 
 from .constants import *
 from .validation import config_schema
-from .datasets import MVDataset
 from .exceptions import *
 
 def update_dict(d, u, l):
@@ -121,28 +120,27 @@ class BaseModelAE(ABC, pl.LightningModule):
         self._setdecoders()
         self._setprior()
 
-        # TODO: should this be in the end of instance init()?
-        self.save_hyperparameters()
         self.create_folder(self.cfg.out_dir)
         self.save_config()
-        
+        self.save_hyperparameters()
+
     ################################            public methods
-    def fit(self, *data, labels=None, max_epochs=None, batch_size=None):
+    def fit(self, *data, is_list=False, labels=None, max_epochs=None, batch_size=None):
 
         data = list(data)
+        if not is_list:
+            if not all(data_.shape[0] == data[0].shape[0] for data_ in data):
+                raise InputError('All modalities must have the same number of entries')
 
-        if not all(data_.shape[0] == data[0].shape[0] for data_ in data):
-            raise InputError('All modalities must have the same number of entries')
+            if not (len(data) == self.n_views):
+                raise InputError("number of modalities must be equal to number of views")
 
-        if not (len(data) == self.n_views):
-            raise InputError("number of modalities must be equal to number of views")
-
-        for i in range(self.n_views):
-            data_dim = data[i].shape[1:]
-            if len(data_dim) == 1:
-                data_dim = data_dim[0]
-            if not (data_dim == self.input_dim[i]):
-                raise InputError("modality's shape must be equal to corresponding input_dim's shape")
+            for i in range(self.n_views):
+                data_dim = data[i].shape[1:]
+                if len(data_dim) == 1:
+                    data_dim = data_dim[0]
+                if not (data_dim == self.input_dim[i]):
+                    raise InputError("modality's shape must be equal to corresponding input_dim's shape")
 
         self._training = True
         if max_epochs is not None:
@@ -173,15 +171,15 @@ class BaseModelAE(ABC, pl.LightningModule):
             self.cfg.trainer, callbacks=callbacks, logger=logger,
         )
         datamodule = hydra.utils.instantiate(
-           self.cfg.datamodule, data=data, labels=labels, _convert_="all"
+           self.cfg.datamodule, data=data, labels=labels, _convert_="all", _recursive_=False
         )
         py_trainer.fit(self, datamodule)
 
-    def predict_latents(self, *data, batch_size=None):
-        return self.__predict(*data, batch_size=batch_size)
+    def predict_latents(self, *data, batch_size=None, is_list=False):
+        return self.__predict(*data, batch_size=batch_size, is_list=is_list)
 
-    def predict_reconstruction(self, *data, batch_size=None):
-        return self.__predict(*data, batch_size=batch_size, is_recon=True)
+    def predict_reconstruction(self, *data, batch_size=None, is_list=False):
+        return self.__predict(*data, batch_size=batch_size, is_list=is_list, is_recon=True)
 
     def print_config(self, cfg=None, keys=None):
         if cfg is None:
@@ -395,27 +393,30 @@ class BaseModelAE(ABC, pl.LightningModule):
             )
         return loss["loss"]
 
-    def __predict(self, *data, batch_size=None, is_recon=False):
+    def __predict(self, *data, is_list=False, batch_size=None, is_recon=False):
         self._training = False
 
         data = list(data)
+        if not is_list:
+            if not (len(data) == self.n_views):
+                raise InputError("number of modalities must be equal to number of views")
 
-        if not (len(data) == self.n_views):
-            raise InputError("number of modalities must be equal to number of views")
+            for i in range(self.n_views):
+                data_dim = data[i].shape[1:]
+                if len(data_dim) == 1:
+                    data_dim = data_dim[0]
+                if not (data_dim == self.input_dim[i]):
+                    raise InputError("modality's shape must be equal to corresponding input_dim's shape")
 
-        for i in range(self.n_views):
-            data_dim = data[i].shape[1:]
-            if len(data_dim) == 1:
-                data_dim = data_dim[0]
-            if not (data_dim == self.input_dim[i]):
-                raise InputError("modality's shape must be equal to corresponding input_dim's shape")
-
-        dataset = MVDataset(data, labels=None) #TODO: make flexible
-
+        dataset = hydra.utils.instantiate(self.cfg.datamodule.dataset, data)
         if batch_size is None:
-            batch_size = data[0].shape[0]
+            if is_list:
+                batch_size = len(data[0])
+            else:
+                batch_size = data[0].shape[0]
 
         generator = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+
         with torch.no_grad():
             z_ = None
             for batch_idx, local_batch in enumerate(generator):

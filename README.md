@@ -1,15 +1,13 @@
-# Multi-view autoencoders models 
+![Build Status](https://github.com/alawryaguila/multi-view-ae/actions/workflows/ci.yml/badge.svg)
+[![Documentation Status](https://readthedocs.org/projects/multi-view-ae/badge/?version=latest)](https://multi-view-ae.readthedocs.io/en/latest/?badge=latest)
+[![Python Version](https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9%20%7C%203.10%20-blue)](https://github.com/alawryaguila/multi-view-ae)
+
+# Multi-view-AE: Multi-modal subspace learning using autoencoders
+<img src="https://github.com/alawryaguila/multi-view-AE/blob/master/docs/figures/logo.png" width="800px">
 
 This repository contains various multi-view autoencoder models built in Pytorch and Pytorch-Lightning. 
 
 Documentation is available at https://multi-view-ae.readthedocs.io/en/latest/
-
-### Compatibility
-The ``multi-view-AE`` library is compatible, and has been tested, with the following Python versions:
-* 3.7
-* 3.8
-* 3.9
-* 3.10
 
 ### Installation
 Clone this repository and move to folder:

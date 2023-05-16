@@ -18,9 +18,11 @@ authors:
     orcid: 0000-0001-5685-971X
     affiliation: 1
   - name: Vincent Heuveline
+  - orchid: 0000-0002-2217-7558
     affiliation: 2
-  - name: Andre Altmann
-    orcid: 0000-0002-9265-2393
+  - name: André Altmann
+    orchid: 0000-0002-9265-2393
+
     affiliation: 1
 
 affiliations:
