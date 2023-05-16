@@ -2,10 +2,10 @@ import os
 import numpy as np
 import torch
 import importlib
-
 from multiviewae import *
 from os.path import abspath, dirname, join
 from torchvision import datasets, transforms
+import random
 
 def print_results(key, res, idx=0):
     """Function to print the model results.
@@ -290,6 +290,37 @@ def test_model_loading():
     loaded_model = mcVAE.load_from_checkpoint(join(model.cfg.out_dir, "model.ckpt"))
     recon = loaded_model.predict_reconstruction(train_1, train_2)
 
+def test_list_dataloader():
+    """
+    Create synthetic dataset and save each sample to npy. Test the ability to load the data using the ListMVDataset and ListDataModule classes.
+    """
+    train_1 = np.random.rand(200, 20)
+    train_2 = np.random.rand(200, 10)
+    
+    #create train_idxs list of idxs for each sample from 0 to 200
+    idxs = []
+    for i in range(200):
+        idxs.append(i)
+    
+    #create folder data/synthetic
+    os.makedirs(abspath(join(dirname( __file__ ), 'data/synthetic')), exist_ok=True)
+    path = abspath(join(dirname( __file__ ), 'data/synthetic'))
+    for idx in idxs:
+        #save each sample to npy
+        np.save(join(path, "view_0_{0}.npy".format(idx)), train_1[idx])
+        np.save(join(path, "view_1_{0}.npy".format(idx)), train_2[idx])
+    
+    #split idxs into train and test idxs
+    train_idx = list(random.sample(range(200), int(200 * 0.8)))
+    test_idx = list(set(list(range(200))) -  set(train_idx))
+
+    model = mcVAE(input_dim=[20,10], cfg=abspath(join(dirname( __file__ ), "user_config/dataloader.yaml")))
+    model.cfg.datamodule.dataset.data_dir = path
+
+    model.fit(train_idx, max_epochs=1, batch_size=200, is_list=True)
+    latent = model.predict_latents(test_idx, is_list=True)
+    recon = model.predict_reconstruction(test_idx, is_list=True)
+
 if __name__ == "__main__":
     test_models()
     test_userconfig()
@@ -297,3 +328,4 @@ if __name__ == "__main__":
     test_validation()
     test_architectures()
     test_model_loading()
+    test_list_dataloader()
