@@ -4,10 +4,10 @@ Model frameworks
 There is one vanilla multi-view autoencoder framework, the ``AE`` model. The remaining models can be grouped into adversarial and variational models which are models regularised by matching the aggregate or marginal encoding distributions, respectively, to a prior distribution. The figure below shows the frameworks for the (a) vanilla autoencoder (b) adversarial autoencoder and (c) variational autoencoder for a single view.
 
 .. figure:: ../../figures/autoencoder_models.png 
-   :scale: 10 %
+   :width: 800
    :alt: autoencoder models
    :align: center
-   :width: 800
+
    .. 
    
 The figure below shows the adversarial and variational groupings of models within the ``multiviewAE`` framework.
