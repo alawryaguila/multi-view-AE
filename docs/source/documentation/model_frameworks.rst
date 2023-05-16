@@ -7,7 +7,7 @@ There is one vanilla multi-view autoencoder framework, the ``AE`` model. The rem
    :scale: 10 %
    :alt: autoencoder models
    :align: center
-   
+   :width: 800
    .. 
    
 The figure below shows the adversarial and variational groupings of models within the ``multiviewAE`` framework.
