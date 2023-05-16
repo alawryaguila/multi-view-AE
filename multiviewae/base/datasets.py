@@ -5,12 +5,9 @@ From: https://gitlab.com/acasamitjana/latentmodels_ad
 
 """
 import numpy as np
-import pandas as pd
 import torch
-
-from torch.functional import Tensor
-from torchvision import transforms
 from torch.utils.data import Dataset
+from os.path import join
 
 class MVDataset(Dataset):
     """PyTorch Dataset for storing and accessing multi-view data.
@@ -21,7 +18,8 @@ class MVDataset(Dataset):
         return_index (bool): Whether to return batch index labels.
         transform (torchvision.transforms): Torchvision transformation to apply to the data. Default is None.
     """
-    def __init__(self, data, labels, return_index=False, transform=None):
+    def __init__(self, data, labels=None, return_index=False, transform=None):
+
         self.data = data
         self.labels = labels
         self.return_index = return_index
@@ -52,6 +50,38 @@ class MVDataset(Dataset):
 
         if self.labels is not None:
             return x, self.labels[index]
+        return x
+
+    def __len__(self):
+        return self.N
+
+class ListMVDataset(Dataset):
+
+    def __init__(self, 
+                data, 
+                labels=None,
+                data_dir='',
+                views=[0, 1]
+                ):
+        self.N = len(data[0]) 
+        self.views = views
+        self.data_dir = data_dir
+        self.data = data[0]
+        self.labels = labels
+
+    def __getitem__(self, index):
+        """
+        Args:
+            index (int): Index
+        Returns:
+            list (): returns list of numpy arrays
+        """
+        x = []
+        idx = self.data[index]
+        for i in self.views:
+            x_i = np.load(join(self.data_dir, 'view_{0}_{1}.npy'.format(i, idx)))
+            x_i = torch.from_numpy(x_i).float()
+            x.append(x_i)
         return x
 
     def __len__(self):

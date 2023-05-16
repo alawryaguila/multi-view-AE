@@ -112,8 +112,8 @@ Trained models can be loaded from the specified path.
 
 .. code-block:: python
 
-   import torch
+   from multiviewae import mVAE
    from os.path import join
 
    #change the path below to your model path
-   mvae = torch.load(join('path/to/model', 'model.pkl'))
+   mvae = mVAE.load_from_checkpoint(join('path/to/model', 'model.ckpt'))

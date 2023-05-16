@@ -30,6 +30,10 @@ SUPPORTED_JOIN = [
             "Mean"
         ]
 
+SUPPORTED_DATASETS = ["datasets.ListMVDataset", 
+                      "datasets.MVDataset",
+                ]
+
 UNSUPPORTED_ENC_DIST = [
             "distributions.Bernoulli"
         ]
@@ -71,10 +75,15 @@ config_schema = Schema({
                         msg="model.join_type: unsupported or invalid join type"))
     },
     "datamodule": {
-        "_target_": "multiviewae.base.dataloaders.MultiviewDataModule",   
+        "_target_": Regex(r'[a-z]\DataModule$'),   
         "batch_size": Or(And(int, lambda x: x > 0), None),
         "is_validate": bool,
-        "train_size": And(float, lambda x: 0 < x < 1)
+        "train_size": And(float, lambda x: 0 < x < 1),
+        "dataset": {
+            "_target_" : eval(return_regexor(params=SUPPORTED_DATASETS,
+                            msg="dataset._target_: unsupported or invalid dataset")), 
+            Optional("data_dir"): str, 
+            Optional("views"): [And(int, lambda x: x >= 0)],}
     },
     "encoder": {
         "default": {
