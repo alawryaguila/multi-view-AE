@@ -9,18 +9,18 @@ tags:
   - Data generation
 authors:
   - name: Ana Lawry Aguila
-    orchid: 0000-0003-0727-3274
+    orcid: 0000-0003-0727-3274
     corresponding: true
     affiliation: 1
   - name: Alejandra Jayme
     affiliation: 2
   - name: Nina Montaña-Brown
-  - orchid: 0000-0001-5685-971X
+    orcid: 0000-0001-5685-971X
     affiliation: 1
   - name: Vincent Heuveline
     affiliation: 2
   - name: Andre Altmann
-    orchid: 0000-0002-9265-2393
+    orcid: 0000-0002-9265-2393
     affiliation: 1
 
 affiliations:
@@ -31,6 +31,7 @@ affiliations:
 date: 25 November 2022
 bibliography: paper.bib
 ---
+
 Often, data can be naturally described via multiple views or modalities. For example, we could consider an image and the corresponding text as different modalities. These modalities contain complementary information which can be modelled jointly using multi-view methods. The joint modelling of multiple modalities has been explored in many research fields such as medical imaging [@Serra2018], chemistry [@Sjostrom1983], and natural language processing [@Sadr2020]. 
 
 Autoencoders are unsupervised models which learn low dimensional latent representations of complex data. The autoencoder framework consists of two mappings; the encoder which embeds information from the input space into a latent space, and a decoder which transforms point estimates from the latent space back into in the input space. Autoencoders have been successful in downstream tasks such as classification [@Creswell2017], outlier detection [@An2015], and data generation [@Wei2020]. 
