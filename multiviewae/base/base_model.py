@@ -18,7 +18,6 @@ from omegaconf import OmegaConf, open_dict
 
 from .constants import *
 from .validation import config_schema
-from .datasets import MVDataset
 from .exceptions import *
 
 def update_dict(d, u, l):
@@ -122,28 +121,27 @@ class BaseModelAE(ABC, pl.LightningModule):
         self._setprior()
 
         # TODO: should this be in the end of instance init()?
-        
+        self.save_hyperparameters()
         self.create_folder(self.cfg.out_dir)
         self.save_config()
-        self.save_hyperparameters()
         
     ################################            public methods
-    def fit(self, *data, is_list=False, labels=None, max_epochs=None, batch_size=None):
+    def fit(self, *data, labels=None, max_epochs=None, batch_size=None):
 
         data = list(data)
-        if not is_list:
-            if not all(data_.shape[0] == data[0].shape[0] for data_ in data):
-                raise InputError('All modalities must have the same number of entries')
 
-            if not (len(data) == self.n_views):
-                raise InputError("number of modalities must be equal to number of views")
+        if not all(data_.shape[0] == data[0].shape[0] for data_ in data):
+            raise InputError('All modalities must have the same number of entries')
 
-            for i in range(self.n_views):
-                data_dim = data[i].shape[1:]
-                if len(data_dim) == 1:
-                    data_dim = data_dim[0]
-                if not (data_dim == self.input_dim[i]):
-                    raise InputError("modality's shape must be equal to corresponding input_dim's shape")
+        if not (len(data) == self.n_views):
+            raise InputError("number of modalities must be equal to number of views")
+
+        for i in range(self.n_views):
+            data_dim = data[i].shape[1:]
+            if len(data_dim) == 1:
+                data_dim = data_dim[0]
+            if not (data_dim == self.input_dim[i]):
+                raise InputError("modality's shape must be equal to corresponding input_dim's shape")
 
         self._training = True
         if max_epochs is not None:
@@ -159,8 +157,9 @@ class BaseModelAE(ABC, pl.LightningModule):
             self.batch_size = self.cfg.datamodule.batch_size
 
         callbacks = []
-        for _, cb_conf in self.cfg.callbacks.items():
-            callbacks.append(hydra.utils.instantiate(cb_conf))
+        if self.cfg.datamodule.is_validate:
+            for _, cb_conf in self.cfg.callbacks.items():
+                callbacks.append(hydra.utils.instantiate(cb_conf))
 
         logger = hydra.utils.instantiate(self.cfg.logger)
 
@@ -242,6 +241,7 @@ class BaseModelAE(ABC, pl.LightningModule):
 
     def on_train_end(self):
         self.trainer.save_checkpoint(join(self.cfg.out_dir, "model.ckpt"))
+        torch.save(self, join(self.cfg.out_dir, "model.pkl"))
 
     def configure_optimizers(self):
         optimizers = [
@@ -394,29 +394,27 @@ class BaseModelAE(ABC, pl.LightningModule):
             )
         return loss["loss"]
 
-    def __predict(self, *data, is_list=False, batch_size=None, is_recon=False):
+    def __predict(self, *data, batch_size=None, is_recon=False):
         self._training = False
 
         data = list(data)
-        if not is_list:
-            if not (len(data) == self.n_views):
-                raise InputError("number of modalities must be equal to number of views")
 
-            for i in range(self.n_views):
-                data_dim = data[i].shape[1:]
-                if len(data_dim) == 1:
-                    data_dim = data_dim[0]
-                if not (data_dim == self.input_dim[i]):
-                    raise InputError("modality's shape must be equal to corresponding input_dim's shape")
+        if not (len(data) == self.n_views):
+            raise InputError("number of modalities must be equal to number of views")
 
-        datamodule = hydra.utils.instantiate(
-           self.cfg.datamodule, data=data, labels=None, _recursive_=False
-        )
+        for i in range(self.n_views):
+            data_dim = data[i].shape[1:]
+            if len(data_dim) == 1:
+                data_dim = data_dim[0]
+            if not (data_dim == self.input_dim[i]):
+                raise InputError("modality's shape must be equal to corresponding input_dim's shape")
 
-        datamodule.setup(stage="test")
-        dataset = datamodule.train_dataset
+        dataset = MVDataset(data, labels=None) #TODO: make flexible
+
+        if batch_size is None:
+            batch_size = data[0].shape[0]
+
         generator = DataLoader(dataset, batch_size=batch_size, shuffle=False)
-        
         with torch.no_grad():
             z_ = None
             for batch_idx, local_batch in enumerate(generator):
