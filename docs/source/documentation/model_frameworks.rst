@@ -10,7 +10,7 @@ There is one vanilla multi-view autoencoder framework, the ``AE`` model. The rem
 
    .. 
    
-The figure below shows the adversarial and variational groupings of models within the ``multiviewAE`` framework.
+The figure below shows the adversarial and variational groupings of models within the ``multi-view-AE`` framework.
 
 .. figure:: ../../figures/model_type1.png
    :scale: 20 %
