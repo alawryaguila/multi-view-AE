@@ -11,7 +11,7 @@
 
 For more information on implemented models and how to use the package, please see the documentation at https://multi-view-ae.readthedocs.io/en/latest/
 
-### Installation
+## Installation
 Clone this repository and move to folder:
 ```bash
 git clone https://github.com/alawryaguila/multi-view-AE
@@ -33,5 +33,24 @@ Install the ``multi-view-AE`` package:
 pip install ./
 ```
 
-### Contribution guidelines
+## Citation
+If you have used `multi-view-AE` in your research, please consider citing our JOSS paper: 
+
+Aguila et al., (2023). Multi-view-AE: A Python package for multi-view autoencoder models. Journal of Open Source Software, 8(85), 5093, https://doi.org/10.21105/joss.05093
+
+Bibtex entry:
+```bibtex
+@article{Aguila2023, 
+doi = {10.21105/joss.05093}, 
+url = {https://doi.org/10.21105/joss.05093}, 
+year = {2023}, 
+publisher = {The Open Journal}, 
+volume = {8}, 
+number = {85}, 
+pages = {5093}, 
+author = {Ana Lawry Aguila and Alejandra Jayme and Nina Montaña-Brown and Vincent Heuveline and Andre Altmann}, 
+title = {Multi-view-AE: A Python package for multi-view autoencoder models}, journal = {Journal of Open Source Software} 
+}
+```
+## Contribution guidelines
 Contribution guidelines are available at https://multi-view-ae.readthedocs.io/en/latest/
