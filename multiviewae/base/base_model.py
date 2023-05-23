@@ -3,6 +3,7 @@ import numpy as np
 import hydra
 import re
 import collections.abc
+import omegaconf 
 
 import torch
 import pytorch_lightning as pl
@@ -19,6 +20,8 @@ from omegaconf import OmegaConf, open_dict
 from .constants import *
 from .validation import config_schema
 from .exceptions import *
+
+from ..architectures.mlp import ConditionalVariationalEncoder, ConditionalVariationalDecoder
 
 def update_dict(d, u, l):
     for k, v in u.items():
@@ -97,38 +100,19 @@ class BaseModelAE(ABC, pl.LightningModule):
                                 config_name=cfg,
                                 return_hydra_config=True
                             )
-
-
-        def_cfg = self.__updateconfig(def_cfg, user_cfg)
-
-        if self.z_dim is not None:   # overrides hydra config... passed arg has precedence
-            def_cfg.model.z_dim = self.z_dim
-
-
-        # validate model configuration
-        self.cfg = self.__checkconfig(def_cfg)
-
-        self.__dict__.update(self.cfg.model)
-
-        print("MODEL: ", self.model_name)
-        self.print_config() #TODO: put this in debug mode logging
-
-        if all(k in self.cfg.model for k in ["seed_everything", "seed"]):
-            pl.seed_everything(self.cfg.model.seed, workers=True)
-
-        self._setencoders()
-        self._setdecoders()
-        self._setprior()
-
-        self.create_folder(self.cfg.out_dir)
-        self.save_config()
+                    
+        self.__initcfg(def_cfg, user_cfg)
         self.save_hyperparameters()
 
     ################################            public methods
-    def fit(self, *data, is_list=False, labels=None, max_epochs=None, batch_size=None):
-
+    def fit(self, *data, labels=None, max_epochs=None, batch_size=None, cfg=None):
+        if cfg is not None:
+            new_cfg = omegaconf.OmegaConf.load(cfg)
+            self.__initcfg(self.cfg, new_cfg, at_fit=True)
+        
         data = list(data)
-        if not is_list:
+
+        if not self.is_index_ds:
             if not all(data_.shape[0] == data[0].shape[0] for data_ in data):
                 raise InputError('All modalities must have the same number of entries')
 
@@ -141,6 +125,12 @@ class BaseModelAE(ABC, pl.LightningModule):
                     data_dim = data_dim[0]
                 if not (data_dim == self.input_dim[i]):
                     raise InputError("modality's shape must be equal to corresponding input_dim's shape")
+
+        if any([isinstance(enc, ConditionalVariationalEncoder) for enc in self.encoders]) and labels is None: 
+            raise InputError("no labels given for Conditional VAE")
+
+        if any([isinstance(dec, ConditionalVariationalDecoder) for dec in self.decoders]) and labels is None: 
+            raise InputError("no labels given for Conditional VAE")
 
         self._training = True
         if max_epochs is not None:
@@ -171,15 +161,15 @@ class BaseModelAE(ABC, pl.LightningModule):
             self.cfg.trainer, callbacks=callbacks, logger=logger,
         )
         datamodule = hydra.utils.instantiate(
-           self.cfg.datamodule, data=data, labels=labels, _convert_="all", _recursive_=False
+           self.cfg.datamodule, n_views=self.n_views, data=data, labels=labels, _convert_="all", _recursive_=False
         )
         py_trainer.fit(self, datamodule)
 
-    def predict_latents(self, *data, batch_size=None, is_list=False):
-        return self.__predict(*data, batch_size=batch_size, is_list=is_list)
+    def predict_latents(self, *data, labels=None, batch_size=None):
+        return self.__predict(*data, labels=labels, batch_size=batch_size)
 
-    def predict_reconstruction(self, *data, batch_size=None, is_list=False):
-        return self.__predict(*data, batch_size=batch_size, is_list=is_list, is_recon=True)
+    def predict_reconstruction(self, *data, labels=None, batch_size=None):
+        return self.__predict(*data, labels=labels, batch_size=batch_size, is_recon=True)
 
     def print_config(self, cfg=None, keys=None):
         if cfg is None:
@@ -198,7 +188,7 @@ class BaseModelAE(ABC, pl.LightningModule):
             self.print_config(cfg=cfg, keys=CONFIG_KEYS)
 
     def save_config(self, keys=None):
-        run_time = datetime.now().strftime("%Y-%m-%d_%H%M")
+        run_time = datetime.now().strftime("%Y-%m-%d_%H%M%S")
         save_cfg = {}
         if keys is not None:
             for k in keys:
@@ -287,7 +277,58 @@ class BaseModelAE(ABC, pl.LightningModule):
             (self.model_name in VARIATIONAL_MODELS and not self.sparse):
             self.prior = hydra.utils.instantiate(self.cfg.prior)
 
+    def _unpack_batch(self, batch): # dataset returned other vars than x, need to unpack
+        if isinstance(batch[0], list): 
+            batch_x, batch_y, *other = batch
+        else: 
+            batch_x, batch_y, other = batch, None, None
+        return batch_x, batch_y, other 
+
+    def _set_batch_labels(self, labels): # for passing labels to encoder/decoder
+        for i in range(len(self.encoders)):
+            if isinstance(self.encoders[i], ConditionalVariationalEncoder):
+                self.encoders[i].set_labels(labels)
+
+        for i in range(len(self.decoders)):
+            if isinstance(self.decoders[i], ConditionalVariationalDecoder):
+                self.decoders[i].set_labels(labels)
+
+        if hasattr(self, "private") and hasattr(self, "private_encoders"): 
+            if self.private: 
+                for i in range(len(self.private_encoders)):
+                    if isinstance(self.private_encoders[i], ConditionalVariationalEncoder):
+                        self.private_encoders[i].set_labels(labels)
+
     ################################            private methods
+    def __initcfg(self, old_cfg, new_cfg, at_fit=False, is_print=True):        
+        updated_cfg = self.__updateconfig(old_cfg, new_cfg)
+
+        if not at_fit and self.z_dim is not None:   # overrides hydra config... passed arg has precedence
+            updated_cfg.model.z_dim = self.z_dim
+
+        self.cfg = self.__checkconfig(updated_cfg)
+
+        self.__dict__.update(self.cfg.model)
+
+        if is_print:
+            print("MODEL: ", self.model_name)
+            self.print_config() #TODO: put this in debug mode logging
+
+        if all(k in self.cfg.model for k in ["seed_everything", "seed"]):
+            pl.seed_everything(self.cfg.model.seed, workers=True)
+
+        if not at_fit or ("encoder" in new_cfg.keys()):
+            self._setencoders()
+
+        if not at_fit or ("decoder" in new_cfg.keys()):
+            self._setdecoders()
+
+        if not at_fit or ("prior" in new_cfg.keys()):
+            self._setprior()
+
+        self.create_folder(self.cfg.out_dir)
+        self.save_config()
+
     def __updateconfig(self, orig, update):
         OmegaConf.set_struct(orig, True)
         with open_dict(orig):
@@ -329,6 +370,12 @@ class BaseModelAE(ABC, pl.LightningModule):
         if self.model_name == MODEL_JMVAE and len(self.input_dim) != 2:
             raise InputError('JMVAE expects two len(input_dim) == 2')
 
+        pattern = re.compile(r'multiviewae\.base\.datasets\.IndexMVDataset')
+        if bool(pattern.match(cfg.datamodule.dataset._target_)):
+            self.is_index_ds = True
+        else:
+            self.is_index_ds = False
+
         pattern = re.compile(r'multiviewae\.architectures\..*\.Decoder')
         for k in cfg.decoder.keys():
             if eval(f"cfg.decoder.{k}.dec_dist._target_") in \
@@ -338,7 +385,7 @@ class BaseModelAE(ABC, pl.LightningModule):
                     raise ConfigError(f"{k}: must use non-variational Decoder if decoder dist is Default/Bernoulli.")
 
         if self.model_name in [MODEL_AE] + ADVERSARIAL_MODELS:
-            pattern1 = re.compile(r'multiviewae\.architectures\..*\.VariationalEncoder')
+            pattern1 = re.compile(r'multiviewae\.architectures\..*\.*VariationalEncoder')
             pattern2 = re.compile(r'multiviewae\.base\.distributions\..*Normal')
             for k in cfg.encoder.keys():
                 if bool(pattern1.match(eval(f"cfg.encoder.{k}._target_"))):
@@ -347,16 +394,29 @@ class BaseModelAE(ABC, pl.LightningModule):
                 if bool(pattern2.match(eval(f"cfg.encoder.{k}.enc_dist._target_"))):
                     raise ConfigError(f"{k}: must not use Normal/MultivariateNormal encoder dist for adversarial models")
 
+            pattern3 = re.compile(r'multiviewae\.architectures\..*\.*VariationalDecoder')
+            for k in cfg.decoder.keys():
+                if bool(pattern3.match(eval(f"cfg.decoder.{k}._target_"))):
+                    raise ConfigError(f"{k}: must use non-variational decoder for adversarial models.")
+
         if self.model_name in VARIATIONAL_MODELS:
             self.is_variational = True
 
-            pattern = re.compile(r'multiviewae\.architectures\..*\.VariationalEncoder')
+            pattern = re.compile(r'multiviewae\.architectures\..*\.*VariationalEncoder')
+            pattern1 = re.compile(r'multiviewae\.architectures\..*\.ConditionalVariational*')
             for k in cfg.encoder.keys():
                 if not bool(pattern.match(eval(f"cfg.encoder.{k}._target_"))):
                     raise ConfigError(f"{k}: must use variational encoder for variational models")
 
                 if cfg.prior._target_ != eval(f"cfg.encoder.{k}.enc_dist._target_"):
                     raise ConfigError('Encoder and prior must have the same distribution for variational models')
+                
+                if bool(pattern1.match(eval(f"cfg.encoder.{k}._target_"))) and "num_cat" not in eval(f"cfg.encoder.{k}"):
+                    raise ConfigError('Condtional Variational Encoder must have the num_cat attribute')
+
+            for k in cfg.decoder.keys():
+                if bool(pattern1.match(eval(f"cfg.decoder.{k}._target_"))) and "num_cat" not in eval(f"cfg.decoder.{k}"):
+                    raise ConfigError('Condtional Variational Decoder must have the num_cat attribute')
 
         if cfg.prior._target_ == "multiviewae.base.distributions.Normal":
             if not isinstance(cfg.prior.loc, (int, float)):
@@ -385,19 +445,28 @@ class BaseModelAE(ABC, pl.LightningModule):
         return cfg
 
     def __step(self, batch, batch_idx, stage):
-        fwd_return = self.forward(batch)
-        loss = self.loss_function(batch, fwd_return)
+        batch_x, batch_y, other = self._unpack_batch(batch)
+        self._set_batch_labels(batch_y)
+                
+        fwd_return = self.forward(batch_x)
+        loss = self.loss_function(batch_x, fwd_return)
         for loss_n, loss_val in loss.items():
             self.log(
                 f"{stage}_{loss_n}", loss_val, on_epoch=True, prog_bar=True, logger=True
             )
         return loss["loss"]
 
-    def __predict(self, *data, is_list=False, batch_size=None, is_recon=False):
+    def __predict(self, *data, labels=None, batch_size=None, is_recon=False):
+        if any([isinstance(enc, ConditionalVariationalEncoder) for enc in self.encoders]) and labels is None: 
+            raise InputError("no labels given for Conditional VAE")
+
+        if any([isinstance(dec, ConditionalVariationalDecoder) for dec in self.decoders]) and labels is None: 
+            raise InputError("no labels given for Conditional VAE")
+        
         self._training = False
 
         data = list(data)
-        if not is_list:
+        if not self.is_index_ds:
             if not (len(data) == self.n_views):
                 raise InputError("number of modalities must be equal to number of views")
 
@@ -408,9 +477,9 @@ class BaseModelAE(ABC, pl.LightningModule):
                 if not (data_dim == self.input_dim[i]):
                     raise InputError("modality's shape must be equal to corresponding input_dim's shape")
 
-        dataset = hydra.utils.instantiate(self.cfg.datamodule.dataset, data)
+        dataset = hydra.utils.instantiate(self.cfg.datamodule.dataset, data=data, labels=labels, n_views=self.n_views)
         if batch_size is None:
-            if is_list:
+            if self.is_index_ds:
                 batch_size = len(data[0])
             else:
                 batch_size = data[0].shape[0]
@@ -420,10 +489,13 @@ class BaseModelAE(ABC, pl.LightningModule):
         with torch.no_grad():
             z_ = None
             for batch_idx, local_batch in enumerate(generator):
-                local_batch = [
-                    local_batch_.to(self.device) for local_batch_ in local_batch
+                local_batchx, local_batchy, _ = self._unpack_batch(local_batch)
+                self._set_batch_labels(local_batchy)
+
+                local_batchx = [
+                    local_batchx_.to(self.device) for local_batchx_ in local_batchx
                 ]
-                z = self.encode(local_batch)
+                z = self.encode(local_batchx)
                 if self.sparse:
                     z = self.apply_threshold(z)
                 if is_recon:
@@ -595,7 +667,10 @@ class BaseModelAAE(BaseModelAE):
 
     ################################            LightningModule methods
     def training_step(self, batch, batch_idx):
-        loss = self.__optimise_batch(batch)
+        batch_x, batch_y, other = self._unpack_batch(batch)
+        self._set_batch_labels(batch_y)
+
+        loss = self.__optimise_batch(batch_x)
         for loss_n, loss_val in loss.items():
             self.log(
                 f"train_{loss_n}", loss_val, on_epoch=True, prog_bar=True, logger=True
@@ -603,7 +678,10 @@ class BaseModelAAE(BaseModelAE):
         return loss["loss"]
 
     def validation_step(self, batch, batch_idx):
-        loss = self.__validate_batch(batch)
+        batch_x, batch_y, other = self._unpack_batch(batch)
+        self._set_batch_labels(batch_y)
+
+        loss = self.__validate_batch(batch_x)
         for loss_n, loss_val in loss.items():
             self.log(
                 f"val_{loss_n}", loss_val, on_epoch=True, prog_bar=True, logger=True
@@ -702,38 +780,4 @@ class BaseModelAAE(BaseModelAE):
             }
         return loss
 
-################################################################################
-# TODO: use this
-class BaseEncoder(pl.LightningModule):
 
-    def __init__(self, **kwargs):
-         super().__init__()
-         self.save_hyperparameters()
-
-    @abstractmethod
-    def forward(self, x):
-        pass
-        # raise NotImplementedError()
-
-    def training_step(self, batch, batch_idx, optimizer_idx):
-        raise NotImplementedError()
-
-    def configure_optimizers(self):
-        raise NotImplementedError()
-
-class BaseDecoder(pl.LightningModule):
-
-    def __init__(self, **kwargs):
-         super().__init__()
-         self.model_name = 'BaseDecoder'
-         self.save_hyperparameters()
-
-    @abstractmethod
-    def forward(self, z):
-        raise NotImplementedError()
-
-    def training_step(self, batch, batch_idx, optimizer_idx):
-        raise NotImplementedError()
-
-    def configure_optimizers(self):
-        raise NotImplementedError()

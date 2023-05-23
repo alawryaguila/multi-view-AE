@@ -6,7 +6,7 @@ defaults:
   - _self_
   - model_type: null
 
-out_dir: ${hydra.runtime.cwd}/outputs/${model_name}/${now:%Y-%m-%d_%H%M}
+out_dir: ${hydra.runtime.cwd}/outputs/${model_name}/${now:%Y-%m-%d_%H%M%S}
 
 hydra:
   # TODO: this does not work... I want to save yaml files, i think it is not enabled when using initialize/compose
