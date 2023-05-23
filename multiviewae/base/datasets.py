@@ -18,10 +18,11 @@ class MVDataset(Dataset):
         return_index (bool): Whether to return batch index labels.
         transform (torchvision.transforms): Torchvision transformation to apply to the data. Default is None.
     """
-    def __init__(self, data, labels=None, return_index=False, transform=None):
+    def __init__(self, data, n_views, labels=None, return_index=False, transform=None):
 
         self.data = data
         self.labels = labels
+        self.n_views = n_views
         self.return_index = return_index
         self.transform = transform
 
@@ -55,17 +56,15 @@ class MVDataset(Dataset):
     def __len__(self):
         return self.N
 
-class ListMVDataset(Dataset):
+class IndexMVDataset(Dataset):
 
-    def __init__(self, 
-                data, 
-                labels=None,
-                data_dir='',
-                views=[0, 1]
-                ):
+    def __init__(self, data, n_views, labels=None, filename="", data_dir=''):
         self.N = len(data[0]) 
-        self.views = views
+        self.n_views = n_views
+
+        self.filename = filename
         self.data_dir = data_dir
+        
         self.data = data[0]
         self.labels = labels
 
@@ -78,11 +77,13 @@ class ListMVDataset(Dataset):
         """
         x = []
         idx = self.data[index]
-        for i in self.views:
-            x_i = np.load(join(self.data_dir, 'view_{0}_{1}.npy'.format(i, idx)))
+        for i in range(self.n_views):
+            x_i = np.load(join(self.data_dir, self.filename.format(i, idx)))
             x_i = torch.from_numpy(x_i).float()
             x.append(x_i)
         return x
 
     def __len__(self):
         return self.N
+    
+
