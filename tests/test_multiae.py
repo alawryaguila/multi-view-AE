@@ -384,8 +384,8 @@ def test_fitconfig():
             else:
                 model1 = class_(input_dim=dim)
 
-            model1.fit(*train_data, cfg=new_cfg)
-            model1.fit(*train_data, max_epochs=5, batch_size=10, cfg=new_cfg)
+            model1.fit(*train_data, cfg=abspath(join(dirname( __file__ ), new_cfg)))
+            model1.fit(*train_data, max_epochs=5, batch_size=10, cfg=abspath(join(dirname( __file__ ), new_cfg)))
 
             print("RESULTS: ", m)
             latent = model1.predict_latents(*test_data)
