@@ -1,11 +1,12 @@
 import os
 import numpy as np
 import torch
+import random
 import importlib
+
 from multiviewae import *
 from os.path import abspath, dirname, join
 from torchvision import datasets, transforms
-import random
 
 def print_results(key, res, idx=0):
     """Function to print the model results.
@@ -283,14 +284,30 @@ def test_model_loading():
     """
     train_1 = np.random.rand(200, 20)
     train_2 = np.random.rand(200, 10)
-    model = mcVAE(input_dim=[20,10])
-    model.fit(train_1, train_2, max_epochs=1, batch_size=200)
-    loaded_model = mcVAE.load_from_checkpoint(join(model.cfg.out_dir, "last.ckpt"))
-    recon = loaded_model.predict_reconstruction(train_1, train_2)
-    loaded_model = mcVAE.load_from_checkpoint(join(model.cfg.out_dir, "model.ckpt"))
-    recon = loaded_model.predict_reconstruction(train_1, train_2)
 
-def test_list_dataloader():
+    tests = {
+            "": [[20,10], MODELS],
+            }
+    module = importlib.import_module("multiviewae")
+    for cfg, [dim, models] in tests.items():
+        for m in models:
+            class_ = getattr(module, m)
+            if len(cfg) != 0:
+                model = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=dim)
+            else: 
+                model = class_(input_dim=dim)
+            
+            model.fit(train_1, train_2, max_epochs=1, batch_size=200)
+
+            print("RESULTS: ", m)
+            loaded_model = class_.load_from_checkpoint(join(model.cfg.out_dir, "last.ckpt"))
+            recon = loaded_model.predict_reconstruction(train_1, train_2)
+            print_results("recon last.ckpt", recon)
+            loaded_model = class_.load_from_checkpoint(join(model.cfg.out_dir, "model.ckpt"))
+            recon = loaded_model.predict_reconstruction(train_1, train_2)
+            print_results("recon model.ckpt", recon)  
+
+def test_index_dataloader():
     """
     Create synthetic dataset and save each sample to npy. Test the ability to load the data using the ListMVDataset and ListDataModule classes.
     """
@@ -314,12 +331,123 @@ def test_list_dataloader():
     train_idx = list(random.sample(range(200), int(200 * 0.8)))
     test_idx = list(set(list(range(200))) -  set(train_idx))
 
-    model = mcVAE(input_dim=[20,10], cfg=abspath(join(dirname( __file__ ), "user_config/dataloader.yaml")))
-    model.cfg.datamodule.dataset.data_dir = path
+    tests = {
+            "./user_config/dataloader.yaml" : [[20, 10], MODELS],
+            }
+    module = importlib.import_module("multiviewae")
+    for cfg, [dim, models] in tests.items():
+        for m in models:
+            class_ = getattr(module, m)
+            model = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=dim)
+            model.cfg.datamodule.dataset.data_dir = path
 
-    model.fit(train_idx, max_epochs=1, batch_size=200, is_list=True)
-    latent = model.predict_latents(test_idx, is_list=True)
-    recon = model.predict_reconstruction(test_idx, is_list=True)
+            model.fit(train_idx, max_epochs=1, batch_size=200)
+
+            print("RESULTS: ", m)
+            latent = model.predict_latents(test_idx)
+            print_results("latent", latent)
+            recon = model.predict_reconstruction(test_idx)
+            print_results("recon", recon)
+
+def test_fitconfig(): 
+    """
+    Tests setting config file during fit().
+    """
+    train_n = 200
+    test_n = 50
+
+    module = importlib.import_module("multiviewae")
+
+    tests = {
+            "" : ["./user_config/config_aae.yaml", [10, 10], [MODEL_AE] + ADVERSARIAL_MODELS],  
+            "./user_config/config_aae.yaml" : ["./user_config/fit_config_aae.yaml", [10, 10], [MODEL_AE] + ADVERSARIAL_MODELS], 
+            "" : ["./user_config/config_vae.yaml", [10, 10], VARIATIONAL_MODELS], 
+            "./user_config/config_vae.yaml" : ["./user_config/fit_config_vae.yaml", [10, 10], VARIATIONAL_MODELS], 
+            }
+
+    module = importlib.import_module("multiviewae")
+    for cfg, [new_cfg, dim, models] in tests.items():
+        train_data = []
+        test_data = []
+        for d in dim:
+            if isinstance(d, int):
+                train_data.append(np.random.rand(train_n, d))
+                test_data.append(np.random.rand(test_n, d))
+            else:
+                train_data.append(np.random.rand(train_n, *d))
+                test_data.append(np.random.rand(test_n, *d))
+
+        for m in models:
+            class_ = getattr(module, m)
+            if len(cfg) != 0:
+                model1 = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=dim)
+            else:
+                model1 = class_(input_dim=dim)
+
+            model1.fit(*train_data, cfg=abspath(join(dirname( __file__ ), new_cfg)))
+            model1.fit(*train_data, max_epochs=5, batch_size=10, cfg=abspath(join(dirname( __file__ ), new_cfg)))
+
+            print("RESULTS: ", m)
+            latent = model1.predict_latents(*test_data)
+            print_results("latent", latent)
+            recon = model1.predict_reconstruction(*test_data)
+            print_results("recon", recon)
+
+            latent = model1.predict_latents(*test_data, batch_size=10)
+            print_results("latent", latent)
+            recon = model1.predict_reconstruction(*test_data, batch_size=5)
+            print_results("recon", recon)
+
+def test_conditionalVAE(): 
+    """
+    Tests conditional variational encoder/decoders.
+    """
+    train_n = 200
+    test_n = 50
+    num_cat = 3
+
+    module = importlib.import_module("multiviewae")
+
+    tests = {
+            "" : [[10, 12], MODELS],         
+            "./user_config/condae.yaml" : [[10, 12], VARIATIONAL_MODELS],  
+            }
+
+    module = importlib.import_module("multiviewae")
+    for cfg, [dim, models] in tests.items():
+        train_data = []
+        test_data = []
+        for d in dim:
+            if isinstance(d, int):
+                train_data.append(np.random.rand(train_n, d))
+                test_data.append(np.random.rand(test_n, d))
+            else:
+                train_data.append(np.random.rand(train_n, *d))
+                test_data.append(np.random.rand(test_n, *d))
+        train_y = np.random.randint(num_cat, size=train_n)
+        test_y = np.random.randint(num_cat, size=test_n )
+
+        for m in models:
+            class_ = getattr(module, m)
+            if len(cfg) != 0:
+                model1 = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=dim)
+            else:
+                model1 = class_(input_dim=dim)
+
+            model1.fit(*train_data, labels=train_y) 
+            model1.fit(*train_data, labels=train_y, max_epochs=5, batch_size=10)
+
+            print("RESULTS: ", m)
+            latent = model1.predict_latents(*test_data, labels=test_y)
+            print_results("latent", latent)
+            recon = model1.predict_reconstruction(*test_data, labels=test_y)
+            print_results("recon", recon)
+
+            latent = model1.predict_latents(*test_data, labels=test_y, batch_size=10)
+            print_results("latent", latent)
+            recon = model1.predict_reconstruction(*test_data, labels=test_y, batch_size=5)
+            print_results("recon", recon)
+
 
 if __name__ == "__main__":
     test_models()
@@ -328,4 +456,6 @@ if __name__ == "__main__":
     test_validation()
     test_architectures()
     test_model_loading()
-    test_list_dataloader()
+    test_index_dataloader()
+    test_fitconfig()
+    test_conditionalVAE()

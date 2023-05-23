@@ -3,6 +3,7 @@ from schema import Schema, And, Or, Optional, SchemaError, Regex
 SUPPORTED_ENCODERS = [
             "mlp.Encoder",
             "mlp.VariationalEncoder",
+            "mlp.ConditionalVariationalEncoder",
             "cnn.Encoder",
             "cnn.VariationalEncoder"
         ]
@@ -10,6 +11,7 @@ SUPPORTED_ENCODERS = [
 SUPPORTED_DECODERS = [
             "mlp.Decoder",
             "mlp.VariationalDecoder",
+            "mlp.ConditionalVariationalDecoder",
             "cnn.Decoder"
         ]
 
@@ -30,8 +32,8 @@ SUPPORTED_JOIN = [
             "Mean"
         ]
 
-SUPPORTED_DATASETS = ["datasets.ListMVDataset", 
-                      "datasets.MVDataset",
+SUPPORTED_DATASETS = ["datasets.MVDataset",
+                      "datasets.IndexMVDataset",
                 ]
 
 UNSUPPORTED_ENC_DIST = [
@@ -95,6 +97,7 @@ config_schema = Schema({
             },
             "bias": bool,
             "non_linear": bool,
+            Optional("num_cat"): And(int, lambda x: x > 1),
             "enc_dist": {
                     "_target_": eval(return_regexor(params=list_sub(SUPPORTED_DISTRIBUTIONS, UNSUPPORTED_ENC_DIST),
                             msg="encoder.enc_dist._target_: unsupported or invalid encoder distribution"))
@@ -109,6 +112,7 @@ config_schema = Schema({
             },
             "bias": bool,
             "non_linear": bool,
+            Optional("num_cat"): And(int, lambda x: x > 1),
             "enc_dist": {
                     "_target_": eval(return_regexor(params=list_sub(SUPPORTED_DISTRIBUTIONS, UNSUPPORTED_ENC_DIST),
                             msg="encoder.enc_dist._target_: unsupported or invalid encoder distribution"))
@@ -125,6 +129,7 @@ config_schema = Schema({
             },
             "bias": bool,
             "non_linear": bool,
+            Optional("num_cat"): And(int, lambda x: x > 1),
             Optional("init_logvar"): Or(int, float),
             "dec_dist": {
                     "_target_": eval(return_regexor(params=SUPPORTED_DISTRIBUTIONS,
@@ -140,6 +145,7 @@ config_schema = Schema({
             },
             "bias": bool,
             "non_linear": bool,
+            Optional("num_cat"): And(int, lambda x: x > 1),
             Optional("init_logvar"): Or(int, float),
             "dec_dist": {
                     "_target_": eval(return_regexor(params=SUPPORTED_DISTRIBUTIONS,

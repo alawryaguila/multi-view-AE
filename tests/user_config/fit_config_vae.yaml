@@ -1,0 +1,32 @@
+model:
+  seed: 100
+  
+encoder:
+  default:
+    _target_: multiviewae.architectures.mlp.VariationalEncoder
+
+    hidden_layer_dim: [20, 10]
+    non_linear: False
+
+    enc_dist:
+      _target_: multiviewae.base.distributions.Normal
+
+  enc0:
+    _target_: multiviewae.architectures.mlp.VariationalEncoder
+
+    hidden_layer_dim: [12, 18]
+    non_linear: False
+
+    enc_dist:
+      _target_: multiviewae.base.distributions.Normal
+
+decoder:
+  default:
+    _target_: multiviewae.architectures.mlp.VariationalDecoder
+
+    hidden_layer_dim: [10, 5]
+    non_linear: False
+    init_logvar: -3
+
+    dec_dist:
+      _target_: multiviewae.base.distributions.Normal

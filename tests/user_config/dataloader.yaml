@@ -1,13 +1,13 @@
 # @package _global_
 
 datamodule:
-  _target_: multiviewae.base.dataloaders.ListDataModule
+  _target_: multiviewae.base.dataloaders.IndexDataModule
 
   batch_size: null
   is_validate: True
   train_size: 0.9
 
   dataset:
-    _target_: multiviewae.base.datasets.ListMVDataset
+    _target_: multiviewae.base.datasets.IndexMVDataset
     data_dir: './data/synthetic'
-    views: [0, 1]
+    filename: "view_{0}_{1}.npy"
