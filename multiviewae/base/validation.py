@@ -95,8 +95,8 @@ config_schema = Schema({
             Optional(Regex(r'^layer\d$')) : {
                 "layer": str, 
             },
-            "bias": bool,
-            "non_linear": bool,
+            Optional("bias"): bool,
+            Optional("non_linear"): bool,
             Optional("num_cat"): And(int, lambda x: x > 1),
             "enc_dist": {
                     "_target_": eval(return_regexor(params=list_sub(SUPPORTED_DISTRIBUTIONS, UNSUPPORTED_ENC_DIST),
@@ -110,8 +110,8 @@ config_schema = Schema({
             Optional(Regex(r'^layer\d$')) : {
                 "layer": str, 
             },
-            "bias": bool,
-            "non_linear": bool,
+            Optional("bias"): bool,
+            Optional("non_linear"): bool,
             Optional("num_cat"): And(int, lambda x: x > 1),
             "enc_dist": {
                     "_target_": eval(return_regexor(params=list_sub(SUPPORTED_DISTRIBUTIONS, UNSUPPORTED_ENC_DIST),
@@ -127,8 +127,8 @@ config_schema = Schema({
             Optional(Regex(r'^layer\d$')) : {
                 "layer": str, 
             },
-            "bias": bool,
-            "non_linear": bool,
+            Optional("bias"): bool,
+            Optional("non_linear"): bool,
             Optional("num_cat"): And(int, lambda x: x > 1),
             Optional("init_logvar"): Or(int, float),
             "dec_dist": {
@@ -143,8 +143,8 @@ config_schema = Schema({
             Optional(Regex(r'^layer\d$')) : {
                 "layer": str, 
             },
-            "bias": bool,
-            "non_linear": bool,
+            Optional("bias"): bool,
+            Optional("non_linear"): bool,
             Optional("num_cat"): And(int, lambda x: x > 1),
             Optional("init_logvar"): Or(int, float),
             "dec_dist": {
@@ -157,8 +157,8 @@ config_schema = Schema({
         "_target_" : eval(return_regexor(params=SUPPORTED_DISCRIMINATORS,
                         msg="discriminator._target_: unsupported or invalid discriminator")),
         "hidden_layer_dim": [And(int, lambda x: x > 0)],
-        "bias": bool,
-        "non_linear": bool,
+        Optional("bias"): bool,
+        Optional("non_linear"): bool,
         "dropout_threshold": Or(0, And(float, lambda x: 0 < x < 1))
     },
     "prior": {

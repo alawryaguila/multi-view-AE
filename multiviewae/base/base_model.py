@@ -376,7 +376,7 @@ class BaseModelAE(ABC, pl.LightningModule):
         else:
             self.is_index_ds = False
 
-        pattern = re.compile(r'multiviewae\.architectures\..*\.Decoder')
+        pattern = re.compile(r'..*\.Decoder')
         for k in cfg.decoder.keys():
             if eval(f"cfg.decoder.{k}.dec_dist._target_") in \
             ["multiviewae.base.distributions.Default", \
@@ -385,7 +385,7 @@ class BaseModelAE(ABC, pl.LightningModule):
                     raise ConfigError(f"{k}: must use non-variational Decoder if decoder dist is Default/Bernoulli.")
 
         if self.model_name in [MODEL_AE] + ADVERSARIAL_MODELS:
-            pattern1 = re.compile(r'multiviewae\.architectures\..*\.*VariationalEncoder')
+            pattern1 = re.compile(r'..*\.*VariationalEncoder')
             pattern2 = re.compile(r'multiviewae\.base\.distributions\..*Normal')
             for k in cfg.encoder.keys():
                 if bool(pattern1.match(eval(f"cfg.encoder.{k}._target_"))):
@@ -394,7 +394,7 @@ class BaseModelAE(ABC, pl.LightningModule):
                 if bool(pattern2.match(eval(f"cfg.encoder.{k}.enc_dist._target_"))):
                     raise ConfigError(f"{k}: must not use Normal/MultivariateNormal encoder dist for adversarial models")
 
-            pattern3 = re.compile(r'multiviewae\.architectures\..*\.*VariationalDecoder')
+            pattern3 = re.compile(r'..*\.*VariationalDecoder')
             for k in cfg.decoder.keys():
                 if bool(pattern3.match(eval(f"cfg.decoder.{k}._target_"))):
                     raise ConfigError(f"{k}: must use non-variational decoder for adversarial models.")
@@ -402,8 +402,8 @@ class BaseModelAE(ABC, pl.LightningModule):
         if self.model_name in VARIATIONAL_MODELS:
             self.is_variational = True
 
-            pattern = re.compile(r'multiviewae\.architectures\..*\.*VariationalEncoder')
-            pattern1 = re.compile(r'multiviewae\.architectures\..*\.ConditionalVariational*')
+            pattern = re.compile(r'..*\.*VariationalEncoder')
+            pattern1 = re.compile(r'..*\.ConditionalVariational*')
             for k in cfg.encoder.keys():
                 if not bool(pattern.match(eval(f"cfg.encoder.{k}._target_"))):
                     raise ConfigError(f"{k}: must use variational encoder for variational models")
