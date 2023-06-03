@@ -25,6 +25,7 @@ schema = "*"
 numpy = "*"
 matplotlib = "*"
 ordereddict = "*"
+pytest-cov = "*"
 
 [build-system]
 requires = ["poetry-core", "setuptools ~= 58.0"]
