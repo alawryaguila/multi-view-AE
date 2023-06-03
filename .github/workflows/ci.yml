@@ -35,7 +35,7 @@ jobs:
         pip install ./
 
     - name: Run Test
-      run: pytest
+      run: pytest --cache-clear
       
     - name: Generate Report
       run: |
