@@ -9,4 +9,3 @@ matplotlib
 hydra-core
 schema
 ordereddict
-pytest-cov
