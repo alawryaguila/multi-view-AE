@@ -39,7 +39,7 @@ jobs:
       run: pytest --cov-report=xml
         
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v1
       if: ${{ matrix.os == 'ubuntu-latest' && matrix.python-version == '3.7' }}
       with: 
         token: ${{ secrets.CODECOV_TOKEN }}
