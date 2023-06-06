@@ -45,7 +45,7 @@ def test_models():
         print('MODEL CLASS')
         print(m)
         class_ = getattr(module, m)
-        if m not in [MODEL_JMVAE]: #JMVAE only designed for 2 views of data
+        if m not in [MODEL_JMVAE, MODEL_VAEBARLOW, MODEL_AEBARLOW]: #JMVAE only designed for 2 views of data
             model1 = class_(input_dim=[20])
             model1.fit(train_1) #fit model with 1 view
             model1.fit(train_1, max_epochs=5, batch_size=10) #fit using user specified max_epochs and batch size

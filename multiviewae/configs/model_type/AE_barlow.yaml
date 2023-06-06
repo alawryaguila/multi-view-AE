@@ -1,0 +1,7 @@
+# @package _global_
+
+# default parameters for AE model with barlow twins loss
+model_name: "AE_barlow"
+
+model:
+  alpha: 1

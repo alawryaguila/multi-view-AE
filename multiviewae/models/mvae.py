@@ -16,11 +16,11 @@ class mVAE(BaseModelVAE):
             - model.join_type (str): Method of combining encoding distributions.       
             - model.sparse (bool): Whether to enforce sparsity of the encoding distribution.
             - model.threshold (float): Dropout threshold applied to the latent dimensions. Default is 0.
-            - encoder.default._target_ (multiae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
-            - encoder.default.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
-            - decoder.default._target_ (multiae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
+            - encoder.default._target_ (multiviewae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
+            - encoder.default.enc_dist._target_ (multiae.base.distributions.Normal, multiviewae.base.distributions.MultivariateNormal): Encoding distribution.
+            - decoder.default._target_ (multiviewae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
             - decoder.default.init_logvar (int, float): Initial value for log variance of decoder.
-            - decoder.default.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
+            - decoder.default.dec_dist._target_ (multiviewae.base.distributions.Normal, multiviewae.base.distributions.MultivariateNormal): Decoding distribution.
         
         input_dim (list): Dimensionality of the input data.
         z_dim (int): Number of latent dimensions.
@@ -115,7 +115,7 @@ class mVAE(BaseModelVAE):
             kl = qz_x[0].sparse_kl_divergence().mean(0).sum()
         else:
             kl = qz_x[0].kl_divergence(self.prior).mean(0).sum()
-        return self.beta * kl
+        return kl
 
     def calc_ll(self, x, px_zs):
         r"""Calculate log-likelihood loss.
@@ -148,6 +148,6 @@ class mVAE(BaseModelVAE):
         kl = self.calc_kl(qz_x)
         ll = self.calc_ll(x, px_zs)
 
-        total = kl - ll
+        total = self.beta*kl - ll
         losses = {"loss": total, "kl": kl, "ll": ll}
         return losses
