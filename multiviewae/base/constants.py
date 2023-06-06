@@ -13,6 +13,9 @@ MODEL_MVTCAE    = "mvtCAE"
 MODEL_DVCCA     = "DVCCA"
 MODEL_MOPOEVAE  = "MoPoEVAE"
 MODEL_MMJSD     = "mmJSD"
+MODEL_WEIGHTEDMVAE = "weighted_mVAE"
+MODEL_VAEBARLOW = "VAE_barlow"
+MODEL_AEBARLOW  = "AE_barlow"
 MODELS = [
             MODEL_AE,
             MODEL_AAE,
@@ -26,7 +29,10 @@ MODELS = [
             MODEL_MVTCAE,
             MODEL_DVCCA,
             MODEL_MOPOEVAE,
-            MODEL_MMJSD
+            MODEL_MMJSD,
+            MODEL_WEIGHTEDMVAE,
+            MODEL_VAEBARLOW,
+            MODEL_AEBARLOW
         ]
 
 ADVERSARIAL_MODELS = [
@@ -44,7 +50,9 @@ VARIATIONAL_MODELS = [
             MODEL_MVTCAE,
             MODEL_DVCCA,
             MODEL_MOPOEVAE,
-            MODEL_MMJSD
+            MODEL_MMJSD,
+            MODEL_WEIGHTEDMVAE,
+            MODEL_VAEBARLOW
         ]
 
 SPARSE_MODELS = [

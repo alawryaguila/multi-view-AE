@@ -59,7 +59,6 @@ class AE(BaseModelAE):
         Returns:
             fwd_rtn (dict): dictionary containing list of data reconstructions (x_recon) and latent dimensions (z).
         """
-        self.zero_grad()
         z = self.encode(x)
         x_recon = self.decode(z)
         fwd_rtn = {"x_recon": x_recon, "z": z}

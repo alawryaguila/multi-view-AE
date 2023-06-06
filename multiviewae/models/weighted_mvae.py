@@ -1,23 +1,22 @@
 import torch
 import hydra
 
-from ..base.constants import MODEL_MVAE
+from ..base.constants import MODEL_WEIGHTEDMVAE
 from ..base.base_model import BaseModelVAE
-from ..base.representations import ProductOfExperts, MeanRepresentation
+from ..base.representations import weightedProductOfExperts
 
-class mVAE(BaseModelVAE):
+class weighted_mVAE(BaseModelVAE):
     r"""
-    Multimodal Variational Autoencoder (MVAE).
+    Generalised Product-of-Experts Variational Autoencoder (gPoE-MVAE).
 
     Args:
         cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
             
             - model.beta (int, float): KL divergence weighting term.
-            - model.join_type (str): Method of combining encoding distributions.       
             - model.sparse (bool): Whether to enforce sparsity of the encoding distribution.
             - model.threshold (float): Dropout threshold applied to the latent dimensions. Default is 0.
             - encoder.default._target_ (multiviewae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
-            - encoder.default.enc_dist._target_ (multiae.base.distributions.Normal, multiviewae.base.distributions.MultivariateNormal): Encoding distribution.
+            - encoder.default.enc_dist._target_ (multiviewae.base.distributions.Normal, multiviewae.base.distributions.MultivariateNormal): Encoding distribution.
             - decoder.default._target_ (multiviewae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
             - decoder.default.init_logvar (int, float): Initial value for log variance of decoder.
             - decoder.default.dec_dist._target_ (multiviewae.base.distributions.Normal, multiviewae.base.distributions.MultivariateNormal): Decoding distribution.
@@ -27,7 +26,8 @@ class mVAE(BaseModelVAE):
 
     References
     ----------
-    Wu, M., & Goodman, N.D. (2018). Multimodal Generative Models for Scalable Weakly-Supervised Learning. NeurIPS.
+    Cao, Y., & Fleet, D. (2014). Generalized Product of Experts for Automatic and Principled Fusion of Gaussian Process Predictions. arXiv.
+    Lawry Aguila, A., Chapman, J., Altmann, A. (2023). Multi-modal Variational Autoencoders for normative modelling across multiple imaging modalities. arXiv
 
     """
 
@@ -37,18 +37,17 @@ class mVAE(BaseModelVAE):
         input_dim = None,
         z_dim = None
     ):
-        super().__init__(model_name=MODEL_MVAE,
+        super().__init__(model_name=MODEL_WEIGHTEDMVAE,
                         cfg=cfg,
                         input_dim=input_dim,
                         z_dim=z_dim)
 
-        self.join_type = self.cfg.model.join_type
-        if self.join_type == "PoE":
-            self.join_z = ProductOfExperts()
-        elif self.join_type == "Mean":
-            self.join_z = MeanRepresentation()
-        
+        self.join_z = weightedProductOfExperts()
 
+        tmp_weight = torch.FloatTensor(len(input_dim), self.z_dim).fill_(1/len(input_dim))
+        self.poe_weight = torch.nn.Parameter(data=tmp_weight, requires_grad=True)
+
+    
     def encode(self, x):
         r"""Forward pass through encoder networks.
 
@@ -66,10 +65,12 @@ class mVAE(BaseModelVAE):
             logvar.append(logvar_)
         mu = torch.stack(mu)
         logvar = torch.stack(logvar)
-        mu_out, logvar_out = self.join_z(mu, logvar)
+        mu_out, logvar_out = self.join_z(mu, logvar, self.poe_weight)
         qz_x = hydra.utils.instantiate(
             self.cfg.encoder.default.enc_dist, loc=mu_out, scale=logvar_out.exp().pow(0.5)
         )
+        with torch.no_grad():
+            self.poe_weight = self.poe_weight.clamp_(0, +1)
         return [qz_x]
 
     def decode(self, qz_x):
@@ -106,16 +107,13 @@ class mVAE(BaseModelVAE):
         r"""Calculate KL-divergence loss.
 
         Args:
-            qz_xs (list): Single element list containing joint encoding distribution.
+            qz_x (list): Single element list containing joint encoding distribution.
 
         Returns:
             (torch.Tensor): KL-divergence loss.
         """
-        if self.sparse:
-            kl = qz_x[0].sparse_kl_divergence().mean(0).sum()
-        else:
-            kl = qz_x[0].kl_divergence(self.prior).mean(0).sum()
-        return kl
+        kl = qz_x[0].kl_divergence(self.prior).mean(0).sum()
+        return self.beta * kl
 
     def calc_ll(self, x, px_zs):
         r"""Calculate log-likelihood loss.
@@ -148,6 +146,20 @@ class mVAE(BaseModelVAE):
         kl = self.calc_kl(qz_x)
         ll = self.calc_ll(x, px_zs)
 
-        total = self.beta*kl - ll
+        total = kl - ll
         losses = {"loss": total, "kl": kl, "ll": ll}
         return losses
+
+    def configure_optimizers(self):
+        optimizers = [
+            torch.optim.Adam(
+                list(self.encoders[i].parameters())
+                + list(self.decoders[i].parameters()), 
+                lr=self.learning_rate,
+            )
+            for i in range(self.n_views)
+        ]
+        optimizers.append(torch.optim.Adam([self.poe_weight],
+                lr=self.learning_rate
+            ))
+        return optimizers

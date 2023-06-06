@@ -11,6 +11,10 @@ from .me_mvae import *
 from .jmvae import *
 from .mopoevae import *
 from .mmJSD import *
-__all__ = ["AE", "AAE", "jointAAE", "wAAE", "mcVAE", "mVAE", "JMVAE", "me_mVAE", "mmVAE", "mvtCAE", "DVCCA", "MoPoEVAE", "mmJSD"]
+from .weighted_mvae import *
+from .vae_barlow import *
+from .ae_barlow import *
+__all__ = ["AE", "AAE", "jointAAE", "wAAE", "mcVAE", "mVAE", "JMVAE", "me_mVAE", "mmVAE", "mvtCAE", "DVCCA", "MoPoEVAE", "mmJSD", "weighted_mVAE",
+            "VAE_barlow", "AE_barlow"]
 classes = __all__ 
 

@@ -11,11 +11,11 @@ class JMVAE(BaseModelVAE):
     Args:
         cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
             
-            - encoder.default._target_ (multiae.architectures.mlp.VariationalEncoder): Type of Encoder to use.
-            - encoder.default.enc_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Encoding distribution.
-            - decoder.default._target_ (multiae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
+            - encoder.default._target_ (multiviewae.architectures.mlp.VariationalEncoder): Type of Encoder to use.
+            - encoder.default.enc_dist._target_ (multiviewae.base.distributions.Normal, multiviewae.base.distributions.MultivariateNormal): Encoding distribution.
+            - decoder.default._target_ (multiviewae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
             - decoder.default.init_logvar(int, float): Initial value for log variance of decoder.
-            - decoder.default.dec_dist._target_ (multiae.base.distributions.Normal, multiae.base.distributions.MultivariateNormal): Decoding distribution.
+            - decoder.default.dec_dist._target_ (multiviewae.base.distributions.Normal, multiviewae.base.distributions.MultivariateNormal): Decoding distribution.
         
         input_dim (list): Dimensionality of the input data.
         z_dim (int): Number of latent dimensions.

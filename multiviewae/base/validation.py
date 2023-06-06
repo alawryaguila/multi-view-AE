@@ -71,7 +71,7 @@ config_schema = Schema({
         Optional("eps"): And(float, lambda x: 0 < x <= 1e-10),
         Optional("beta"): And(Or(int, float), lambda x: x > 0),
         Optional("K"): And(int, lambda x: x >= 1),
-        Optional("alpha"): And(float, lambda x: x > 0),
+        Optional("alpha"): And(Or(int, float), lambda x: x > 0),
         Optional("private"): bool,
         Optional("join_type"): eval(return_or(params=SUPPORTED_JOIN,
                         msg="model.join_type: unsupported or invalid join type"))
