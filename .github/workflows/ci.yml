@@ -43,4 +43,3 @@ jobs:
       if: ${{ matrix.python-version == '3.7' }}
       with: 
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./coverage.xml
