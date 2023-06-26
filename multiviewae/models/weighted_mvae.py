@@ -235,7 +235,6 @@ class weighted_mVAE(BaseModelVAE):
             return losses
         else:
             qz_x = fwd_rtn["qz_x"]
-            qz_xs = fwd_rtn["qz_xs"]
             kl = self.calc_kl(qz_x)
             total = kl - ll
             losses = {"loss": total, "kl": kl, "ll": ll}
