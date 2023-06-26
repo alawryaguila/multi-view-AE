@@ -10,8 +10,7 @@ class wAAE(BaseModelAAE):
 
     Args:
         cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:      
-              
-            - eps (float): Value added for numerical stability.
+
             - discriminator._target_ (multiviewae.architectures.mlp.Discriminator): Discriminator network class.
             - discriminator.hidden_layer_dim (list): Number of nodes per hidden layer.
             - discriminator.bias (bool): Whether to include a bias term in hidden layers.

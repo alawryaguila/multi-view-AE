@@ -43,9 +43,15 @@ class weighted_mVAE(BaseModelVAE):
                         z_dim=z_dim)
 
         self.join_z = weightedProductOfExperts()
-
-        tmp_weight = torch.FloatTensor(len(input_dim), self.z_dim).fill_(1/len(input_dim))
-        self.poe_weight = torch.nn.Parameter(data=tmp_weight, requires_grad=True)
+        #check if self.private is attribute, if not set to False
+        if not hasattr(self, 'private'):
+            self.private = False
+        if self.private:
+            tmp_weight = torch.FloatTensor(len(input_dim), self.z_dim - self.s_dim).fill_(1/len(input_dim))
+            self.poe_weight = torch.nn.Parameter(data=tmp_weight, requires_grad=True)
+        else:
+            tmp_weight = torch.FloatTensor(len(input_dim), self.z_dim).fill_(1/len(input_dim))
+            self.poe_weight = torch.nn.Parameter(data=tmp_weight, requires_grad=True)
 
     
     def encode(self, x):
@@ -55,8 +61,61 @@ class weighted_mVAE(BaseModelVAE):
             x (list): list of input data of type torch.Tensor.
 
         Returns:
-            (list): Single element list of joint encoding distribution.
+            Returns a combination of the following depending on the training stage and model type: 
+            qz_x (list):  Single element list containing the PoE encoding distribution for self.private=False.
+
+            qc_x (list): Single element list containing the PoE shared encoding distribution.
+            qs_xs (list): list of encoding distributions for private latents.
+            qscs_xs (list): list containing combined shared and private latents.
+            qcs_xs (list): list containing encoding distributions for shared latent dimensions for each view.
         """
+        if not hasattr(self, 'private'):
+            self.private = False
+        if self.private:
+            qs_xs = []
+            qcs_xs = []
+            mu_s = []
+            logvar_s = []
+            mu_c = []
+            logvar_c = []
+            for i in range(self.n_views):
+                mu, logvar = self.encoders[i](x[i])
+                mu_s.append(mu[:,:self.s_dim])
+                logvar_s.append(logvar[:,:self.s_dim])
+                mu_c.append(mu[:,self.s_dim:])
+                logvar_c.append(logvar[:,self.s_dim:])
+
+                qs_x = hydra.utils.instantiate(
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,:self.s_dim], scale=logvar[:,:self.s_dim].exp().pow(0.5)
+                )
+                qs_xs.append(qs_x)
+                qc_x = hydra.utils.instantiate(
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,self.s_dim:], scale=logvar[:,self.s_dim:].exp().pow(0.5)
+                )
+                qcs_xs.append(qc_x)
+
+            mu_c = torch.stack(mu_c)
+            logvar_c = torch.stack(logvar_c)
+       
+            mu_c, logvar_c = self.join_z(mu_c, logvar_c, self.poe_weight)
+            qc_x = hydra.utils.instantiate(
+                self.cfg.encoder.default.enc_dist, loc=mu_c, scale=logvar_c.exp().pow(0.5)
+            )
+            with torch.no_grad():
+                self.poe_weight = self.poe_weight.clamp_(0, +1)
+            qscs_xs = []
+            for i in range(self.n_views):       
+                mu_sc = torch.cat((mu_s[i], mu_c), 1)
+                logvar_sc = torch.cat((logvar_s[i], logvar_c), 1)
+                qsc_x = hydra.utils.instantiate( 
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_sc, scale=logvar_sc.exp().pow(0.5)
+                )
+                qscs_xs.append(qsc_x)
+
+            if self._training:
+                return [[qc_x], qcs_xs, qs_xs, qscs_xs]
+            return qscs_xs
+
         mu = []
         logvar = []
         for i in range(self.n_views):
@@ -85,7 +144,10 @@ class weighted_mVAE(BaseModelVAE):
         """  
         px_zs = []
         for i in range(self.n_views):
-            px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
+            if self.private:
+                px_z = self.decoders[i](qz_x[i]._sample(training=self._training))
+            else:
+                px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
             px_zs.append(px_z)
         return [px_zs]
 
@@ -98,9 +160,14 @@ class weighted_mVAE(BaseModelVAE):
         Returns:
             fwd_rtn (dict): dictionary containing encoding and decoding distributions.
         """
-        qz_x = self.encode(x)
-        px_zs = self.decode(qz_x)
-        fwd_rtn = {"px_zs": px_zs, "qz_x": qz_x}
+        if self.private:
+            qc_x, qcs_xs, qs_xs, qscs_xs = self.encode(x)
+            px_zs = self.decode(qscs_xs)
+            fwd_rtn = {"px_zs": px_zs, "qcs_xs": qcs_xs, "qs_xs": qs_xs, "qc_x": qc_x}
+        else:
+            qz_x = self.encode(x)
+            px_zs = self.decode(qz_x)
+            fwd_rtn = {"px_zs": px_zs, "qz_x": qz_x}
         return fwd_rtn
 
     def calc_kl(self, qz_x):
@@ -114,7 +181,21 @@ class weighted_mVAE(BaseModelVAE):
         """
         kl = qz_x[0].kl_divergence(self.prior).mean(0).sum()
         return self.beta * kl
+    
+    def calc_kl_separate(self, qc_xs):
+        r"""Calculate KL-divergence loss.
 
+        Args:
+            qc_xs (list): list of encoding distributions for private/shared latent dimensions for each view.
+
+        Returns:
+            (torch.Tensor): KL-divergence loss.
+        """
+        kl = 0
+        for i in range(self.n_views):
+            kl += qc_xs[i].kl_divergence(self.prior).mean(0).sum()
+        return self.beta * kl
+    
     def calc_ll(self, x, px_zs):
         r"""Calculate log-likelihood loss.
 
@@ -141,14 +222,24 @@ class weighted_mVAE(BaseModelVAE):
             losses (dict): dictionary containing each element of the MVAE loss.
         """
         px_zs = fwd_rtn["px_zs"]
-        qz_x = fwd_rtn["qz_x"]
-
-        kl = self.calc_kl(qz_x)
         ll = self.calc_ll(x, px_zs)
-
-        total = kl - ll
-        losses = {"loss": total, "kl": kl, "ll": ll}
-        return losses
+        if self.private:
+            qcs_xs = fwd_rtn["qcs_xs"]
+            qs_xs = fwd_rtn["qs_xs"]
+            qc_x = fwd_rtn["qc_x"]
+            kl = self.calc_kl_separate(qcs_xs) #calc kl for private latents
+            kl += self.calc_kl(qc_x) #calc kl for shared latents
+            #kl += self.calc_kl_private(qs_xs) #calc kl for approx of shared latent from each encoder - dont know if need this?
+            total = kl - ll
+            losses = {"loss": total, "kl": kl, "ll": ll}
+            return losses
+        else:
+            qz_x = fwd_rtn["qz_x"]
+            qz_xs = fwd_rtn["qz_xs"]
+            kl = self.calc_kl(qz_x)
+            total = kl - ll
+            losses = {"loss": total, "kl": kl, "ll": ll}
+            return losses
 
     def configure_optimizers(self):
         optimizers = [
