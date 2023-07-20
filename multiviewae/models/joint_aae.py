@@ -1,5 +1,5 @@
 import torch
-from ..base.constants import MODEL_JOINTAAE
+from ..base.constants import MODEL_JOINTAAE, EPS
 from ..base.base_model import BaseModelAAE
 
 class jointAAE(BaseModelAAE):
@@ -9,7 +9,6 @@ class jointAAE(BaseModelAAE):
     Args:
         cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
             
-            - eps (float): Value added for numerical stability.
             - discriminator._target_ (multiviewae.architectures.mlp.Discriminator): Discriminator network class.
             - discriminator.hidden_layer_dim (list): Number of nodes per hidden layer.
             - discriminator.bias (bool): Whether to include a bias term in hidden layers.
@@ -152,7 +151,7 @@ class jointAAE(BaseModelAAE):
             gen_loss (torch.Tensor): Generator loss.
         """
         d_fake = fwd_rtn["d_fake"]
-        gen_loss = torch.mean(1 - torch.log(d_fake + self.eps))
+        gen_loss = torch.mean(1 - torch.log(d_fake + EPS))
         return gen_loss
 
     def discriminator_loss(self, fwd_rtn):
@@ -168,6 +167,6 @@ class jointAAE(BaseModelAAE):
         d_real = fwd_rtn["d_real"]
         d_fake = fwd_rtn["d_fake"]
         disc_loss = -torch.mean(
-            torch.log(d_real + self.eps) + torch.log(1 - d_fake + self.eps)
+            torch.log(d_real + EPS) + torch.log(1 - d_fake + EPS)
         )
         return disc_loss

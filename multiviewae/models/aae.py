@@ -1,6 +1,6 @@
 import torch
 
-from ..base.constants import MODEL_AAE
+from ..base.constants import MODEL_AAE, EPS
 from ..base.base_model import BaseModelAAE
 
 class AAE(BaseModelAAE):
@@ -154,7 +154,7 @@ class AAE(BaseModelAAE):
         d_fake = fwd_rtn["d_fake"]
         gen_loss = 0
         for i in range(self.n_views):
-            gen_loss += torch.mean(1 - torch.log(d_fake[i] + self.eps))
+            gen_loss += torch.mean(1 - torch.log(d_fake[i] + EPS))
         return gen_loss/self.n_views
 
     def discriminator_loss(self, fwd_rtn):
@@ -169,9 +169,9 @@ class AAE(BaseModelAAE):
         d_real = fwd_rtn["d_real"]
         d_fake = fwd_rtn["d_fake"]
 
-        disc_loss = -torch.mean(torch.log(d_real + self.eps))
+        disc_loss = -torch.mean(torch.log(d_real + EPS))
         for i in range(self.n_views):
-            disc_loss += -torch.mean(1 - torch.log(d_fake[i] + self.eps))
+            disc_loss += -torch.mean(1 - torch.log(d_fake[i] + EPS))
         return disc_loss / (self.n_views + 1)
 
 

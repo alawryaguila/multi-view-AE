@@ -1,5 +1,4 @@
 # constants file
-
 MODEL_AE        = "AE"
 MODEL_AAE       = "AAE"
 MODEL_JOINTAAE  = "jointAAE"
@@ -71,3 +70,5 @@ CONFIG_KEYS = [
             "callbacks",
             "logger"
         ]
+
+EPS = 1e-8

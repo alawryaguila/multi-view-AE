@@ -3,8 +3,6 @@
 # default parameters for AAE model
 model_name: "AAE"
 
-model:
-  eps: 1e-15
 
 discriminator:
   _target_: multiviewae.architectures.mlp.Discriminator

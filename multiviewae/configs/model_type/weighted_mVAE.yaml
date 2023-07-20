@@ -5,7 +5,8 @@ model_name: "weighted_mVAE"
 
 model:
   beta: 1
-
+  private: False
+  
 encoder:
   default:
     _target_: multiviewae.architectures.mlp.VariationalEncoder
