@@ -15,6 +15,8 @@ MODEL_MMJSD     = "mmJSD"
 MODEL_WEIGHTEDMVAE = "weighted_mVAE"
 MODEL_VAEBARLOW = "VAE_barlow"
 MODEL_AEBARLOW  = "AE_barlow"
+MODEL_DMVAE = "DMVAE"
+MODEL_WEIGHTEDDMVAE = "weighted_DMVAE"
 MODELS = [
             MODEL_AE,
             MODEL_AAE,
@@ -31,7 +33,9 @@ MODELS = [
             MODEL_MMJSD,
             MODEL_WEIGHTEDMVAE,
             MODEL_VAEBARLOW,
-            MODEL_AEBARLOW
+            MODEL_AEBARLOW, 
+            MODEL_DMVAE, 
+            MODEL_WEIGHTEDDMVAE
         ]
 
 ADVERSARIAL_MODELS = [
@@ -51,7 +55,9 @@ VARIATIONAL_MODELS = [
             MODEL_MOPOEVAE,
             MODEL_MMJSD,
             MODEL_WEIGHTEDMVAE,
-            MODEL_VAEBARLOW
+            MODEL_VAEBARLOW,
+            MODEL_DMVAE,
+            MODEL_WEIGHTEDDMVAE
         ]
 
 SPARSE_MODELS = [

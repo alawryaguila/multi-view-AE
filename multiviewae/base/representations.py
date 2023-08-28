@@ -55,8 +55,8 @@ class weightedProductOfExperts(nn.Module):
         var = torch.exp(logvar) + EPS     
         weight = weight[:, None, :].repeat(1, mu.shape[1],1)
         T = 1.0 / (var + EPS)
-        pd_mu = torch.sum(mu * weight * T, dim=0) / torch.sum(weight*T, dim=0)
-        pd_var = 1.0 / torch.sum(weight*T, dim=0)
+        pd_var = 1. / torch.sum(weight * T + EPS, dim=0)
+        pd_mu = pd_var * torch.sum(weight * mu * T, dim=0)
         pd_logvar = torch.log(pd_var + EPS)
         return pd_mu, pd_logvar
 

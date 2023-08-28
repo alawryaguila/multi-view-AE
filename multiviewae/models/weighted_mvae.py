@@ -1,7 +1,7 @@
 import torch
 import hydra
 
-from ..base.constants import MODEL_WEIGHTEDMVAE
+from ..base.constants import MODEL_WEIGHTEDMVAE, EPS
 from ..base.base_model import BaseModelVAE
 from ..base.representations import weightedProductOfExperts
 
@@ -13,6 +13,7 @@ class weighted_mVAE(BaseModelVAE):
         cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
             
             - model.beta (int, float): KL divergence weighting term.
+            - model.private (bool): Whether to include private view-specific latent dimensions.
             - model.sparse (bool): Whether to enforce sparsity of the encoding distribution.
             - model.threshold (float): Dropout threshold applied to the latent dimensions. Default is 0.
             - encoder.default._target_ (multiviewae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
@@ -86,11 +87,11 @@ class weighted_mVAE(BaseModelVAE):
                 logvar_c.append(logvar[:,self.s_dim:])
 
                 qs_x = hydra.utils.instantiate(
-                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,:self.s_dim], scale=logvar[:,:self.s_dim].exp().pow(0.5)
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,:self.s_dim]+EPS, scale=logvar[:,:self.s_dim].exp().pow(0.5)+EPS
                 )
                 qs_xs.append(qs_x)
                 qc_x = hydra.utils.instantiate(
-                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,self.s_dim:], scale=logvar[:,self.s_dim:].exp().pow(0.5)
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,self.s_dim:]+EPS, scale=logvar[:,self.s_dim:].exp().pow(0.5)+EPS
                 )
                 qcs_xs.append(qc_x)
 
@@ -99,7 +100,7 @@ class weighted_mVAE(BaseModelVAE):
        
             mu_c, logvar_c = self.join_z(mu_c, logvar_c, self.poe_weight)
             qc_x = hydra.utils.instantiate(
-                self.cfg.encoder.default.enc_dist, loc=mu_c, scale=logvar_c.exp().pow(0.5)
+                self.cfg.encoder.default.enc_dist, loc=mu_c+EPS, scale=logvar_c.exp().pow(0.5)+EPS
             )
             with torch.no_grad():
                 self.poe_weight = self.poe_weight.clamp_(0, +1)
@@ -108,7 +109,7 @@ class weighted_mVAE(BaseModelVAE):
                 mu_sc = torch.cat((mu_s[i], mu_c), 1)
                 logvar_sc = torch.cat((logvar_s[i], logvar_c), 1)
                 qsc_x = hydra.utils.instantiate( 
-                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_sc, scale=logvar_sc.exp().pow(0.5)
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_sc+EPS, scale=logvar_sc.exp().pow(0.5)+EPS
                 )
                 qscs_xs.append(qsc_x)
 
@@ -126,7 +127,7 @@ class weighted_mVAE(BaseModelVAE):
         logvar = torch.stack(logvar)
         mu_out, logvar_out = self.join_z(mu, logvar, self.poe_weight)
         qz_x = hydra.utils.instantiate(
-            self.cfg.encoder.default.enc_dist, loc=mu_out, scale=logvar_out.exp().pow(0.5)
+            self.cfg.encoder.default.enc_dist, loc=mu_out, scale=logvar_out.exp().pow(0.5)+EPS
         )
         with torch.no_grad():
             self.poe_weight = self.poe_weight.clamp_(0, +1)
@@ -229,7 +230,7 @@ class weighted_mVAE(BaseModelVAE):
             qc_x = fwd_rtn["qc_x"]
             kl = self.calc_kl_separate(qcs_xs) #calc kl for private latents
             kl += self.calc_kl(qc_x) #calc kl for shared latents
-            #kl += self.calc_kl_private(qs_xs) #calc kl for approx of shared latent from each encoder - dont know if need this?
+            kl += self.calc_kl_separate(qs_xs) #calc kl for approx of shared latent from each encoder - dont know if need this?
             total = kl - ll
             losses = {"loss": total, "kl": kl, "ll": ll}
             return losses
