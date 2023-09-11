@@ -167,7 +167,8 @@ def test_mnist():
 
 
     cfg = "./user_config/mnist.yaml"
-    test_models = [MODEL_MCVAE, MODEL_DVCCA, MODEL_MMJSD]
+    test_models = [MODEL_MCVAE, MODEL_DVCCA, MODEL_MMJSD, MODEL_DMVAE]
+
     max_epochs = 10
     batch_size = 2000
 
