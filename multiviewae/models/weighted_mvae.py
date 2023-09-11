@@ -225,12 +225,10 @@ class weighted_mVAE(BaseModelVAE):
         px_zs = fwd_rtn["px_zs"]
         ll = self.calc_ll(x, px_zs)
         if self.private:
-            qcs_xs = fwd_rtn["qcs_xs"]
             qs_xs = fwd_rtn["qs_xs"]
             qc_x = fwd_rtn["qc_x"]
-            kl = self.calc_kl_separate(qcs_xs) #calc kl for private latents
+            kl = self.calc_kl_separate(qs_xs) #calc kl for private latents
             kl += self.calc_kl(qc_x) #calc kl for shared latents
-            kl += self.calc_kl_separate(qs_xs) #calc kl for approx of shared latent from each encoder - dont know if need this?
             total = kl - ll
             losses = {"loss": total, "kl": kl, "ll": ll}
             return losses
