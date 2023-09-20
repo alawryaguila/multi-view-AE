@@ -14,46 +14,27 @@ For more information on implemented models and how to use the package, please se
 ## Models Implemented
 
 Below is a table with the models contained within this repository and links to the original papers.
- 
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
-| Model class  | Model name                                                                                  | Number of views  | Original work |
-+==============+=============================================================================================+==================+===============+
+
+|Model class   |Model name                                                                                   |Number of views   |Original work|
+|:------------:|:-------------------------------------------------------------------------------------------:|:----------------:|:-----------:|
 | mcVAE        | Multi-Channel Variational Autoencoder (mcVAE)                                               | >=1              |[link](http://proceedings.mlr.press/v97/antelmi19a.html)|
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
 | AE           | Multi-view Autoencoder                                                                      |   >=1            |               |
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
 | AAE          | Multi-view Adversarial Autoencoder with separate latent representations                     |    >=1           |               |
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
 | DVCCA        | Deep Variational CCA                                                                        |    2             |[link](https://arxiv.org/abs/1610.03454)|
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
 | jointAAE     | Multi-view Adversarial Autoencoder with joint latent representation                         |   >=1            |               |
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
 | wAAE         | Multi-view Adversarial Autoencoder with joint latent representation and wasserstein loss    |    >=1           |               |
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
 | mmVAE        | Variational mixture-of-experts autoencoder (MMVAE)                                          |   >=1            |[link](https://arxiv.org/abs/1911.03393)|
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
 | mVAE         | Multimodal Variational Autoencoder (MVAE)                                                   |    >=1           |[link](https://arxiv.org/abs/1802.05335)|
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
 | me_mVAE      | Multimodal Variational Autoencoder (MVAE) with separate ELBO terms for each view            |    >=1           |[link](https://arxiv.org/abs/1802.05335)|
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
 | JMVAE        |  Joint Multimodal Variational Autoencoder(JMVAE-kl)                                         |    2             |[link](https://arxiv.org/abs/1611.01891)|
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
 | MVTCAE       | Multi-View Total Correlation Auto-Encoder (MVTCAE)                                          |    >=1           |[link](https://proceedings.neurips.cc/paper/2021/file/65a99bb7a3115fdede20da98b08a370f-Paper.pdf)|
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
 | MoPoEVAE     |  Mixture-of-Products-of-Experts VAE                                                         |    >=1           |[link](https://arxiv.org/pdf/2105.02470.pdf)|
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
 | mmJSD        |  Multimodal Jensen-Shannon divergence model (mmJSD)                                         |    >=1           |[link](https://arxiv.org/abs/2006.08242)|
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
 |weighted_mVAE |  Generalised Product-of-Experts Variational Autoencoder (gPoE-MVAE)                         |    >=1           |[link](https://arxiv.org/abs/2303.12706)|
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
 | VAE_barlow   | Multi-view Variational Autoencoder with barlow twins loss between latents.                  |    2             |[link](https://arxiv.org/abs/2103.03230),[link](https://joss.theoj.org/papers/10.21105/joss.03823https://joss.theoj.org/papers/10.21105/joss.03823)|
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
 | AE_barlow    | Multi-view Autoencoder with barlow twins loss between latents.                              |    2             |[link](https://arxiv.org/abs/2103.03230),[link](https://joss.theoj.org/papers/10.21105/joss.03823https://joss.theoj.org/papers/10.21105/joss.03823)|
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
 | DMVAE        | Disentangled multi-modal variational autoencoder                                            |    >=1           |[link](https://arxiv.org/abs/2012.13024)|
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
 |weighted_DMVAE| Disentangled multi-modal variational autoencoder with gPoE joint posterior                  |    >=1           |               |
-+--------------+---------------------------------------------------------------------------------------------+------------------+---------------+
 
 
 ## Installation
