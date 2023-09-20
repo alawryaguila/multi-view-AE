@@ -64,8 +64,9 @@ class mVAE(BaseModelVAE):
             mu_, logvar_ = self.encoders[i](x[i])
             mu.append(mu_)
             logvar.append(logvar_)
-        #add mu and logvar from prior expert
-        mu_, logvar_ = self.prior(torch.randn_like(mu[0]))
+        #get mu and logvar from prior expert
+        mu_ = self.prior.mean.repeat(mu[0].shape)
+        logvar_ = torch.log(self.prior.variance.repeat(mu[0].shape))
         mu.append(mu_)
         logvar.append(logvar_)
         mu = torch.stack(mu)
