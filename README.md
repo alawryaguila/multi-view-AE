@@ -15,8 +15,8 @@ For more information on implemented models and how to use the package, please se
 
 Below is a table with the models contained within this repository and links to the original papers.
 
-|Model class|Model name|Number of views|Original work|
-|:---:|:----:|:---------------------:|
+|Model class   |Model name                                                                                   |Number of views   |Original work|
+|:------------:|:-------------------------------------------------------------------------------------------:|:----------------:|:-----------:|
 | mcVAE        | Multi-Channel Variational Autoencoder (mcVAE)                                               | >=1              |[link](http://proceedings.mlr.press/v97/antelmi19a.html)|
 | AE           | Multi-view Autoencoder                                                                      |   >=1            |               |
 | AAE          | Multi-view Adversarial Autoencoder with separate latent representations                     |    >=1           |               |
