@@ -64,11 +64,14 @@ class mVAE(BaseModelVAE):
             mu_, logvar_ = self.encoders[i](x[i])
             mu.append(mu_)
             logvar.append(logvar_)
-        #get mu and logvar from prior expert
-        mu_ = self.prior.mean.repeat(mu[0].shape)
-        logvar_ = torch.log(self.prior.variance.repeat(mu[0].shape))
-        mu.append(mu_)
-        logvar.append(logvar_)
+        if not self.sparse:
+            #get mu and logvar from prior expert
+            mu_ = self.prior.mean
+            mu_ = mu_.expand(mu[0].shape)             
+            logvar_ = torch.log(self.prior.variance)
+            logvar_ = logvar_.expand(logvar[0].shape)               
+            mu.append(mu_)
+            logvar.append(logvar_)
         mu = torch.stack(mu)
         logvar = torch.stack(logvar)
         mu_out, logvar_out = self.join_z(mu, logvar)
