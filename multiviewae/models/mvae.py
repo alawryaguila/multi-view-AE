@@ -64,9 +64,14 @@ class mVAE(BaseModelVAE):
             mu_, logvar_ = self.encoders[i](x[i])
             mu.append(mu_)
             logvar.append(logvar_)
+        #add mu and logvar from prior expert
+        mu_, logvar_ = self.prior(torch.randn_like(mu[0]))
+        mu.append(mu_)
+        logvar.append(logvar_)
         mu = torch.stack(mu)
         logvar = torch.stack(logvar)
         mu_out, logvar_out = self.join_z(mu, logvar)
+    
         qz_x = hydra.utils.instantiate(
             self.cfg.encoder.default.enc_dist, loc=mu_out, scale=logvar_out.exp().pow(0.5)
         )

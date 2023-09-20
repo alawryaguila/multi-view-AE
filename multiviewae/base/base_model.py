@@ -164,18 +164,17 @@ class BaseModelAE(ABC, pl.LightningModule):
 
         logger = hydra.utils.instantiate(self.cfg.logger)
 
-        # NOTE: have to check file exists otherwise error raised
-        if (self.cfg.trainer.resume_from_checkpoint is None) or \
-            (not exists(self.cfg.trainer.resume_from_checkpoint)):
-            self.cfg.trainer.resume_from_checkpoint = None
-
+        #check if cuda is available and being used
+        print("CUDA: ", torch.cuda.is_available(), torch.cuda.current_device(), torch.cuda.device_count(), torch.cuda.get_device_name(0))
         py_trainer = hydra.utils.instantiate(
             self.cfg.trainer, callbacks=callbacks, logger=logger,
         )
+
         datamodule = hydra.utils.instantiate(
            self.cfg.datamodule, data=data, labels=labels, _convert_="all"
         )
         py_trainer.fit(self, datamodule)
+        
 
     def predict_latents(self, *data, batch_size=None):
         return self.__predict(*data, batch_size=batch_size)

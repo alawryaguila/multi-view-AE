@@ -47,7 +47,7 @@ class DMVAE(BaseModelVAE):
             self._lambda = [1 for i in range(self.n_views)]
         else:
             assert len(self._lambda) == self.n_views, "Number of lambda weightings must be equal to number of views"
-
+        print('_lambda: ', self._lambda)
 
     def encode(self, x):
         r"""Forward pass through encoder networks.
@@ -217,7 +217,7 @@ class DMVAE(BaseModelVAE):
         """
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[0][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view
+            ll += self._lambda[i]*px_zs[0][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view
         return ll
 
     def calc_ll_separate(self, x, pxs_zs):

@@ -50,7 +50,6 @@ class weighted_DMVAE(BaseModelVAE):
 
         tmp_weight = torch.FloatTensor(len(input_dim), self.z_dim - self.s_dim).fill_(1/len(input_dim))
         self.poe_weight = torch.nn.Parameter(data=tmp_weight, requires_grad=True)
-
     def encode(self, x):
         r"""Forward pass through encoder networks.
 
