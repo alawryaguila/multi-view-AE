@@ -6,7 +6,7 @@ defaults:
   - _self_
   - model_type: null
 
-out_dir: ${hydra.runtime.cwd}/outputs/${model_name}/${now:%Y-%m-%d_%H%M}
+out_dir: ${hydra.runtime.cwd}/outputs/${model_name}/${now:%Y-%m-%d_%H%M%S}
 
 hydra:
   # TODO: this does not work... I want to save yaml files, i think it is not enabled when using initialize/compose
@@ -33,8 +33,9 @@ datamodule:
 
   batch_size: null
   is_validate: True
-
   train_size: 0.9
+  dataset:
+    _target_: multiviewae.base.datasets.MVDataset
 
 encoder:  # uses default mlp for all inputs
   default:

@@ -1,14 +1,17 @@
 ![Build Status](https://github.com/alawryaguila/multi-view-ae/actions/workflows/ci.yml/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/multi-view-ae/badge/?version=latest)](https://multi-view-ae.readthedocs.io/en/latest/?badge=latest)
 [![Python Version](https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9%20%7C%203.10%20-blue)](https://github.com/alawryaguila/multi-view-ae)
+[![DOI](https://joss.theoj.org/papers/10.21105/joss.05093/status.svg)](https://joss.theoj.org/papers/10.21105/joss.05093)
+# Multi-view-AE: Multi-modal representation learning using autoencoders
+<p align="center">
+  <img src="https://github.com/alawryaguila/multi-view-AE/blob/master/docs/figures/logo.png" width="600px"></center>
+</p>
 
-# Multi-view-AE: Multi-modal subspace learning using autoencoders
+`multi-view-AE` is a collection of multi-modal autoencoder models for learning joint representations from multiple modalities of data. The package is structured such that all models have `fit`, `predict_latents` and `predict_reconstruction` methods. All models are built in Pytorch and Pytorch-Lightning. 
 
-This repository contains various multi-view autoencoder models built in Pytorch and Pytorch-Lightning. 
+For more information on implemented models and how to use the package, please see the documentation at https://multi-view-ae.readthedocs.io/en/latest/
 
-Documentation is available at https://multi-view-ae.readthedocs.io/en/latest/
-
-### Installation
+## Installation
 Clone this repository and move to folder:
 ```bash
 git clone https://github.com/alawryaguila/multi-view-AE
@@ -30,5 +33,24 @@ Install the ``multi-view-AE`` package:
 pip install ./
 ```
 
-### Contribution guidelines
+## Citation
+If you have used `multi-view-AE` in your research, please consider citing our JOSS paper: 
+
+Aguila et al., (2023). Multi-view-AE: A Python package for multi-view autoencoder models. Journal of Open Source Software, 8(85), 5093, https://doi.org/10.21105/joss.05093
+
+Bibtex entry:
+```bibtex
+@article{Aguila2023, 
+doi = {10.21105/joss.05093}, 
+url = {https://doi.org/10.21105/joss.05093}, 
+year = {2023}, 
+publisher = {The Open Journal}, 
+volume = {8}, 
+number = {85}, 
+pages = {5093}, 
+author = {Ana Lawry Aguila and Alejandra Jayme and Nina Montaña-Brown and Vincent Heuveline and Andre Altmann}, 
+title = {Multi-view-AE: A Python package for multi-view autoencoder models}, journal = {Journal of Open Source Software} 
+}
+```
+## Contribution guidelines
 Contribution guidelines are available at https://multi-view-ae.readthedocs.io/en/latest/

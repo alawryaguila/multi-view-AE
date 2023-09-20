@@ -3,6 +3,7 @@ from schema import Schema, And, Or, Optional, SchemaError, Regex
 SUPPORTED_ENCODERS = [
             "mlp.Encoder",
             "mlp.VariationalEncoder",
+            "mlp.ConditionalVariationalEncoder",
             "cnn.Encoder",
             "cnn.VariationalEncoder"
         ]
@@ -10,6 +11,7 @@ SUPPORTED_ENCODERS = [
 SUPPORTED_DECODERS = [
             "mlp.Decoder",
             "mlp.VariationalDecoder",
+            "mlp.ConditionalVariationalDecoder",
             "cnn.Decoder"
         ]
 
@@ -29,6 +31,10 @@ SUPPORTED_JOIN = [
             "PoE",
             "Mean"
         ]
+
+SUPPORTED_DATASETS = ["datasets.MVDataset",
+                      "datasets.IndexMVDataset",
+                ]
 
 UNSUPPORTED_ENC_DIST = [
             "distributions.Bernoulli"
@@ -71,10 +77,15 @@ config_schema = Schema({
                         msg="model.join_type: unsupported or invalid join type"))
     },
     "datamodule": {
-        "_target_": "multiviewae.base.dataloaders.MultiviewDataModule",   
+        "_target_": Regex(r'[a-z]\DataModule$'),   
         "batch_size": Or(And(int, lambda x: x > 0), None),
         "is_validate": bool,
-        "train_size": And(float, lambda x: 0 < x < 1)
+        "train_size": And(float, lambda x: 0 < x < 1),
+        "dataset": {
+            "_target_" : eval(return_regexor(params=SUPPORTED_DATASETS,
+                            msg="dataset._target_: unsupported or invalid dataset")), 
+            Optional("data_dir"): str, 
+            Optional("views"): [And(int, lambda x: x >= 0)],}
     },
     "encoder": {
         "default": {
@@ -84,8 +95,9 @@ config_schema = Schema({
             Optional(Regex(r'^layer\d$')) : {
                 "layer": str, 
             },
-            "bias": bool,
-            "non_linear": bool,
+            Optional("bias"): bool,
+            Optional("non_linear"): bool,
+            Optional("num_cat"): And(int, lambda x: x > 1),
             "enc_dist": {
                     "_target_": eval(return_regexor(params=list_sub(SUPPORTED_DISTRIBUTIONS, UNSUPPORTED_ENC_DIST),
                             msg="encoder.enc_dist._target_: unsupported or invalid encoder distribution"))
@@ -98,8 +110,9 @@ config_schema = Schema({
             Optional(Regex(r'^layer\d$')) : {
                 "layer": str, 
             },
-            "bias": bool,
-            "non_linear": bool,
+            Optional("bias"): bool,
+            Optional("non_linear"): bool,
+            Optional("num_cat"): And(int, lambda x: x > 1),
             "enc_dist": {
                     "_target_": eval(return_regexor(params=list_sub(SUPPORTED_DISTRIBUTIONS, UNSUPPORTED_ENC_DIST),
                             msg="encoder.enc_dist._target_: unsupported or invalid encoder distribution"))
@@ -114,8 +127,9 @@ config_schema = Schema({
             Optional(Regex(r'^layer\d$')) : {
                 "layer": str, 
             },
-            "bias": bool,
-            "non_linear": bool,
+            Optional("bias"): bool,
+            Optional("non_linear"): bool,
+            Optional("num_cat"): And(int, lambda x: x > 1),
             Optional("init_logvar"): Or(int, float),
             "dec_dist": {
                     "_target_": eval(return_regexor(params=SUPPORTED_DISTRIBUTIONS,
@@ -129,8 +143,9 @@ config_schema = Schema({
             Optional(Regex(r'^layer\d$')) : {
                 "layer": str, 
             },
-            "bias": bool,
-            "non_linear": bool,
+            Optional("bias"): bool,
+            Optional("non_linear"): bool,
+            Optional("num_cat"): And(int, lambda x: x > 1),
             Optional("init_logvar"): Or(int, float),
             "dec_dist": {
                     "_target_": eval(return_regexor(params=SUPPORTED_DISTRIBUTIONS,
@@ -142,8 +157,8 @@ config_schema = Schema({
         "_target_" : eval(return_regexor(params=SUPPORTED_DISCRIMINATORS,
                         msg="discriminator._target_: unsupported or invalid discriminator")),
         "hidden_layer_dim": [And(int, lambda x: x > 0)],
-        "bias": bool,
-        "non_linear": bool,
+        Optional("bias"): bool,
+        Optional("non_linear"): bool,
         "dropout_threshold": Or(0, And(float, lambda x: 0 < x < 1))
     },
     "prior": {

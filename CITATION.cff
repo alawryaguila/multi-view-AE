@@ -4,6 +4,6 @@ authors:
 - family-names: "Lawry Aguila"
   given-names: "Ana"
 title: "multiAE"
-version: 0.0.1
-date-released: 2022-01-09
-url: "https://github.com/alawryaguila/multiAE"
+version: 1.0.0
+date-released: 2023-04-27
+url: "https://github.com/alawryaguila/multi-view-AE"
