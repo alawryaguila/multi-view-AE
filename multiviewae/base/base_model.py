@@ -152,8 +152,6 @@ class BaseModelAE(ABC, pl.LightningModule):
 
         logger = hydra.utils.instantiate(self.cfg.logger)
 
-        #check if cuda is available and being used
-        print("CUDA: ", torch.cuda.is_available(), torch.cuda.current_device(), torch.cuda.device_count(), torch.cuda.get_device_name(0))
         py_trainer = hydra.utils.instantiate(
             self.cfg.trainer, callbacks=callbacks, logger=logger,
         )
