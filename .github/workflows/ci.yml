@@ -38,7 +38,7 @@ jobs:
     - name: Generate coverage report 
       run: |
         pip install pytest-cov
-        pytest --cov=multi-view-AE ./ --cov-report=xml --runslow
+        pytest --cov=multi-view-AE ./ --cov-report=xml
       if: ${{ matrix.python-version == '3.8' }}
       
     - name: Upload coverage to Codecov
