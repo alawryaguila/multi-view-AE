@@ -37,7 +37,7 @@ jobs:
         
     - name: Install for codecov
       run: 
-        python -m install poetry
+        python -m pip install poetry
       if: ${{ matrix.python-version == '3.8' }}
       
     - name: Run test for codecov
