@@ -7,7 +7,7 @@ readme = "README.md"
 packages = [{include = "multiviewae"}]
 
 license = "MIT"
-documentation = "https://multiviewae.readthedocs.io/en/latest/"
+documentation = "https://multi-view-ae.readthedocs.io/en/latest/"
 
 [tool.setuptools.package-data]
 "" = ["*.yaml"]
