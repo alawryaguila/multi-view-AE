@@ -37,7 +37,7 @@ jobs:
                 
     - name: Run Test
       run: pytest
-      if: ${{ matrix.python-version == '3.7' or '3.9' }}
+      if: ${{ matrix.python-version == '3.7'}} | ${{ matrix.python-version == '3.9'}}
       
     - name: Install and run test for codecov
       run: 
