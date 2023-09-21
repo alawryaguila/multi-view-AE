@@ -17,7 +17,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      MODULE_NAME: multiae
+      MODULE_NAME: multiviewae
     strategy:
       matrix:
         python-version: ["3.7", "3.8", "3.9"]
@@ -36,10 +36,10 @@ jobs:
         pip install ./
                 
     - name: Run Test
-      run: pytest --cov-report xml
+      run: poetry run pytest --doctest-modules --cov-report=xml --cov=multi-view-AE ./tests/
         
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v1
+      uses: codecov/codecov-action@v3
       if: ${{ matrix.python-version == '3.7' }}
       with: 
         token: ${{ secrets.CODECOV_TOKEN }}
