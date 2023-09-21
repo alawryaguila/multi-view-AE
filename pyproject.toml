@@ -2,7 +2,7 @@
 name = "multiviewae"
 version = "0.0.0"
 description = "A library for running multiview autoencoder models"
-authors = ["analawryaguila <ana.lawryaguila@outlook.com>]
+authors = ["analawryaguila <ana.lawryaguila@outlook.com>"]
 readme = "README.md"
 packages = [{include = "multiviewae"}]
 
