@@ -1,7 +1,7 @@
 import torch
 import hydra
 
-from ..base.constants import MODEL_MVTCAE
+from ..base.constants import MODEL_MVTCAE, EPS
 from ..base.base_model import BaseModelVAE
 from ..base.representations import ProductOfExperts
 
@@ -62,7 +62,7 @@ class mvtCAE(BaseModelVAE):
             for i in range(self.n_views):
                 mu, logvar = self.encoders[i](x[i])
                 qz_x = hydra.utils.instantiate(
-                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu, scale=logvar.exp().pow(0.5)
+                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu, scale=logvar.exp().pow(0.5)+EPS
                 )
                 qz_xs.append(qz_x)
             return qz_xs
@@ -103,7 +103,7 @@ class mvtCAE(BaseModelVAE):
             for i in range(self.n_views):
                 px_z = self.decoders[i](
                     hydra.utils.instantiate(
-                    self.cfg.encoder.default.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
+                    self.cfg.encoder.default.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)+EPS
                     ).rsample()
                 )
                 px_zs.append(px_z)

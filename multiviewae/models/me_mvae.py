@@ -1,7 +1,7 @@
 import torch
 import hydra
 
-from ..base.constants import MODEL_MEMVAE
+from ..base.constants import MODEL_MEMVAE, EPS
 from ..base.base_model import BaseModelVAE
 from ..base.distributions import Normal
 from ..base.representations import ProductOfExperts, MeanRepresentation
@@ -79,7 +79,7 @@ class me_mVAE(BaseModelVAE):
         logvar = torch.stack(logvar)
         mu_out, logvar_out = self.join_z(mu, logvar)
         qz_x = hydra.utils.instantiate( 
-            self.cfg.encoder.default.enc_dist, loc=mu_out, scale=logvar_out.exp().pow(0.5)
+            self.cfg.encoder.default.enc_dist, loc=mu_out, scale=logvar_out.exp().pow(0.5)+EPS
         )
         return [qz_x]
 
@@ -96,7 +96,7 @@ class me_mVAE(BaseModelVAE):
         for i in range(self.n_views):
             mu_, logvar_ = self.encoders[i](x[i])
             qz_x = hydra.utils.instantiate( 
-                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_, scale=logvar_.exp().pow(0.5)
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_, scale=logvar_.exp().pow(0.5)+EPS
             )
             qz_xs.append(qz_x)
         return qz_xs

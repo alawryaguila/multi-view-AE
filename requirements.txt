@@ -1,8 +1,9 @@
 pytest>=5.4.1
 pytest-cov
-torch>=1.10.1
+pytorch-lightning == 1.5.10
+torch
 torchvision
-pytorch-lightning==1.5.10
+tensorboard
 scipy
 pandas
 numpy

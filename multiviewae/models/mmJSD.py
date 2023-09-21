@@ -1,7 +1,7 @@
 import torch
 import hydra
 
-from ..base.constants import MODEL_MMJSD
+from ..base.constants import MODEL_MMJSD, EPS
 from ..base.base_model import BaseModelVAE
 from ..base.representations import MixtureOfExperts, alphaProductOfExperts
 
@@ -76,11 +76,11 @@ class mmJSD(BaseModelVAE):
                 logvar_c.append(logvar[:,self.s_dim:])
 
                 qs_x = hydra.utils.instantiate(
-                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,:self.s_dim], scale=logvar[:,:self.s_dim].exp().pow(0.5)
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,:self.s_dim], scale=logvar[:,:self.s_dim].exp().pow(0.5)+EPS
                 )
                 qs_xs.append(qs_x)
                 qc_x = hydra.utils.instantiate(
-                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,self.s_dim:], scale=logvar[:,self.s_dim:].exp().pow(0.5)
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,self.s_dim:], scale=logvar[:,self.s_dim:].exp().pow(0.5)+EPS
                 )
                 qcs_xs.append(qc_x)
 
@@ -91,14 +91,14 @@ class mmJSD(BaseModelVAE):
        
             poe_mu_c, poe_logvar_c = alphaProductOfExperts()(mu_c, logvar_c)
             qc_x = hydra.utils.instantiate( 
-            self.cfg.encoder.default.enc_dist, loc=poe_mu_c, scale=poe_logvar_c.exp().pow(0.5)
+            self.cfg.encoder.default.enc_dist, loc=poe_mu_c, scale=poe_logvar_c.exp().pow(0.5)+EPS
             )
             qscs_xs = []
             for i in range(self.n_views):       
                 mu_sc = torch.cat((mu_s[i], moe_mu_c), 1)
                 logvar_sc = torch.cat((logvar_s[i], moe_logvar_c), 1)
                 qsc_x = hydra.utils.instantiate( 
-                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_sc, scale=logvar_sc.exp().pow(0.5)
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_sc, scale=logvar_sc.exp().pow(0.5)+EPS
                 )
                 qscs_xs.append(qsc_x)
 
@@ -114,7 +114,7 @@ class mmJSD(BaseModelVAE):
             mu.append(mu_) 
             logvar.append(logvar_) 
             qz_x = hydra.utils.instantiate(
-                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_, scale=logvar_.exp().pow(0.5)
+                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_, scale=logvar_.exp().pow(0.5)+EPS
             )
             qzs_xs.append(qz_x)
 
@@ -124,12 +124,12 @@ class mmJSD(BaseModelVAE):
         moe_mu, moe_logvar = MixtureOfExperts()(mu, logvar)
 
         qz_xs =  hydra.utils.instantiate(
-                self.cfg.encoder.default.enc_dist, loc=moe_mu, scale=moe_logvar.exp().pow(0.5)
+                self.cfg.encoder.default.enc_dist, loc=moe_mu, scale=moe_logvar.exp().pow(0.5)+EPS
             )
         if self._training:
             poe_mu, poe_logvar = alphaProductOfExperts()(mu, logvar)
             qz_x = hydra.utils.instantiate( 
-                self.cfg.encoder.default.enc_dist, loc=poe_mu, scale=poe_logvar.exp().pow(0.5)
+                self.cfg.encoder.default.enc_dist, loc=poe_mu, scale=poe_logvar.exp().pow(0.5)+EPS
             )
             return [[qz_xs], qzs_xs, [qz_x]]
 

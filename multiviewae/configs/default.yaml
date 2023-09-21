@@ -30,7 +30,6 @@ model:
 
 datamodule:
   _target_: multiviewae.base.dataloaders.MultiviewDataModule
-
   batch_size: null
   is_validate: True
   train_size: 0.9
@@ -66,15 +65,10 @@ prior:
 
 trainer:
   _target_: pytorch_lightning.Trainer
-
-  gpus: 0
-
+  accelerator: "auto"
   max_epochs: 10
-
   deterministic: False
   log_every_n_steps: 2
-
-  resume_from_checkpoint: null #${out_dir}/last.ckpt
 
 callbacks:
   model_checkpoint:

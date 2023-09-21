@@ -87,11 +87,11 @@ class weighted_mVAE(BaseModelVAE):
                 logvar_c.append(logvar[:,self.s_dim:])
 
                 qs_x = hydra.utils.instantiate(
-                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,:self.s_dim]+EPS, scale=logvar[:,:self.s_dim].exp().pow(0.5)+EPS
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,:self.s_dim], scale=logvar[:,:self.s_dim].exp().pow(0.5)+EPS
                 )
                 qs_xs.append(qs_x)
                 qc_x = hydra.utils.instantiate(
-                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,self.s_dim:]+EPS, scale=logvar[:,self.s_dim:].exp().pow(0.5)+EPS
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,self.s_dim:], scale=logvar[:,self.s_dim:].exp().pow(0.5)+EPS
                 )
                 qcs_xs.append(qc_x)
 
@@ -100,7 +100,7 @@ class weighted_mVAE(BaseModelVAE):
        
             mu_c, logvar_c = self.join_z(mu_c, logvar_c, self.poe_weight)
             qc_x = hydra.utils.instantiate(
-                self.cfg.encoder.default.enc_dist, loc=mu_c+EPS, scale=logvar_c.exp().pow(0.5)+EPS
+                self.cfg.encoder.default.enc_dist, loc=mu_c, scale=logvar_c.exp().pow(0.5)+EPS
             )
             with torch.no_grad():
                 self.poe_weight = self.poe_weight.clamp_(0, +1)
@@ -109,7 +109,7 @@ class weighted_mVAE(BaseModelVAE):
                 mu_sc = torch.cat((mu_s[i], mu_c), 1)
                 logvar_sc = torch.cat((logvar_s[i], logvar_c), 1)
                 qsc_x = hydra.utils.instantiate( 
-                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_sc+EPS, scale=logvar_sc.exp().pow(0.5)+EPS
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_sc, scale=logvar_sc.exp().pow(0.5)+EPS
                 )
                 qscs_xs.append(qsc_x)
 

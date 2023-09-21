@@ -1,7 +1,7 @@
 import torch
 import hydra
 import numpy as np
-from ..base.constants import MODEL_MOPOEVAE
+from ..base.constants import MODEL_MOPOEVAE, EPS
 from ..base.base_model import BaseModelVAE
 from itertools import combinations
 from ..base.representations import ProductOfExperts, MixtureOfExperts
@@ -72,7 +72,7 @@ class MoPoEVAE(BaseModelVAE):
                 mu_out.append(mu_s)
                 logvar_out.append(logvar_s)
                 qz_x = hydra.utils.instantiate( 
-                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_s, scale=logvar_s.exp().pow(0.5)
+                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_s, scale=logvar_s.exp().pow(0.5)+EPS
                 )
                 qz_xs.append(qz_x)
             mu_out = torch.stack(mu_out)
@@ -81,7 +81,7 @@ class MoPoEVAE(BaseModelVAE):
             moe_mu, moe_logvar = MixtureOfExperts()(mu_out, logvar_out)
             
             qz_x = hydra.utils.instantiate( 
-                self.cfg.encoder.default.enc_dist, loc=moe_mu, scale=moe_logvar.exp().pow(0.5)
+                self.cfg.encoder.default.enc_dist, loc=moe_mu, scale=moe_logvar.exp().pow(0.5)+EPS
                 )
             return [qz_xs, qz_x]
         else:

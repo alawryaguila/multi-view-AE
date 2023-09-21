@@ -540,7 +540,7 @@ class BaseModelVAE(BaseModelAE):
                 cfg=cfg,
                 input_dim=input_dim,
                 z_dim=z_dim)
-
+        
     ################################            class methods
     def apply_threshold(self, z):
         """

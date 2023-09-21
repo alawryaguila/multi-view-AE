@@ -169,11 +169,10 @@ config_schema = Schema({
     },
     "trainer": {
        "_target_" : "pytorch_lightning.Trainer",
-       "gpus": And(int, lambda x: x >= 0),
+       "accelerator": Or("cpu", "gpu", "auto"),
        "max_epochs": And(int, lambda x: x > 0),
        "deterministic": bool,
-       "log_every_n_steps": And(int, lambda x: x > 0),
-       "resume_from_checkpoint": Or(str, None) 
+       "log_every_n_steps": And(int, lambda x: x > 0)
     },
     "callbacks": {
         "model_checkpoint": {   

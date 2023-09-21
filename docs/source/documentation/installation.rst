@@ -1,7 +1,7 @@
 Installation
 ===========
 
-Installation instructions for the ``multiviewAE`` library. 
+Installation instructions for the ``multi-view-AE`` library. 
 
 Clone the below repository and move to folder:
 

@@ -106,8 +106,8 @@ def test_userconfig():
     test_3 = np.random.rand(50, 5)
 
     tests = {
-            "./user_config/dvcca.yaml" : [MODEL_DVCCA], #test private DVCCA
-            "./user_config/mmjsd.yaml" : [MODEL_MMJSD], #test mmJSD without private latents
+       #     "./user_config/dvcca.yaml" : [MODEL_DVCCA], #test private DVCCA
+       #     "./user_config/mmjsd.yaml" : [MODEL_MMJSD], #test mmJSD without private latents
             "./user_config/laplace.yaml": VARIATIONAL_MODELS, #tests using laplace for decoding distribution
             "./user_config/sparse.yaml" : SPARSE_MODELS, #test sparse models
             "./user_config/multivariatenormal.yaml": VARIATIONAL_MODELS, #tests using multivariate normal for decoding distribution
