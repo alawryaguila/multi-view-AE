@@ -34,19 +34,23 @@ jobs:
         python -m pip install --upgrade pip
         pip install codecov
         pip install ./
-                
-    - name: Run Test
-      run: pytest
-      if: ${{ matrix.python-version == '3.7'}} | ${{ matrix.python-version == '3.9'}}
-      
-    - name: Install and run test for codecov
+        
+    - name: Install for codecov
       run: 
         python -m install poetry
-        poetry run pytest --doctest-modules --cov-report=xml --cov=multi-view-AE ./tests/ 
       if: ${{ matrix.python-version == '3.8' }}
-
+      
+    - name: Run test for codecov
+      run: poetry run pytest --doctest-modules --cov-report=xml --cov=multi-view-AE ./tests/ 
+      if: ${{ matrix.python-version == '3.8' }}
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v3
       if: ${{ matrix.python-version == '3.8' }}
       with: 
         token: ${{ secrets.CODECOV_TOKEN }}
+        
+    - name: Run Test
+      run: pytest
+      if: ${{ matrix.python-version == '3.7'}} | ${{ matrix.python-version == '3.9'}}
+      
+
