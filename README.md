@@ -9,7 +9,7 @@
 
 `multi-view-AE` is a collection of multi-modal autoencoder models for learning joint representations from multiple modalities of data. The package is structured such that all models have `fit`, `predict_latents` and `predict_reconstruction` methods. All models are built in Pytorch and Pytorch-Lightning. 
 
-For more information on implemented models and how to use the package, please see the documentation at https://multi-view-ae.readthedocs.io/en/latest/
+For more information on implemented models and how to use the package, please see the [documentation](https://multi-view-ae.readthedocs.io/en/latest/).
 
 ## Models Implemented
 
@@ -38,7 +38,12 @@ Below is a table with the models contained within this repository and links to t
 
 
 ## Installation
-Clone this repository and move to folder:
+To install our package via `pip`:
+```bash
+pip install multiviewae
+```
+
+Or, clone this repository and move to folder:
 ```bash
 git clone https://github.com/alawryaguila/multi-view-AE
 cd multi-view-AE
