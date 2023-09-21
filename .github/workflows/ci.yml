@@ -49,7 +49,7 @@ jobs:
         directory: ./coverage/reports/
         fail_ci_if_error: true
         env_vars: OS,PYTHON
-        files: /home/runner/work/multi-view-AE/multiviewae/coverage.xml
+        files: /home/runner/work/multi-view-AE/multi-view-AE/coverage.xml
         flags: tests
         
     - name: Run Test
