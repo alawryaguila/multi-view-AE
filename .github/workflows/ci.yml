@@ -35,18 +35,21 @@ jobs:
         pip install codecov
         pip install ./
         
-    - name: Install for codecov
-      run: 
-        python -m pip install poetry
+    - name: Generate coverage report 
+      run: |
+        pip install pytest-cov
+        pytest --cov=multi-view-AE ./ --cov-report=xml --runslow
       if: ${{ matrix.python-version == '3.8' }}
       
-    - name: Run test for codecov
-      run: poetry run pytest --doctest-modules --cov-report=xml --cov=multi-view-AE ./tests/ 
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v2
       if: ${{ matrix.python-version == '3.8' }}
-      
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v3
-      if: ${{ matrix.python-version == '3.8' }}
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        directory: ./coverage/reports/
+        fail_ci_if_error: true
+        files: ./coverage.xml
+
         
     - name: Run Test
       run: pytest
