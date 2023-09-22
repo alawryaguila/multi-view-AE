@@ -1,9 +1,20 @@
-cff-version: 1.2.0
+cff-version: 1.1.2
 message: "If you use this software, please cite it as below."
 authors:
 - family-names: "Lawry Aguila"
   given-names: "Ana"
-title: "multiAE"
-version: 1.0.0
-date-released: 2023-04-27
-url: "https://github.com/alawryaguila/multi-view-AE"
+  orcid: "https://orcid.org/0000-0003-0727-3274"
+- family-names: "Jayme"
+  given-names: "Alejandra"
+- family-names: "Montaña-Brown"
+  given-names: "Nina"
+  orcid: "https://orcid.org/0000-0001-5685-971X"
+- family-names: "Heuveline"
+  given-names: "Vincent"
+- family-names: "Altmann"
+  given-names: "Andre"
+  orcid: "https://orcid.org/0000-0002-9265-2393"
+title: Multi-view-AE: A Python package for multi-view autoencoder models
+journal: Journal of Open Source Software
+url: https://doi.org/10.21105/joss.05093
+date-released: 2023-05-16
