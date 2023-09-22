@@ -20,9 +20,9 @@ from omegaconf import OmegaConf, open_dict
 from .constants import *
 from .validation import config_schema
 from .exceptions import *
-
+from .validation import SUPPORTED_DATASETS
 from ..architectures.mlp import ConditionalVariationalEncoder, ConditionalVariationalDecoder
-
+from schema import Regex
 def update_dict(d, u, l):
     for k, v in u.items():
         if k in l:
@@ -157,7 +157,7 @@ class BaseModelAE(ABC, pl.LightningModule):
         )
 
         datamodule = hydra.utils.instantiate(
-           self.cfg.datamodule, n_views=self.n_views, data=data, labels=labels, _convert_="all", _recursive_=False
+           self.cfg.datamodule, data=data, n_views=self.n_views, labels=labels, _convert_="all", _recursive_=False
         )
         py_trainer.fit(self, datamodule)
         
@@ -367,11 +367,15 @@ class BaseModelAE(ABC, pl.LightningModule):
         if self.model_name == MODEL_JMVAE and len(self.input_dim) != 2:
             raise InputError('JMVAE expects two len(input_dim) == 2')
 
-        pattern = re.compile(r'multiviewae\.base\.datasets\.IndexMVDataset')
-        if bool(pattern.match(cfg.datamodule.dataset._target_)):
-            self.is_index_ds = True
+        if cfg.datamodule.dataset._target_ not in SUPPORTED_DATASETS:
+            print("WARNING: Training on user specified dataset, please ensure that the dataset is compatible with the multi-view-AE framework")
+            self.is_index_ds = cfg.datamodule.dataset.is_path_ds
         else:
-            self.is_index_ds = False
+            pattern = re.compile(r'multiviewae\.base\.datasets\.IndexMVDataset')
+            if bool(pattern.match(cfg.datamodule.dataset._target_)):
+                self.is_index_ds = True
+            else:
+                self.is_index_ds = False
 
         pattern = re.compile(r'..*\.Decoder')
         for k in cfg.decoder.keys():

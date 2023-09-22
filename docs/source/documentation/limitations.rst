@@ -32,7 +32,7 @@ This will be addressed in further work.
 
 Adding user designed classes
 ----------------------------
-With the exception of network architectures, for the user to use their implemented class, they must have access to the source code and the class must be added to the supported classes in the 
+Users are able to implement their own network architectures, datamodules, datasets and distributions. This should cover the majority of classes the user should wish to edit and offers lots of flexibility when implementing a model. For any other classes, users must have access to the source code and the class must be added to the supported classes in the 
 ``multiviewae/base/validation.py`` file.
 
 User designed network architectures
@@ -45,6 +45,12 @@ For example, variational encoder networks must return ``mu`` and ``logvar`` in t
 Please see the :ref:`Architectures` section for information on input and output parameters of encoder and decoder networks. 
 
 Implemented classes must have a ``forward`` method.
+
+User designed datamodules and datasets
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+User designed datamodules must implement a ``setup`` method, a ``train_dataloader`` method and a ``val_dataloader`` method and must accept the same parameters as the ``multi-view-AE`` counterpart. The datamodule class name must end in ``DataModule``.
+User designed datasets must implement a ``__getitem__`` method and must accept the same parameters as the ``multi-view-AE`` counterpart. The dataset class name must end in ``Dataset``.
+**NOTE** User implemented datasets must also provide a ``is_path_ds`` parameter to indicate whether the input data is a path to the data for the data to be loaded when the ``__getitem__`` method is called or whether the data is stored in memory.
 
 User designed distributions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^

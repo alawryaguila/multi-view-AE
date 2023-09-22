@@ -10,5 +10,9 @@ encoder:
 
 decoder:
   default:
+    _target_: multiviewae.architectures.mlp.Decoder
+    hidden_layer_dim: []
+    bias: True  
+    non_linear: False
     dec_dist:
       _target_: multiviewae.base.distributions.Laplace

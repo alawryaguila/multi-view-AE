@@ -26,6 +26,9 @@ Documentation
    api/models
    api/architectures
    api/parameters
+   api/datamodules
+   api/datasets
+   api/distributions
       
 .. toctree::
    :maxdepth: 1

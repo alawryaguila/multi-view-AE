@@ -349,7 +349,7 @@ def test_index_dataloader():
             print_results("latent", latent)
             recon = model.predict_reconstruction(test_idx)
             print_results("recon", recon)
-
+  
 def test_fitconfig(): 
     """
     Tests setting config file during fit().
