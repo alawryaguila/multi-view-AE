@@ -4,7 +4,7 @@
 [![DOI](https://joss.theoj.org/papers/10.21105/joss.05093/status.svg)](https://joss.theoj.org/papers/10.21105/joss.05093)
 [![version](https://img.shields.io/pypi/v/multiviewae)](https://pypi.org/project/multiviewae/)
 [![codecov](https://codecov.io/gh/alawryaguila/multi-view-AE/graph/badge.svg?token=NKO935MXFG)](https://codecov.io/gh/alawryaguila/multi-view-AE)
-[![downloads](https://img.shields.io/pypi/v/multiviewae)](https://pypi.org/project/multiviewae/)
+[![downloads](https://img.shields.io/pypi/dm/multiviewae)](https://pypi.org/project/multiviewae/)
 # Multi-view-AE: Multi-modal representation learning using autoencoders
 <p align="center">
   <img src="https://github.com/alawryaguila/multi-view-AE/blob/master/docs/figures/logo.png" width="600px"></center>
