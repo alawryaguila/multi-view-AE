@@ -3,7 +3,7 @@ from torch.distributions import Normal, kl_divergence, Laplace
 from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions.utils import broadcast_all
 from torch.nn.functional import binary_cross_entropy
-import numpy as np
+from .constants import EPS
 
 def compute_log_alpha(mu, logvar):
     # clamp because dropout rate p in 0-99%, where p = alpha/(alpha+1)
@@ -59,7 +59,15 @@ class Normal(Normal):
         **kwargs,
     ):
         self.loc = kwargs['loc']
-        self.scale = kwargs['scale']
+        if 'logvar' in kwargs:
+            self.logvar = kwargs['logvar']
+            self.scale = kwargs['logvar'].mul(0.5).exp_()+EPS
+
+        elif 'scale' in kwargs:
+            self.scale = kwargs['scale']
+            if not isinstance(self.scale, torch.Tensor):
+                self.scale = torch.tensor(self.scale)
+            self.logvar = 2 * torch.log(self.scale)
         super().__init__(loc=self.loc, scale=self.scale)
 
     @property
@@ -67,7 +75,18 @@ class Normal(Normal):
         return self.scale.pow(2)
 
     def kl_divergence(self, other):
-        return kl_divergence(torch.distributions.normal.Normal(loc=self.loc, scale=self.stddev), other)
+        logvar_1 = self.logvar
+        mu_1 = self.loc
+        logvar_2 = other.logvar
+        mu_2 = other.loc
+
+        return -0.5 * (
+                1
+                - logvar_2.exp() / logvar_1.exp()
+                - (mu_2 - mu_1).pow(2) / logvar_1.exp()
+                + logvar_2
+                - logvar_1
+            )
 
     def sparse_kl_divergence(self):
         """
@@ -107,7 +126,15 @@ class MultivariateNormal(MultivariateNormal):
         ):
 
         self.loc = torch.as_tensor(kwargs['loc'])
-        self.scale = torch.as_tensor(kwargs['scale'])
+        if 'logvar' in kwargs:
+            self.logvar = torch.as_tensor(kwargs['logvar'])
+            self.scale = torch.as_tensor(kwargs['logvar']).mul(0.5).exp_()+EPS
+
+        elif 'scale' in kwargs:
+            self.scale = torch.as_tensor(kwargs['scale'])
+            if not isinstance(self.scale, torch.Tensor):
+                self.scale = torch.tensor(self.scale)
+            self.logvar = 2 * torch.log(self.scale)
         
         #used when fitting encoder/decoder distribution or prior distribution with different mean and SD values
         self.covariance_matrix = torch.diag_embed(self.scale)
@@ -197,8 +224,7 @@ class Laplace(Laplace):
             self.scale = kwargs['scale']
         else: 
             #map to self device 
-            self.scale = torch.tensor(0.75) * torch.ones(self.loc.shape)
-            self.scale = self.scale.to(self.loc.device)
+            self.scale = torch.tensor(0.75).to(self.loc.device)
         super().__init__(loc=self.loc, scale=self.scale)
 
     def kl_divergence(self):

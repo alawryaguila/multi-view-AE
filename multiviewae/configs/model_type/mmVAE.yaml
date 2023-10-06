@@ -4,8 +4,9 @@
 model_name: "mmVAE"
 
 model:
-  K: 20
-
+  K: 1
+  DREG_loss: False
+  
 encoder:
   default:
     _target_: multiviewae.architectures.mlp.VariationalEncoder

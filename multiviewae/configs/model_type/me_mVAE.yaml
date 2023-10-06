@@ -5,10 +5,11 @@ model_name: "me_mVAE"
 
 model:
   beta: 1
-  join_type: "PoE"  # TODO: test MeanRepresentation
-
+  join_type: "PoE"  
+  warmup: 10 
   sparse: False
-
+  use_prior: True
+   
 encoder:
   default:
     _target_: multiviewae.architectures.mlp.VariationalEncoder

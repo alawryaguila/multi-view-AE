@@ -1,7 +1,7 @@
 import torch
 import hydra
 
-from ..base.constants import MODEL_JMVAE, EPS
+from ..base.constants import MODEL_JMVAE
 from ..base.base_model import BaseModelVAE
 
 class JMVAE(BaseModelVAE):
@@ -75,7 +75,7 @@ class JMVAE(BaseModelVAE):
         """
         mu, logvar = self.encoders[0](torch.cat((x[0], x[1]),dim=1))
         qz_xy = hydra.utils.instantiate(  
-            self.cfg.encoder.default.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)+EPS
+            self.cfg.encoder.default.enc_dist, loc=mu, logvar=logvar
         )
         return [qz_xy]
 
@@ -91,11 +91,11 @@ class JMVAE(BaseModelVAE):
         """
         mu, logvar = self.encoders[1](x[0])
         qz_x = hydra.utils.instantiate(    
-            self.cfg.encoder.enc0.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)+EPS
+            self.cfg.encoder.enc0.enc_dist, loc=mu, logvar=logvar
         )
         mu, logvar = self.encoders[2](x[1])
         qz_y = hydra.utils.instantiate(   
-            self.cfg.encoder.enc1.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)+EPS
+            self.cfg.encoder.enc1.enc_dist, loc=mu, logvar=logvar
         )
         return qz_x, qz_y
 

@@ -2,8 +2,11 @@ import math
 import torch
 import hydra
 
-from ..base.constants import MODEL_MMVAE, EPS
+from ..base.constants import MODEL_MMVAE
 from ..base.base_model import BaseModelVAE
+import numpy as np
+#set numpy seed
+np.random.seed(0)
 
 class mmVAE(BaseModelVAE):
     r"""
@@ -15,6 +18,7 @@ class mmVAE(BaseModelVAE):
         cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
             
             - model.K (int): Number of samples to take from encoding distribution.
+            - model.DREG_loss (bool): Whether to use DReG estimator when using large K value. 
             - encoder.default._target_ (multiviewae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
             - encoder.default.enc_dist._target_ (multiviewae.base.distributions.Normal, multiviewae.base.distributions.MultivariateNormal): Encoding distribution.
             - decoder.default._target_ (multiviewae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
@@ -53,11 +57,37 @@ class mmVAE(BaseModelVAE):
         for i in range(self.n_views):
             mu, logvar = self.encoders[i](x[i])
             qz_x = hydra.utils.instantiate(
-                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu, scale=logvar.exp().pow(0.5)+EPS
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu, logvar=logvar
             )
             qz_xs.append(qz_x)
         return qz_xs
+    
+    def encode_subset(self, x, subset):
+        r"""Forward pass through encoder networks for a subset of modalities.
+        Args:
+            x (list): list of input data of type torch.Tensor.
+            subset (list): list of modalities to encode.
 
+        Returns:
+            (list): list of encoding distributions.
+        """    
+        qz_xs = []
+        for i in range(self.n_views):
+            if i in subset:
+                mu, logvar = self.encoders[i](x[i])
+                qz_x = hydra.utils.instantiate(
+                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu, logvar=logvar
+                )
+            else:
+            # Choose one of the subset modalities at random
+                mod = np.random.choice(subset)
+                mu, logvar = self.encoders[mod](x[mod])
+                qz_x = hydra.utils.instantiate(
+                    eval(f"self.cfg.encoder.enc{mod}.enc_dist"), loc=mu, logvar=logvar
+                )
+            qz_xs.append(qz_x)
+        return qz_xs
+        
     def decode(self, qz_xs):
         r"""Forward pass through decoder networks. Each latent is passed through all of the decoders.
 
@@ -86,6 +116,25 @@ class mmVAE(BaseModelVAE):
             del px_z
         return px_zs
 
+    def decode_subset(self, qz_xs, subset):
+        r"""Forward pass through decoder networks for a subset of modalities. Each latent is passed through its own decoder.
+
+        Args:
+            x (list): list of input data of type torch.Tensor.
+            subset (list): list of modalities to decode.
+
+        Returns:
+            (list): A nested list of decoding distributions. The outer list has a n_view element indicating latent dimensions index. 
+            The inner list is a n_view element list with the position in the list indicating the decoder index.
+        """    
+        px_zs = []
+        for i, qz_x in enumerate(qz_xs):
+            if i in subset:
+                px_z = self.decoders[i](qz_x._sample(training=self._training))
+            px_zs.append(px_z)
+        return [px_zs]
+            
+    
     def forward(self, x):
         r"""Apply encode and decode methods to input data to generate latent dimensions and data reconstructions. 
         
@@ -126,6 +175,9 @@ class mmVAE(BaseModelVAE):
         """
         lws = []
         zss = []
+        if self.DREG_loss: 
+            qz_xs = [hydra.utils.instantiate(
+                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=qz_x.loc.detach(), logvar=qz_x.logvar.detach()) for i, qz_x in enumerate(qz_xs)]
         for i in range(self.n_views):
             if self._training:
                 zs = qz_xs[i].rsample(torch.Size([self.K]))
@@ -147,9 +199,18 @@ class mmVAE(BaseModelVAE):
 
             lw = lpz + lpx_z - lqz_x
             lws.append(lw)
+        if self.DREG_loss:
+            zss = torch.stack(zss)
+            with torch.no_grad():
+                grad_wt = (lws - torch.logsumexp(lws, 1, keepdim=True)).exp()
+                if zss.requires_grad:
+                    zss.register_hook(lambda grad: grad_wt.unsqueeze(-1) * grad)
+            return - (grad_wt * lws).sum(0) / self.n_views #DReG loss
+
         return (
-            self.log_mean_exp(torch.stack(lws), dim=1).mean(0).sum()
-        )  # looser iwae bound 
+            self.log_mean_exp(torch.stack(lws), dim=1).mean(0).sum()/self.n_views
+          )  # looser iwae bound 
+            
 
     def log_mean_exp(self, value, dim=0, keepdim=False):
         r"""Returns the log of the mean of the exponentials along the given dimension (dim).

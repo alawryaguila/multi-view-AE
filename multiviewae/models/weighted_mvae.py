@@ -1,7 +1,7 @@
 import torch
 import hydra
 
-from ..base.constants import MODEL_WEIGHTEDMVAE, EPS
+from ..base.constants import MODEL_WEIGHTEDMVAE
 from ..base.base_model import BaseModelVAE
 from ..base.representations import weightedProductOfExperts
 
@@ -87,11 +87,11 @@ class weighted_mVAE(BaseModelVAE):
                 logvar_c.append(logvar[:,self.s_dim:])
 
                 qs_x = hydra.utils.instantiate(
-                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,:self.s_dim], scale=logvar[:,:self.s_dim].exp().pow(0.5)+EPS
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,:self.s_dim], logvar=logvar[:,:self.s_dim]
                 )
                 qs_xs.append(qs_x)
                 qc_x = hydra.utils.instantiate(
-                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,self.s_dim:], scale=logvar[:,self.s_dim:].exp().pow(0.5)+EPS
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu[:,self.s_dim:], logvar=logvar[:,self.s_dim:]
                 )
                 qcs_xs.append(qc_x)
 
@@ -100,7 +100,7 @@ class weighted_mVAE(BaseModelVAE):
        
             mu_c, logvar_c = self.join_z(mu_c, logvar_c, self.poe_weight)
             qc_x = hydra.utils.instantiate(
-                self.cfg.encoder.default.enc_dist, loc=mu_c, scale=logvar_c.exp().pow(0.5)+EPS
+                self.cfg.encoder.default.enc_dist, loc=mu_c, logvar=logvar_c
             )
             with torch.no_grad():
                 self.poe_weight = self.poe_weight.clamp_(0, +1)
@@ -109,7 +109,7 @@ class weighted_mVAE(BaseModelVAE):
                 mu_sc = torch.cat((mu_s[i], mu_c), 1)
                 logvar_sc = torch.cat((logvar_s[i], logvar_c), 1)
                 qsc_x = hydra.utils.instantiate( 
-                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_sc, scale=logvar_sc.exp().pow(0.5)+EPS
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_sc, logvar=logvar_sc
                 )
                 qscs_xs.append(qsc_x)
 
@@ -127,7 +127,7 @@ class weighted_mVAE(BaseModelVAE):
         logvar = torch.stack(logvar)
         mu_out, logvar_out = self.join_z(mu, logvar, self.poe_weight)
         qz_x = hydra.utils.instantiate(
-            self.cfg.encoder.default.enc_dist, loc=mu_out, scale=logvar_out.exp().pow(0.5)+EPS
+            self.cfg.encoder.default.enc_dist, loc=mu_out, logvar=logvar_out
         )
         with torch.no_grad():
             self.poe_weight = self.poe_weight.clamp_(0, +1)
@@ -195,7 +195,7 @@ class weighted_mVAE(BaseModelVAE):
         kl = 0
         for i in range(self.n_views):
             kl += qc_xs[i].kl_divergence(self.prior).mean(0).sum()
-        return self.beta * kl
+        return self.beta * kl/self.n_views
     
     def calc_ll(self, x, px_zs):
         r"""Calculate log-likelihood loss.
@@ -210,7 +210,7 @@ class weighted_mVAE(BaseModelVAE):
         ll = 0
         for i in range(self.n_views):
             ll += px_zs[0][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view
-        return ll
+        return ll/self.n_views
 
     def loss_function(self, x, fwd_rtn):
         r"""Calculate Multimodal VAE loss.

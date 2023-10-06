@@ -1,6 +1,6 @@
 import torch
 import hydra
-from ..base.constants import MODEL_DVCCA, EPS
+from ..base.constants import MODEL_DVCCA
 from ..base.base_model import BaseModelVAE
 
 class DVCCA(BaseModelVAE):
@@ -135,7 +135,7 @@ class DVCCA(BaseModelVAE):
         """
         mu, logvar = self.encoders[0](x[0])
         qz_x = hydra.utils.instantiate(
-                    eval(f"self.cfg.encoder.enc0.enc_dist"), loc=mu, scale=logvar.exp().pow(0.5)+EPS
+                    eval(f"self.cfg.encoder.enc0.enc_dist"), loc=mu, logvar=logvar
         )
         if self.private:
             qz_xs = []
@@ -143,7 +143,7 @@ class DVCCA(BaseModelVAE):
             for i in range(self.n_views):
                 mu_p, logvar_p = self.private_encoders[i](x[i])
                 qh_x = hydra.utils.instantiate(
-                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_p, scale=logvar_p.exp().pow(0.5)+EPS
+                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_p, logvar=logvar_p
                 )
                 qh_xs.append(qh_x)
 
@@ -151,7 +151,7 @@ class DVCCA(BaseModelVAE):
                 logvar_ = torch.cat((logvar, logvar_p), 1)
 
                 qz_x = hydra.utils.instantiate(
-                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_, scale=logvar_.exp().pow(0.5)+EPS
+                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_, logvar=logvar_
                 )
                 qz_xs.append(qz_x)
             if self._training:
@@ -159,7 +159,7 @@ class DVCCA(BaseModelVAE):
             return qz_xs
         else:
             qz_x = hydra.utils.instantiate( 
-                self.cfg.encoder.default.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)+EPS
+                self.cfg.encoder.default.enc_dist, loc=mu, logvar=logvar
             )
             return [qz_x]
 

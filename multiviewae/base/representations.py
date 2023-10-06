@@ -4,13 +4,11 @@ from .constants import EPS
 
 class ProductOfExperts(nn.Module):
     """Return parameters for product of independent experts.
-    See https://arxiv.org/pdf/1410.7827.pdf for equations.
 
     Args:
     mu (torch.Tensor): Mean of experts distribution. M x D for M experts
     logvar (torch.Tensor): Log of variance of experts distribution. M x D for M experts
     """
-
     def forward(self, mu, logvar):
         var = torch.exp(logvar) + EPS
         T = 1. / (var + EPS)
@@ -18,7 +16,7 @@ class ProductOfExperts(nn.Module):
         pd_var = 1. / torch.sum(T, dim=0)
         pd_logvar = torch.log(pd_var + EPS)
         return pd_mu, pd_logvar
-
+    
 class alphaProductOfExperts(nn.Module):
     """Return parameters for weighted product of independent experts (mmJSD implementation).
     See https://arxiv.org/pdf/1410.7827.pdf for equations.
@@ -32,7 +30,10 @@ class alphaProductOfExperts(nn.Module):
         if weights is None:
             num_components = mu.shape[0]
             weights = (1/num_components) * torch.ones(mu.shape).to(mu.device)
-    
+        neg_logvar = logvar*-1
+        pd_logvar = -torch.logsumexp(neg_logvar, dim=0) 
+        pd_mu = torch.sum(torch.exp(neg_logvar) * mu, dim=0) * torch.exp(pd_logvar)
+
         var = torch.exp(logvar) + EPS
         T = 1. / (var + EPS)
         weights = torch.broadcast_to(weights, mu.shape)

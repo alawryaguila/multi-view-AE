@@ -1,7 +1,6 @@
 import torch
 import hydra
-
-from ..base.constants import MODEL_MVAE, EPS
+from ..base.constants import MODEL_MVAE
 from ..base.base_model import BaseModelVAE
 from ..base.representations import ProductOfExperts, MeanRepresentation
 
@@ -13,7 +12,9 @@ class mVAE(BaseModelVAE):
         cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
             
             - model.beta (int, float): KL divergence weighting term.
-            - model.join_type (str): Method of combining encoding distributions.       
+            - model.join_type (str): Method of combining encoding distributions.      
+            - model.warmup (int): KL term weighted by beta linearly increased to 1 over this many epochs.
+            - model.use_prior (bool): Whether to use a prior expert when combining encoding distributions.
             - model.sparse (bool): Whether to enforce sparsity of the encoding distribution.
             - model.threshold (float): Dropout threshold applied to the latent dimensions. Default is 0.
             - encoder.default._target_ (multiviewae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
@@ -48,6 +49,8 @@ class mVAE(BaseModelVAE):
         elif self.join_type == "Mean":
             self.join_z = MeanRepresentation()
         
+        if self.warmup is not None:
+            self.beta_vals = torch.linspace(0, self.beta, self.warmup)
 
     def encode(self, x):
         r"""Forward pass through encoder networks.
@@ -64,12 +67,12 @@ class mVAE(BaseModelVAE):
             mu_, logvar_ = self.encoders[i](x[i])
             mu.append(mu_)
             logvar.append(logvar_)
-        if not self.sparse:
+        if not self.sparse and self.use_prior:
             #get mu and logvar from prior expert
             mu_ = self.prior.mean
-            mu_ = mu_.expand(mu[0].shape)             
-            logvar_ = torch.log(self.prior.variance)
-            logvar_ = logvar_.expand(logvar[0].shape)               
+            mu_ = mu_.expand(mu[0].shape).to(mu[0].device)           
+            logvar_ = torch.log(self.prior.variance).to(mu[0].device)     
+            logvar_ = logvar_.expand(logvar[0].shape)      
             mu.append(mu_)
             logvar.append(logvar_)
         mu = torch.stack(mu)
@@ -77,10 +80,42 @@ class mVAE(BaseModelVAE):
         mu_out, logvar_out = self.join_z(mu, logvar)
     
         qz_x = hydra.utils.instantiate(
-            self.cfg.encoder.default.enc_dist, loc=mu_out, scale=logvar_out.exp().pow(0.5)+EPS
+            self.cfg.encoder.default.enc_dist, loc=mu_out, logvar=logvar_out
         )
         return [qz_x]
 
+    def encode_subset(self, x, subset):
+        r"""Forward pass through encoder networks for the specified subset.
+
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            (list): Single element list of joint encoding distribution.
+        """
+        mu = []
+        logvar = []
+        for i in subset:
+            mu_, logvar_ = self.encoders[i](x[i])
+            mu.append(mu_)
+            logvar.append(logvar_)
+        if not self.sparse and self.use_prior:
+            #get mu and logvar from prior expert
+            mu_ = self.prior.mean
+            mu_ = mu_.expand(mu[0].shape).to(mu[0].device)           
+            logvar_ = torch.log(self.prior.variance).to(mu[0].device)     
+            logvar_ = logvar_.expand(logvar[0].shape)      
+            mu.append(mu_)
+            logvar.append(logvar_)
+        mu = torch.stack(mu)
+        logvar = torch.stack(logvar)
+        mu_out, logvar_out = self.join_z(mu, logvar)
+    
+        qz_x = hydra.utils.instantiate(
+            self.cfg.encoder.default.enc_dist, loc=mu_out, logvar=logvar_out
+        )
+        return [qz_x] 
+           
     def decode(self, qz_x):
         r"""Forward pass of joint latent dimensions through decoder networks.
 
@@ -97,6 +132,22 @@ class mVAE(BaseModelVAE):
             px_zs.append(px_z)
         return [px_zs]
 
+    def decode_subset(self, qz_x, subset):
+        r"""Forward pass of joint latent dimensions through decoder networks for the specified subset.
+
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            (list): A nested list of decoding distributions, px_zs. The outer list has a single element indicating the shared latent dimensions. 
+            The inner list is a n_view element list with the position in the list indicating the decoder index.
+        """  
+        px_zs = []
+        for i in subset:
+            px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
+            px_zs.append(px_z)
+        return [px_zs]
+    
     def forward(self, x):
         r"""Apply encode and decode methods to input data to generate the joint latent dimensions and data reconstructions. 
         
@@ -156,7 +207,11 @@ class mVAE(BaseModelVAE):
 
         kl = self.calc_kl(qz_x)
         ll = self.calc_ll(x, px_zs)
+        
+        if self.current_epoch > self.warmup -1:
+            total = (self.beta*kl - ll)/(self.n_views+1)
+        else:
+            total = (self.beta_vals[self.current_epoch]*kl - ll)/(self.n_views+1)
 
-        total = self.beta*kl - ll
         losses = {"loss": total, "kl": kl, "ll": ll}
         return losses

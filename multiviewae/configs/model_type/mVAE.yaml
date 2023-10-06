@@ -5,10 +5,11 @@ model_name: "mVAE"
 
 model:
   beta: 1
-  join_type: "PoE"  # TODO: test MeanRepresentation
-
+  join_type: "PoE" 
   sparse: False
   threshold: 0.2
+  warmup: 10
+  use_prior: True
 
 encoder:
   default:

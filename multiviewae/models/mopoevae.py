@@ -1,7 +1,6 @@
 import torch
 import hydra
-import numpy as np
-from ..base.constants import MODEL_MOPOEVAE, EPS
+from ..base.constants import MODEL_MOPOEVAE
 from ..base.base_model import BaseModelVAE
 from itertools import combinations
 from ..base.representations import ProductOfExperts, MixtureOfExperts
@@ -72,7 +71,7 @@ class MoPoEVAE(BaseModelVAE):
                 mu_out.append(mu_s)
                 logvar_out.append(logvar_s)
                 qz_x = hydra.utils.instantiate( 
-                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_s, scale=logvar_s.exp().pow(0.5)+EPS
+                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_s, logvar=logvar_s
                 )
                 qz_xs.append(qz_x)
             mu_out = torch.stack(mu_out)
@@ -81,7 +80,7 @@ class MoPoEVAE(BaseModelVAE):
             moe_mu, moe_logvar = MixtureOfExperts()(mu_out, logvar_out)
             
             qz_x = hydra.utils.instantiate( 
-                self.cfg.encoder.default.enc_dist, loc=moe_mu, scale=moe_logvar.exp().pow(0.5)+EPS
+                self.cfg.encoder.default.enc_dist, loc=moe_mu, logvar=moe_logvar
                 )
             return [qz_xs, qz_x]
         else:
@@ -98,10 +97,48 @@ class MoPoEVAE(BaseModelVAE):
             moe_mu, moe_logvar = MixtureOfExperts()(mu_out, logvar_out)
  
             qz_x = hydra.utils.instantiate( 
-                self.cfg.encoder.default.enc_dist, loc=moe_mu, scale=moe_logvar.exp().pow(0.5)
+                self.cfg.encoder.default.enc_dist, loc=moe_mu, logvar=moe_logvar
                 )
             return [qz_x]
+    def encode_subset(self, x, subset):
+        r""" Forward pass through encoder networks for a subset of modalities.
+        Args:
+            x (list): list of input data of type torch.Tensor.
+            subset (list): list of modalities to encode.
 
+        Returns:
+            (list): list containing the MoE joint encoding distribution. 
+        """
+        mu = []
+        logvar = []
+
+        for i in subset:
+            mu_, logvar_ = self.encoders[i](x[i])
+            mu.append(mu_) 
+            logvar.append(logvar_) 
+        mu = torch.stack(mu)
+        logvar = torch.stack(logvar)
+
+        mu_out = []
+        logvar_out = []
+        subsets = self.set_subsets(n_views=len(subset))
+        for _subset in subsets:
+            mu_s = mu[_subset]
+            logvar_s = logvar[_subset]
+            mu_s, logvar_s = ProductOfExperts()(mu_s, logvar_s)    
+            mu_out.append(mu_s)
+            logvar_out.append(logvar_s)
+
+        mu_out = torch.stack(mu_out)
+        logvar_out = torch.stack(logvar_out)
+
+        moe_mu, moe_logvar = MixtureOfExperts()(mu_out, logvar_out)
+
+        qz_x = hydra.utils.instantiate( 
+            self.cfg.encoder.default.enc_dist, loc=moe_mu, scale=moe_logvar.exp().pow(0.5)
+            )
+        return [qz_x]
+    
     def decode(self, qz_x):
         r"""Forward pass of joint latent dimensions through decoder networks.
 
@@ -169,13 +206,15 @@ class MoPoEVAE(BaseModelVAE):
 
         return kl*weight
 
-    def set_subsets(self):
+    def set_subsets(self, n_views=None):
         """Create combinations of subsets of views.
 
         Returns:
             subset_list (list): list of unique combinations of n_views.
         """
-        xs = list(range(0, self.n_views))
+        if n_views is None:
+            n_views = self.n_views
+        xs = list(range(0, n_views))
         tmp = [list(combinations(xs, n+1)) for n in range(len(xs))]
         subset_list = [list(item) for sublist in tmp for item in sublist]
         return subset_list

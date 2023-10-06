@@ -1,9 +1,8 @@
 import torch
 import hydra
 
-from ..base.constants import MODEL_MCVAE, EPS
+from ..base.constants import MODEL_MCVAE
 from ..base.base_model import BaseModelVAE
-from ..base.distributions import Normal
 
 class mcVAE(BaseModelVAE):
     r"""
@@ -55,7 +54,7 @@ class mcVAE(BaseModelVAE):
         for i in range(self.n_views):
             mu, logvar = self.encoders[i](x[i])
             qz_x = hydra.utils.instantiate(
-                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu, scale=logvar.exp().pow(0.5)+EPS
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu, logvar=logvar
             )
             qz_xs.append(qz_x)
         return qz_xs
@@ -143,4 +142,4 @@ class mcVAE(BaseModelVAE):
         for i in range(self.n_views):
             for j in range(self.n_views):
                 ll += px_zs[j][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view
-        return ll
+        return ll/self.n_views/self.n_views

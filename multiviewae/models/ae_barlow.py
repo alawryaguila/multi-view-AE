@@ -90,7 +90,7 @@ class AE_barlow(BaseModelAE):
         recon = 0
         for i in range(self.n_views):
             recon += x_recon[i].log_likelihood(x[i]).mean(0).sum()
-        return recon
+        return recon/self.n_views
 
     def calc_barlow_twins_loss(self, z):
         r"""Calculate barlow twins loss.

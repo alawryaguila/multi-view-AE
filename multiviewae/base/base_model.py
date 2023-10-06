@@ -162,11 +162,11 @@ class BaseModelAE(ABC, pl.LightningModule):
         py_trainer.fit(self, datamodule)
         
 
-    def predict_latents(self, *data, labels=None, batch_size=None):
-        return self.__predict(*data, labels=labels, batch_size=batch_size)
+    def predict_latents(self, *data, input_modalities=None, labels=None, batch_size=None):
+        return self.__predict(*data, input_modalities=input_modalities, labels=labels, batch_size=batch_size)
 
-    def predict_reconstruction(self, *data, labels=None, batch_size=None):
-        return self.__predict(*data, labels=labels, batch_size=batch_size, is_recon=True)
+    def predict_reconstruction(self, *data, input_modalities=None, output_modalities=None, labels=None, batch_size=None):
+        return self.__predict(*data, input_modalities=input_modalities, output_modalities=output_modalities, labels=labels, batch_size=batch_size, is_recon=True)
 
     def print_config(self, cfg=None, keys=None):
         if cfg is None:
@@ -297,7 +297,7 @@ class BaseModelAE(ABC, pl.LightningModule):
                         self.private_encoders[i].set_labels(labels)
 
     ################################            private methods
-    def __initcfg(self, old_cfg, new_cfg, at_fit=False, is_print=True):        
+    def __initcfg(self, old_cfg, new_cfg, at_fit=False, is_print=False):        
         updated_cfg = self.__updateconfig(old_cfg, new_cfg)
 
         if not at_fit and self.z_dim is not None:   # overrides hydra config... passed arg has precedence
@@ -457,7 +457,7 @@ class BaseModelAE(ABC, pl.LightningModule):
             )
         return loss["loss"]
 
-    def __predict(self, *data, labels=None, batch_size=None, is_recon=False):
+    def __predict(self, *data, input_modalities=None, output_modalities=None, labels=None, batch_size=None, is_recon=False):
         if any([isinstance(enc, ConditionalVariationalEncoder) for enc in self.encoders]) and labels is None: 
             raise InputError("no labels given for Conditional VAE")
 
@@ -496,11 +496,17 @@ class BaseModelAE(ABC, pl.LightningModule):
                 local_batchx = [
                     local_batchx_.to(self.device) for local_batchx_ in local_batchx
                 ]
-                z = self.encode(local_batchx)
+                if input_modalities is None:
+                    z = self.encode(local_batchx)
+                else:
+                    z = self.encode_subset(local_batchx, input_modalities)
                 if self.sparse:
                     z = self.apply_threshold(z)
                 if is_recon:
-                    z = self.decode(z)
+                    if output_modalities is None:
+                        z = self.decode(z)
+                    else:
+                        z = self.decode_subset(z, output_modalities)
 
                 z = [
                         [ d__._sample().cpu().detach().numpy() for d__ in d_ ]

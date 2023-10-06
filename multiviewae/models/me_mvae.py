@@ -1,9 +1,7 @@
 import torch
 import hydra
-
-from ..base.constants import MODEL_MEMVAE, EPS
+from ..base.constants import MODEL_MEMVAE
 from ..base.base_model import BaseModelVAE
-from ..base.distributions import Normal
 from ..base.representations import ProductOfExperts, MeanRepresentation
 
 class me_mVAE(BaseModelVAE):
@@ -18,6 +16,8 @@ class me_mVAE(BaseModelVAE):
             
             - model.beta (int, float): KL divergence weighting term.
             - model.join_type (str): Method of combining encoding distributions.
+            - model.warmup (int): KL term weighted by beta linearly increased to 1 over this many epochs.
+            - model.use_prior (bool): Whether to use a prior expert when combining encoding distributions.
             - model.sparse (bool): Whether to enforce sparsity of the encoding distribution.
             - model.threshold (float): Dropout threshold applied to the latent dimensions. Default is 0.
             - encoder.default._target_ (multiviewae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
@@ -51,6 +51,8 @@ class me_mVAE(BaseModelVAE):
             self.join_z = ProductOfExperts()
         elif self.join_type == "Mean":
             self.join_z = MeanRepresentation()
+        if self.warmup is not None:
+            self.beta_vals = torch.linspace(0, self.beta, self.warmup)
 
     def encode(self, x):
         r"""Forward pass through encoder networks.
@@ -60,47 +62,70 @@ class me_mVAE(BaseModelVAE):
 
         Returns:
             (list): Single element list of joint encoding distribution.
+            (list): List containing separate encoding distributions.
         """
         mu = []
         logvar = []
+        qz_xs = []
         for i in range(self.n_views):
             mu_, logvar_ = self.encoders[i](x[i])
             mu.append(mu_)
             logvar.append(logvar_)
-        if not self.sparse:
+            qz_x = hydra.utils.instantiate( 
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_, logvar=logvar_
+            )
+            qz_xs.append(qz_x)
+        if not self.sparse and self.use_prior:
             #get mu and logvar from prior expert
             mu_ = self.prior.mean
-            mu_ = mu_.expand(mu[0].shape)             
-            logvar_ = torch.log(self.prior.variance)
-            logvar_ = logvar_.expand(logvar[0].shape)               
+            mu_ = mu_.expand(mu[0].shape).to(mu[0].device)            
+            logvar_ = torch.log(self.prior.variance).to(mu[0].device)
+            logvar_ = logvar_.expand(logvar[0].shape)              
             mu.append(mu_)
             logvar.append(logvar_)
         mu = torch.stack(mu)
         logvar = torch.stack(logvar)
         mu_out, logvar_out = self.join_z(mu, logvar)
         qz_x = hydra.utils.instantiate( 
-            self.cfg.encoder.default.enc_dist, loc=mu_out, scale=logvar_out.exp().pow(0.5)+EPS
+            self.cfg.encoder.default.enc_dist, loc=mu_out, logvar=logvar_out
         )
+        if self._training:
+            return [qz_x], qz_xs
         return [qz_x]
 
-    def encode_separate(self, x):
-        r"""Forward pass through encoder networks.
+    def encode_subset(self, x, subset):
+        r"""Forward pass through encoder networks for the specified subset.
 
         Args:
             x (list): list of input data of type torch.Tensor.
 
         Returns:
-            (list): list of separate encoding distributions for each modality.
+            (list): Single element list of joint encoding distribution.
         """
-        qz_xs = []
-        for i in range(self.n_views):
+        mu = []
+        logvar = []
+        for i in subset:
             mu_, logvar_ = self.encoders[i](x[i])
-            qz_x = hydra.utils.instantiate( 
-                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_, scale=logvar_.exp().pow(0.5)+EPS
-            )
-            qz_xs.append(qz_x)
-        return qz_xs
-
+            mu.append(mu_)
+            logvar.append(logvar_)
+        if not self.sparse and self.use_prior:
+            #get mu and logvar from prior expert
+            mu_ = self.prior.mean
+            mu_ = mu_.expand(mu[0].shape).to(mu[0].device)           
+            logvar_ = torch.log(self.prior.variance).to(mu[0].device)     
+            logvar_ = logvar_.expand(logvar[0].shape)      
+            mu.append(mu_)
+            logvar.append(logvar_)
+        mu = torch.stack(mu)
+        logvar = torch.stack(logvar)
+        mu_out, logvar_out = self.join_z(mu, logvar)
+    
+        qz_x = hydra.utils.instantiate(
+            self.cfg.encoder.default.enc_dist, loc=mu_out, logvar=logvar_out
+        )
+        return [qz_x] 
+           
+           
     def decode(self, qz_x):
         r"""Forward pass of joint latent dimensions through decoder networks.
         
@@ -117,6 +142,22 @@ class me_mVAE(BaseModelVAE):
             px_zs.append(px_z)
         return [px_zs]
 
+    def decode_subset(self, qz_x, subset):
+        r"""Forward pass of joint latent dimensions through decoder networks for the specified subset.
+
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            (list): A nested list of decoding distributions, px_zs. The outer list has a single element indicating the shared latent dimensions. 
+            The inner list is a n_view element list with the position in the list indicating the decoder index.
+        """  
+        px_zs = []
+        for i in subset:
+            px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
+            px_zs.append(px_z)
+        return [px_zs]
+    
     def decode_separate(self, qz_xs):
         r"""Forward pass of each view specific latent dimensions through the respective decoder network.
 
@@ -142,8 +183,7 @@ class me_mVAE(BaseModelVAE):
         Returns:
             fwd_rtn (dict): dictionary containing encoding and decoding distributions.
         """
-        qz_x = self.encode(x)
-        qz_xs = self.encode_separate(x)
+        qz_x, qz_xs = self.encode(x)
         px_zs = self.decode(qz_x)
         px_zss = self.decode_separate(qz_xs)
         fwd_rtn = {"px_zs": px_zs, "px_zss": px_zss, "qz_x": qz_x, "qz_xs": qz_xs}
@@ -164,7 +204,7 @@ class me_mVAE(BaseModelVAE):
                 kl += qz_xs[i].sparse_kl_divergence().mean(0).sum()
             else:
                 kl += qz_xs[i].kl_divergence(self.prior).mean(0).sum()
-        return self.beta * kl
+        return kl
 
     def calc_ll(self, x, px_zs):
         r"""Calculate log-likelihood loss.
@@ -201,7 +241,11 @@ class me_mVAE(BaseModelVAE):
         ll = self.calc_ll(x, px_zs)
         ll_separate = self.calc_ll(x, px_zss)
 
-        total = kl + kl_separate - ll - ll_separate
+        if self.current_epoch > self.warmup - 1:
+            total = (self.beta*kl  - ll )/self.n_views + self.beta*kl_separate - ll_separate
+        else:
+            total = (self.beta_vals[self.current_epoch]*kl  - ll )/self.n_views + self.beta_vals[self.current_epoch]*kl_separate - ll_separate
+        
         losses = {"loss": total, "kl": kl, "ll": ll, "ll_separate": ll_separate, "kl_separate": kl_separate}
 
         return losses
