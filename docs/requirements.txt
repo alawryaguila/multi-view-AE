@@ -4,6 +4,7 @@ sphinx
 sphinx-autodoc-typehints
 sphinxcontrib-datatemplates
 sphinx-gallery
+sphinx_rtd_theme
 scipy
 pytest
 pandas
