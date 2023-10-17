@@ -135,9 +135,17 @@ class MoPoEVAE(BaseModelVAE):
         moe_mu, moe_logvar = MixtureOfExperts()(mu_out, logvar_out)
 
         qz_x = hydra.utils.instantiate( 
-            self.cfg.encoder.default.enc_dist, loc=moe_mu, scale=moe_logvar.exp().pow(0.5)
+            self.cfg.encoder.default.enc_dist, loc=moe_mu, logvar=moe_logvar
             )
         return [qz_x]
+    
+    def decode_subset(self, qz_x, subset):
+        px_zs = []
+        for i in range(self.n_views):
+            if i in subset:
+                px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
+                px_zs.append(px_z)
+        return [px_zs]    
     
     def decode(self, qz_x):
         r"""Forward pass of joint latent dimensions through decoder networks.

@@ -3,10 +3,11 @@ import numpy as np
 import torch
 import random
 import importlib
-
+import shutil
 from multiviewae import *
 from os.path import abspath, dirname, join
 from torchvision import datasets, transforms
+
 
 def print_results(key, res, idx=0):
     """Function to print the model results.
@@ -33,6 +34,7 @@ def test_models():
     fit(), fit(), predict_latents(), and predict_reconstruction() methods. The test will fail if running the
     fit(), predict_latents(), and predict_reconstruction() methods fails using the data and arguments provided.
     """
+    np.random.seed(0)
     train_1 = np.random.rand(200, 20)
     train_2 = np.random.rand(200, 10)
     train_3 = np.random.rand(200, 5)
@@ -76,6 +78,13 @@ def test_models():
             recon = model2.predict_reconstruction(test_1, test_2, test_3, batch_size=5)
             print_results("recon", recon)
             print("")
+            
+            outdir = model1.cfg.out_dir
+            if os.path.exists(outdir):
+                shutil.rmtree(outdir)
+            outdir = model2.cfg.out_dir
+            if os.path.exists(outdir):
+                shutil.rmtree(outdir)
         else:
             model1 = class_(input_dim=[20, 10])
             model1.fit(train_1, train_2) #fit model with 2 views
@@ -91,13 +100,17 @@ def test_models():
             print_results("latent", latent)
             recon = model1.predict_reconstruction(test_1, test_2, batch_size=5)
             print_results("recon", recon)
-
+            
+            outdir = model1.cfg.out_dir
+            if os.path.exists(outdir):
+                shutil.rmtree(outdir)
 def test_userconfig():
     """Train and test each model in the library using 1-3 views of simulated data.
     The purpose of this test is to test the ability to add user defined configuration files altering various default model parameters.
     The test will fail if any of the settings provided in the configuration files (Laplace distribution, Multivariate normal distribution, sparsity constraint) 
     are not functioning correctly or if the configuration file reading and processing functionality is not working.
     """
+    np.random.seed(0)
     train_1 = np.random.rand(200, 20)
     train_2 = np.random.rand(200, 10)
     train_3 = np.random.rand(200, 5)
@@ -147,6 +160,10 @@ def test_userconfig():
             print_results("recon", recon)
             print("")
 
+            outdir = model.cfg.out_dir
+            if os.path.exists(outdir):
+                shutil.rmtree(outdir)
+
 def test_mnist():
     """Tests the MNIST example code. The test will fail if unable to train and test a subset of the multiviewae models with the MNIST example data.
     """
@@ -190,6 +207,10 @@ def test_mnist():
         recon = model.predict_reconstruction(data_test_1, data_test_2, batch_size=1000)
         print_results("recon", recon)
         print("")
+
+        outdir = model.cfg.out_dir
+        if os.path.exists(outdir):
+            shutil.rmtree(outdir)
 
 def test_validation():
     """Tests the ability of the validation function to catch non-compatible parameter combinations provided in configuration files.
@@ -243,9 +264,10 @@ def test_architectures():
                         MODEL_MVTCAE,
                         MODEL_DVCCA,
                         MODEL_MOPOEVAE
-                    ]] #test variational CNN encoder
+                    ]
+    ] #test variational CNN encoder
             }
-
+    np.random.seed(0)
     module = importlib.import_module("multiviewae")
     for cfg, [dim, models] in tests.items():
         train_data = []
@@ -266,6 +288,16 @@ def test_architectures():
                 model1 = class_(input_dim=dim)
 
             model1.fit(*train_data)
+
+            outdir = model1.cfg.out_dir
+            if os.path.exists(outdir):
+                shutil.rmtree(outdir)
+
+            if len(cfg) != 0:
+                model1 = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=dim)
+            else:
+                model1 = class_(input_dim=dim)
+
             model1.fit(*train_data, max_epochs=5, batch_size=10)
 
             print("RESULTS: ", m)
@@ -278,6 +310,10 @@ def test_architectures():
             print_results("latent", latent)
             recon = model1.predict_reconstruction(*test_data, batch_size=5)
             print_results("recon", recon)
+
+            outdir = model1.cfg.out_dir
+            if os.path.exists(outdir):
+                shutil.rmtree(outdir)
 
 def test_model_loading():
     """
@@ -308,10 +344,15 @@ def test_model_loading():
             recon = loaded_model.predict_reconstruction(train_1, train_2)
             print_results("recon model.ckpt", recon)  
 
+            outdir = model.cfg.out_dir
+            if os.path.exists(outdir):
+                shutil.rmtree(outdir)
+
 def test_index_dataloader():
     """
     Create synthetic dataset and save each sample to npy. Test the ability to load the data using the ListMVDataset and ListDataModule classes.
     """
+    np.random.seed(0)
     train_1 = np.random.rand(200, 20)
     train_2 = np.random.rand(200, 10)
     
@@ -349,6 +390,10 @@ def test_index_dataloader():
             print_results("latent", latent)
             recon = model.predict_reconstruction(test_idx)
             print_results("recon", recon)
+
+            outdir = model.cfg.out_dir
+            if os.path.exists(outdir):
+                shutil.rmtree(outdir)
   
 def test_fitconfig(): 
     """
@@ -365,7 +410,7 @@ def test_fitconfig():
             "" : ["./user_config/config_vae.yaml", [10, 10], VARIATIONAL_MODELS], 
             "./user_config/config_vae.yaml" : ["./user_config/fit_config_vae.yaml", [10, 10], VARIATIONAL_MODELS], 
             }
-
+    np.random.seed(0)
     module = importlib.import_module("multiviewae")
     for cfg, [new_cfg, dim, models] in tests.items():
         train_data = []
@@ -386,6 +431,16 @@ def test_fitconfig():
                 model1 = class_(input_dim=dim)
 
             model1.fit(*train_data, cfg=abspath(join(dirname( __file__ ), new_cfg)))
+            
+            outdir = model1.cfg.out_dir
+            if os.path.exists(outdir):
+                shutil.rmtree(outdir)
+
+            if len(cfg) != 0:
+                model1 = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=dim)
+            else:
+                model1 = class_(input_dim=dim)
+            
             model1.fit(*train_data, max_epochs=5, batch_size=10, cfg=abspath(join(dirname( __file__ ), new_cfg)))
 
             print("RESULTS: ", m)
@@ -398,6 +453,10 @@ def test_fitconfig():
             print_results("latent", latent)
             recon = model1.predict_reconstruction(*test_data, batch_size=5)
             print_results("recon", recon)
+            
+            outdir = model1.cfg.out_dir
+            if os.path.exists(outdir):
+                shutil.rmtree(outdir)
 
 def test_conditionalVAE(): 
     """
@@ -406,6 +465,7 @@ def test_conditionalVAE():
     train_n = 200
     test_n = 50
     num_cat = 3
+    np.random.seed(0)
 
     module = importlib.import_module("multiviewae")
 
@@ -436,6 +496,15 @@ def test_conditionalVAE():
                 model1 = class_(input_dim=dim)
 
             model1.fit(*train_data, labels=train_y) 
+        
+            outdir = model1.cfg.out_dir
+            if os.path.exists(outdir):
+                shutil.rmtree(outdir)
+
+            if len(cfg) != 0:
+                model1 = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=dim)
+            else:
+                model1 = class_(input_dim=dim)
             model1.fit(*train_data, labels=train_y, max_epochs=5, batch_size=10)
 
             print("RESULTS: ", m)
@@ -449,6 +518,9 @@ def test_conditionalVAE():
             recon = model1.predict_reconstruction(*test_data, labels=test_y, batch_size=5)
             print_results("recon", recon)
 
+            outdir = model1.cfg.out_dir
+            if os.path.exists(outdir):
+                shutil.rmtree(outdir)
 
 if __name__ == "__main__":
     test_models()

@@ -75,19 +75,13 @@ class Normal(Normal):
         return self.scale.pow(2)
 
     def kl_divergence(self, other):
-        logvar_1 = self.logvar
-        mu_1 = self.loc
-        logvar_2 = other.logvar
-        mu_2 = other.loc
+        logvar0 = self.logvar
+        mu0 = self.loc
+        logvar1 = other.logvar
+        mu1 = other.loc
 
-        return -0.5 * (
-                1
-                - logvar_2.exp() / logvar_1.exp()
-                - (mu_2 - mu_1).pow(2) / logvar_1.exp()
-                + logvar_2
-                - logvar_1
-            )
-
+        return -0.5 * (1 - logvar0.exp()/logvar1.exp() - (mu0-mu1).pow(2)/logvar1.exp() + logvar0 - logvar1)
+    
     def sparse_kl_divergence(self):
         """
         Implementation from: https://github.com/senya-ashukha/variational-dropout-sparsifies-dnn/blob/master/KL%20approximation.ipynb

@@ -8,7 +8,7 @@ import omegaconf
 import torch
 import pytorch_lightning as pl
 
-from os.path import join, isdir, exists
+from os.path import join, isdir
 from datetime import datetime
 from abc import ABC, abstractmethod
 from hydra import compose, initialize, initialize_config_dir
@@ -22,7 +22,7 @@ from .validation import config_schema
 from .exceptions import *
 from .validation import SUPPORTED_DATASETS
 from ..architectures.mlp import ConditionalVariationalEncoder, ConditionalVariationalDecoder
-from schema import Regex
+
 def update_dict(d, u, l):
     for k, v in u.items():
         if k in l:
@@ -465,6 +465,10 @@ class BaseModelAE(ABC, pl.LightningModule):
             raise InputError("no labels given for Conditional VAE")
         
         self._training = False
+        for i in range(len(self.encoders)):
+            self.encoders[i].training = False
+        for i in range(len(self.decoders)):
+            self.decoders[i].training = False
 
         data = list(data)
         if not self.is_index_ds:

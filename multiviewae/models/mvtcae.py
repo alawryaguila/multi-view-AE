@@ -1,6 +1,6 @@
 import torch
 import hydra
-
+import numpy as np
 from ..base.constants import MODEL_MVTCAE
 from ..base.base_model import BaseModelVAE
 from ..base.representations import ProductOfExperts

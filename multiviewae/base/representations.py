@@ -103,7 +103,7 @@ class MeanRepresentation(nn.Module):
     logvar (torch.Tensor): Log of Variance of distributions. M x D for M views.
     """
 
-    def forward(self, mu, logvar):
+    def forward(self, mu, logvar, **kwargs):
         mean_mu = torch.mean(mu, axis=0)
         mean_logvar = torch.mean(logvar, axis=0)
         

@@ -1,13 +1,10 @@
-import ast
 import torch
 import hydra
-import math
+
 
 import torch.nn as nn
 import torch.nn.functional as F
 
-from typing import List, Union
-from torch.nn import Parameter
 
 class Encoder(nn.Module):
     """

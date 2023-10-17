@@ -131,7 +131,7 @@ class mmVAE(BaseModelVAE):
         for i, qz_x in enumerate(qz_xs):
             if i in subset:
                 px_z = self.decoders[i](qz_x._sample(training=self._training))
-            px_zs.append(px_z)
+                px_zs.append(px_z)
         return [px_zs]
             
     
