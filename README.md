@@ -38,7 +38,7 @@ Below is a table with the models contained within this repository and links to t
 | AE_barlow    | Multi-view Autoencoder with barlow twins loss between latents.                              |    2             |[link](https://arxiv.org/abs/2103.03230),[link](https://joss.theoj.org/papers/10.21105/joss.03823https://joss.theoj.org/papers/10.21105/joss.03823)|
 | DMVAE        | Disentangled multi-modal variational autoencoder                                            |    >=1           |[link](https://arxiv.org/abs/2012.13024)|
 |weighted_DMVAE| Disentangled multi-modal variational autoencoder with gPoE joint posterior                  |    >=1           |               |
-
+| mmVAEPlus    | Mixture-of-experts multimodal VAE Plus (mmVAE+)                                             |    >=1           |[link](https://openreview.net/forum?id=sdQGxouELX)|
 
 ## Installation
 To install our package via `pip`:
