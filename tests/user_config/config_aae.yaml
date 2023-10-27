@@ -7,7 +7,7 @@ encoder:  # uses default mlp for all inputs
       non_linear: False
 
       enc_dist:
-        _target_: multiviewae.base.distributions.Default
+        _target_: multiviewae.base.distributions.Default_dist
 
   enc0:
       _target_: multiviewae.architectures.mlp.Encoder
@@ -17,4 +17,4 @@ encoder:  # uses default mlp for all inputs
       non_linear: False
 
       enc_dist:
-        _target_: multiviewae.base.distributions.Default
+        _target_: multiviewae.base.distributions.Default_dist

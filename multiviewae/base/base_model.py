@@ -230,15 +230,9 @@ class BaseModelAE(ABC, pl.LightningModule):
         torch.save(self, join(self.cfg.out_dir, "model.pkl"))
 
     def configure_optimizers(self):
-        optimizers = [
-            torch.optim.Adam(
-                list(self.encoders[i].parameters())
-                + list(self.decoders[i].parameters()),
-                lr=self.learning_rate,
-            )
-            for i in range(self.n_views)
-        ]
-        return optimizers
+        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.parameters()),
+                       lr=self.learning_rate, amsgrad=True)
+        return optimizer
 
     ################################            protected methods, can be overwritten by child
     def _setencoders(self):
@@ -272,6 +266,7 @@ class BaseModelAE(ABC, pl.LightningModule):
     def _setprior(self):
         if self.model_name not in VARIATIONAL_MODELS or \
             (self.model_name in VARIATIONAL_MODELS and not self.sparse):
+
             self.prior = hydra.utils.instantiate(self.cfg.prior)
 
     def _unpack_batch(self, batch): # dataset returned other vars than x, need to unpack
@@ -585,6 +580,14 @@ class BaseModelVAE(BaseModelAE):
         else:
             self.sparse = False
             self.log_alpha = None
+        
+        #TODO: fix this annoying workaround
+        if not hasattr(self, "u_dim"):
+            self.u_dim = None
+        if not hasattr(self, "w_dim"):
+            self.w_dim = None
+        if not hasattr(self, "multiple_latents"):
+            self.multiple_latents = False
 
         self.encoders = torch.nn.ModuleList(
             [
@@ -594,6 +597,9 @@ class BaseModelVAE(BaseModelAE):
                     z_dim=self.z_dim,
                     sparse=self.sparse,
                     log_alpha=self.log_alpha,
+                    u_dim=self.u_dim,
+                    w_dim=self.w_dim,
+                    multiple_latents=self.multiple_latents,
                     _recursive_=False,
                     _convert_="all"
                 )

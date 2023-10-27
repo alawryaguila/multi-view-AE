@@ -107,7 +107,7 @@ class mmVAE(BaseModelVAE):
                 ]
             else:
                 px_z = [
-                    self.decoders[j](qz_x.rsample())
+                    self.decoders[j](qz_x._sample())
                     for j in range(self.n_views)
                 ]
             px_zs.append(
@@ -182,7 +182,7 @@ class mmVAE(BaseModelVAE):
             if self._training:
                 zs = qz_xs[i].rsample(torch.Size([self.K]))
             else:
-                zs = qz_xs[i].rsample()
+                zs = qz_xs[i]._sample()
             zss.append(zs)
 
         for r, qz_x in enumerate(qz_xs): 
@@ -197,7 +197,7 @@ class mmVAE(BaseModelVAE):
             ]  # summing over each decoder
             lpx_z = torch.stack(lpx_z).sum(0)
 
-            lw = lpz + lpx_z - lqz_x
+            lw = lpx_z + self.beta*(lpz - lqz_x)
             lws.append(lw)
         if self.DREG_loss:
             zss = torch.stack(zss)
@@ -205,7 +205,7 @@ class mmVAE(BaseModelVAE):
                 grad_wt = (lws - torch.logsumexp(lws, 1, keepdim=True)).exp()
                 if zss.requires_grad:
                     zss.register_hook(lambda grad: grad_wt.unsqueeze(-1) * grad)
-            return - (grad_wt * lws).sum(0) / self.n_views #DReG loss
+            return (grad_wt * lws).sum(0) / self.n_views #DReG loss
 
         return (
             self.log_mean_exp(torch.stack(lws), dim=1).mean(0).sum()/self.n_views

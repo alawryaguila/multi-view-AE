@@ -9,4 +9,4 @@ encoder:
   non_linear: False
 
   enc_dist:
-    _target_: multiviewae.base.distributions.Default
+    _target_: multiviewae.base.distributions.Default_dist

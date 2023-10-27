@@ -67,6 +67,9 @@ class VariationalEncoder(Encoder):
         sparse (bool): Whether to enforce sparsity of the encoding distribution.
         log_alpha (float): Log of the dropout parameter.
         enc_dist (multiviewae.base.distributions.Normal, multiviewae.base.distributions.MultivariateNormal): Encoder distribution.
+        multiple_latents (bool, optional): Whether the model using a separate linear layers for shared and private latent spaces.
+        u_dim (int, optional): Dimensionality of the shared latent space.
+        w_dim (int, optional): Dimensionality of the private latent space.
     """
     def __init__(
         self,
@@ -77,7 +80,10 @@ class VariationalEncoder(Encoder):
         bias,
         sparse,
         log_alpha,
-        enc_dist
+        enc_dist, 
+        multiple_latents=False,
+        u_dim=None,
+        w_dim=None
     ):
         super().__init__(input_dim=input_dim,
                         z_dim=z_dim,
@@ -89,7 +95,13 @@ class VariationalEncoder(Encoder):
         self.sparse = sparse
         self.non_linear = non_linear
         self.log_alpha = log_alpha
-
+        self.multiple_latents = multiple_latents
+        self.u_dim = u_dim
+        self.w_dim = w_dim 
+        if self.multiple_latents:
+            assert self.u_dim is not None and self.w_dim is not None, "u_dim and w_dim must be specified for multiple_latents=True"
+            assert self.u_dim + self.w_dim == self.z_dim, "u_dim + w_dim must equal z_dim"
+            self.layer_sizes[-1] = self.u_dim
         self.encoder_layers = self.encoder_layers[:-1]
         self.enc_mean_layer = nn.Linear(
             self.layer_sizes[-2],
@@ -104,6 +116,18 @@ class VariationalEncoder(Encoder):
                 bias=self.bias,
             )
 
+        if self.multiple_latents:
+            self.enc_mean_layer_private = nn.Linear(
+                self.layer_sizes[-2],
+                self.w_dim,
+                bias=self.bias,
+            )
+            self.enc_logvar_layer_private = nn.Linear(
+                self.layer_sizes[-2],
+                self.w_dim,
+                bias=self.bias,
+            )
+
     def forward(self, x):
         h1 = x
         for it_layer, layer in enumerate(self.encoder_layers):
@@ -114,6 +138,10 @@ class VariationalEncoder(Encoder):
         if not self.sparse:
             mu = self.enc_mean_layer(h1)
             logvar = self.enc_logvar_layer(h1)
+            if self.multiple_latents:
+                mu_private = self.enc_mean_layer_private(h1)
+                logvar_private = self.enc_logvar_layer_private(h1)
+                return mu, logvar, mu_private, logvar_private
         else:
             mu = self.enc_mean_layer(h1)
             logvar = self.log_alpha + 2 * torch.log(torch.abs(mu) + 1e-8)
@@ -134,6 +162,9 @@ class ConditionalVariationalEncoder(Encoder):
         log_alpha (float): Log of the dropout parameter.
         enc_dist (multiviewae.base.distributions.Normal, multiviewae.base.distributions.MultivariateNormal): Encoder distribution.
         num_cat (int): Number of categories of the labels.
+        multiple_latents (bool, optional): Whether the model using a separate linear layers for shared and private latent spaces.
+        u_dim (int, optional): Dimensionality of the shared latent space.
+        w_dim (int, optional): Dimensionality of the private latent space.
     """
     def __init__(
         self,
@@ -145,7 +176,10 @@ class ConditionalVariationalEncoder(Encoder):
         sparse,
         log_alpha,
         enc_dist,
-        num_cat
+        num_cat,
+        multiple_latents=False, 
+        u_dim=None,
+        w_dim=None
     ):
         super().__init__(input_dim=input_dim,
                         z_dim=z_dim,
@@ -158,8 +192,14 @@ class ConditionalVariationalEncoder(Encoder):
         self.sparse = sparse
         self.non_linear = non_linear
         self.log_alpha = log_alpha
-
+        self.multiple_latents = multiple_latents
+        self.u_dim = u_dim
+        self.w_dim = w_dim
         self.layer_sizes = [input_dim + num_cat] + self.hidden_layer_dim + [z_dim]
+        if self.multiple_latents:
+            assert self.u_dim is not None and self.w_dim is not None, "u_dim and w_dim must be specified for multiple_latents=True"
+            assert self.u_dim + self.w_dim == self.z_dim, "u_dim + w_dim must equal z_dim"
+            self.layer_sizes[-1] = self.u_dim
         lin_layers = [
             nn.Linear(dim0, dim1, bias=self.bias)
             for dim0, dim1 in zip(
@@ -182,6 +222,19 @@ class ConditionalVariationalEncoder(Encoder):
                 bias=self.bias,
             )
 
+        if self.multiple_latents:
+            self.enc_mean_layer_private = nn.Linear(
+                self.layer_sizes[-2],
+                self.w_dim,
+                bias=self.bias,
+            )
+            self.enc_logvar_layer_private = nn.Linear(
+                self.layer_sizes[-2],
+                self.w_dim,
+                bias=self.bias,
+            )
+
+
     def set_labels(self, labels):
         self.labels = labels 
 
@@ -198,6 +251,10 @@ class ConditionalVariationalEncoder(Encoder):
         if not self.sparse:
             mu = self.enc_mean_layer(h1)
             logvar = self.enc_logvar_layer(h1)
+            if self.multiple_latents:
+                mu_private = self.enc_mean_layer_private(h1)
+                logvar_private = self.enc_logvar_layer_private(h1)
+                return mu, logvar, mu_private, logvar_private
         else:
             mu = self.enc_mean_layer(h1)
             logvar = self.log_alpha + 2 * torch.log(torch.abs(mu) + 1e-8)

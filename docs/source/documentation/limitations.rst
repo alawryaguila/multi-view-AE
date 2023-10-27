@@ -14,7 +14,7 @@ Further work will involve implementing a multivariate normal class where the off
 
 Encoder distribution
 ^^^^^^^^^^^^^^^^^^^^
-The ``multiviewae.base.distributions.Default`` class must be used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
+The ``multiviewae.base.distributions.Default_dist`` class must be used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
 
 Either the ``multiviewae.base.distributions.Normal`` or ``multiviewae.base.distributions.MultivariateNormal`` classes must be used for variational models.
 

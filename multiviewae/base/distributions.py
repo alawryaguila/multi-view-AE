@@ -4,12 +4,13 @@ from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions.utils import broadcast_all
 from torch.nn.functional import binary_cross_entropy
 from .constants import EPS
+import torch.nn.functional as F
 
 def compute_log_alpha(mu, logvar):
     # clamp because dropout rate p in 0-99%, where p = alpha/(alpha+1)
     return (logvar - 2 * torch.log(torch.abs(mu) + 1e-8)).clamp(min=-8, max=8)
 
-class Default():
+class Default_dist():
     """Artificial distribution designed for data with unspecified distribution.
     Used so that log_likelihood and _sample methods can be called by model class.
     Args:
@@ -122,7 +123,7 @@ class MultivariateNormal(MultivariateNormal):
         self.loc = torch.as_tensor(kwargs['loc'])
         if 'logvar' in kwargs:
             self.logvar = torch.as_tensor(kwargs['logvar'])
-            self.scale = torch.as_tensor(kwargs['logvar']).mul(0.5).exp_()+EPS
+            self.scale = torch.exp(0.5 * kwargs['logvar']) + EPS
 
         elif 'scale' in kwargs:
             self.scale = torch.as_tensor(kwargs['scale'])
@@ -210,24 +211,38 @@ class Laplace(Laplace):
             **kwargs
         ):
         if 'loc' in kwargs:
-            self.loc = kwargs['loc']
+            self.loc = torch.as_tensor(kwargs['loc'])
         elif 'x' in kwargs:
-            self.loc = kwargs['x']
-
-        if 'scale' in kwargs:
-            self.scale = kwargs['scale']
-        else: 
-            #map to self device 
+            self.loc = torch.as_tensor(kwargs['x'])
+ 
+        if 'logvar' in kwargs:
+            self.logvar = torch.as_tensor(kwargs['logvar'])
+            if 'with_softmax' in kwargs and kwargs['with_softmax']:
+                self.scale = (F.softmax(self.logvar, dim=-1) * self.logvar.size(-1) + EPS).to(self.loc.device)
+            else:   
+                self.scale = torch.exp(0.5 * self.logvar) + EPS
+        elif 'scale' in kwargs:
+            self.scale = torch.as_tensor(kwargs['scale'])
+        else:
             self.scale = torch.tensor(0.75).to(self.loc.device)
+
         super().__init__(loc=self.loc, scale=self.scale)
 
-    def kl_divergence(self):
-        raise NotImplementedError
-
+    def kl_divergence(self, other):
+        
+        kl = kl_divergence(torch.distributions.laplace.Laplace( \
+                        loc=self.loc, scale=self.scale), other) #check this works
+        return torch.unsqueeze(kl,-1)
+    
     def sparse_kl_divergence(self):
         raise NotImplementedError
         
     def log_likelihood(self, x):
+        if x.device != self.loc.device or x.device != self.scale.device:
+            print("x.device: ", x.device)
+            print("self.loc.device: ", self.loc.device)
+            print("self.scale.device: ", self.scale.device)
+    
         return self.log_prob(x)
 
     def _sample(self, *kwargs, training=False):

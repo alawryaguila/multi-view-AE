@@ -5,6 +5,7 @@ model_name: "mmVAE"
 
 model:
   K: 1
+  beta: 1
   DREG_loss: False
   
 encoder:

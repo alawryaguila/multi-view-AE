@@ -104,6 +104,7 @@ def test_models():
             outdir = model1.cfg.out_dir
             if os.path.exists(outdir):
                 shutil.rmtree(outdir)
+
 def test_userconfig():
     """Train and test each model in the library using 1-3 views of simulated data.
     The purpose of this test is to test the ability to add user defined configuration files altering various default model parameters.
@@ -263,7 +264,10 @@ def test_architectures():
                         # MODEL_MMVAE,  # currently does not support cnn
                         MODEL_MVTCAE,
                         MODEL_DVCCA,
-                        MODEL_MOPOEVAE
+                        MODEL_MOPOEVAE,
+                       # MODEL_MMVAEPLUS #currently does not support this cnn framework
+
+                        
                     ]
     ] #test variational CNN encoder
             }
