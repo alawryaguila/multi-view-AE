@@ -15,6 +15,7 @@ on:
 jobs:
  # This workflow contains a single job called "build"
   build:
+    os: ubuntu-lateest
     runs-on: ubuntu-latest
     env:
       MODULE_NAME: multiviewae
