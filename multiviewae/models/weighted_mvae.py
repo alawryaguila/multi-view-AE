@@ -54,7 +54,6 @@ class weighted_mVAE(BaseModelVAE):
             tmp_weight = torch.FloatTensor(len(input_dim), self.z_dim).fill_(1/len(input_dim))
             self.poe_weight = torch.nn.Parameter(data=tmp_weight, requires_grad=True)
 
-    
     def encode(self, x):
         r"""Forward pass through encoder networks.
 
@@ -212,15 +211,6 @@ class weighted_mVAE(BaseModelVAE):
             ll += px_zs[0][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view
         return ll/self.n_views
 
-    def regularise_weights(self):
-        r"""Regularise the weights of the decoder networks for the private latent dimensions.
-        """
-        l2 = 0
-        for i in range(self.n_views):
-            #get weights for private latent dimensions
-            l2 += torch.norm(self.decoders[i].decoder_layers[0].weight[:self.s_dim,:], p=2).to(self.device)
-        return l2
-
     def loss_function(self, x, fwd_rtn):
         r"""Calculate Multimodal VAE loss.
         
@@ -238,13 +228,8 @@ class weighted_mVAE(BaseModelVAE):
             qc_x = fwd_rtn["qc_x"]
             kl = self.calc_kl_separate(qs_xs) #calc kl for private latents
             kl += self.calc_kl(qc_x) #calc kl for shared latents
-            if self.regularise:
-                l2 = self.regularise_weights()
-                total = kl - ll + self._lambda*l2
-                losses = {"loss": total, "l2": l2, "kl": kl, "ll": ll}
-            else:
-                total = kl - ll
-                losses = {"loss": total, "kl": kl, "ll": ll}
+            total = kl - ll
+            losses = {"loss": total, "kl": kl, "ll": ll}
             return losses
         else:
             qz_x = fwd_rtn["qz_x"]

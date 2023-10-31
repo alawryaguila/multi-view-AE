@@ -120,12 +120,11 @@ class mmVAE(BaseModelVAE):
         r"""Forward pass through decoder networks for a subset of modalities. Each latent is passed through its own decoder.
 
         Args:
-            x (list): list of input data of type torch.Tensor.
+            qz_xs (list): list of encoding distributions.
             subset (list): list of modalities to decode.
 
         Returns:
-            (list): A nested list of decoding distributions. The outer list has a n_view element indicating latent dimensions index. 
-            The inner list is a n_view element list with the position in the list indicating the decoder index.
+            (list): A nested list of decoding distributions. The outer list is a single element list, the inner list is a subset element list of decoding distributions.
         """    
         px_zs = []
         for i, qz_x in enumerate(qz_xs):

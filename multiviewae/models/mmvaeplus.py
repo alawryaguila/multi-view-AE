@@ -56,8 +56,8 @@ class mmVAEPlus(BaseModelVAE):
             self.mean_priors_private.append(mean_prior)
             self.logvar_priors_private.append(logvar_prior)
         #set parameters of shared priors
-        mean_prior = torch.nn.Parameter(torch.zeros(1, self.u_dim+self.w_dim), requires_grad=False).to(self.device)
-        logvar_prior = torch.nn.Parameter(torch.zeros(1, self.u_dim+self.w_dim), requires_grad=self.learn_shared_prior).to(self.device)
+        mean_prior = torch.nn.Parameter(torch.zeros(1, self.u_dim+self.w_dim), requires_grad=False).to(self.device) 
+        logvar_prior = torch.nn.Parameter(torch.zeros(1, self.u_dim+self.w_dim), requires_grad=self.learn_shared_prior).to(self.device) 
         self.mean_priors_shared = mean_prior
         self.logvar_priors_shared = logvar_prior
 
@@ -89,32 +89,69 @@ class mmVAEPlus(BaseModelVAE):
             return [qw_xs, qu_xs]
         zss = []
         for i in range(self.n_views):
-            zs = []
-            for j in range(self.n_views): 
-                if i == j:
-                    u_x = qu_xs[i]._sample() #shared sample
-                    w_x = qw_xs[j]._sample() #private sample
-                    z_x = torch.cat((u_x, w_x), dim=-1)
-                else:
-                    u_x = qu_xs[i]._sample() #shared sample
-                    prior = hydra.utils.instantiate(
-                        eval(f"self.cfg.encoder.enc{j}.enc_dist"), loc=self.mean_priors_private[j], logvar=self.logvar_priors_private[j]
-                    )
-                    w = prior._sample().to(self.device) #private sample
-                    #get same number of samples for w as u_x currently just 1 vs u_x axis 1 = batch size
-                    w = w.expand(w_x.shape)
-                    z_x = torch.cat((u_x, w), dim=-1)
-                z_x = Default_dist(x=z_x)
-                zs.append(z_x)
 
-            zss.append(zs)
+            u_x = qu_xs[i]._sample() #shared sample
+            w_x = qw_xs[i]._sample() #private sample
+            z_x = torch.cat((u_x, w_x), dim=-1)
+            z_x = Default_dist(x=z_x)
+
+            zss.append(z_x)
         return zss
-        
+    
+    def encode_subset(self, x, subset):
+        r"""Forward pass through encoder networks for a subset of modalities. For modalities not in subset, shared latents are sampled from a random modality and 
+        private latents from the shared prior.
+
+        Args:
+            x (list): list of input data of type torch.Tensor.
+            subset (list): list of modalities to encode.
+
+        Returns:
+            (list): list of samples from encoding distributions.
+        """    
+        qw_xs = []
+        qu_xs = []
+
+        for i in range(self.n_views):
+            if i in subset:
+                mu_u, logvar_u, mu_w, logvar_w = self.encoders[i](x[i])
+                #private latent distribution
+                qw_x = hydra.utils.instantiate(
+                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_w, logvar=logvar_w
+                )
+                #shared latent distribution
+                qu_x = hydra.utils.instantiate(
+                    eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_u, logvar=logvar_u
+                )
+            else: 
+                # Choose one of the subset modalities at random
+                mod = np.random.choice(subset)
+                mu_u, logvar_u, mu_w, logvar_w = self.encoders[mod](x[mod])
+                #shared latent distribution
+                qu_x = hydra.utils.instantiate(
+                    eval(f"self.cfg.encoder.enc{mod}.enc_dist"), loc=mu_u, logvar=logvar_u
+                )
+                #private latent distribution
+                #sample private latent from shared prior
+                qw_x = hydra.utils.instantiate(self.cfg.prior, loc=self.mean_priors_shared[:,self.u_dim:], logvar=self.logvar_priors_shared[:,self.u_dim:])
+            qw_xs.append(qw_x)
+            qu_xs.append(qu_x)
+        if self._training:
+            return [qw_xs, qu_xs]
+        zss = []
+        for i in range(self.n_views):
+            w_x = qw_xs[i]._sample() #private sample
+            u_x = qu_xs[i]._sample() #shared sample
+            z_x = torch.cat((u_x, w_x), dim=-1)
+            z_x = Default_dist(x=z_x)
+            zss.append(z_x)
+        return zss
+    
     def decode(self, zss):
         r"""Forward pass through decoder networks. Each latent is passed through all of the decoders.
 
         Args:
-            zss (list): nested list of latent samples if not training or list containing qw_xs (list of private encoding distributions) and
+            zss (list): list of latent samples if not training or list containing qw_xs (list of private encoding distributions) and
             qu_xs (list of shared encoding distributions) if training.
 
         Returns:
@@ -146,12 +183,38 @@ class mmVAEPlus(BaseModelVAE):
             for i in range(self.n_views):
                 px_zs_inner = []
                 for j in range(self.n_views): 
-                    px_z = self.decoders[j](zss[j][i]._sample()) #check this
+                    z_x = zss[i]._sample()
+                    if i != j:
+                        u_x = z_x[:,:self.u_dim]
+                        prior = hydra.utils.instantiate(self.cfg.prior, loc=self.mean_priors_shared[:,self.u_dim:], logvar=self.logvar_priors_shared[:,self.u_dim:])
+                        w = prior.rsample().to(self.device) #private sample
+                        shape_ = list(w.shape)
+                        shape_[0] = u_x.shape[0]
+                        w = w.expand(shape_)
+
+                        z_x = torch.cat((u_x, w), dim=-1)
+                    px_z = self.decoders[j](z_x) 
                     px_zs_inner.append(px_z)
                 px_zs.append(px_zs_inner)            
         return px_zs
 
-    
+    def decode_subset(self, zss, subset):
+        r"""Forward pass through decoder networks for a subset of modalities. Each latent is passed through its own decoder.
+
+        Args:
+            zss (list): list of latent samples for each modality.
+            subset (list): list of modalities to decode.
+
+        Returns:
+            (list): A list of decoding distributions for each modality in subset.
+        """    
+        px_zs = []
+        for i, zs in enumerate(zss):
+            if i in subset:
+                px_z = self.decoders[i](zs._sample(training=self._training))
+                px_zs.append(px_z)
+        return [px_zs]
+
     def forward(self, x):
         r"""Apply encode and decode methods to input data to generate latent dimensions and data reconstructions. 
         

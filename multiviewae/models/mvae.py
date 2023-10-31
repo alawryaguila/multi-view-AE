@@ -207,11 +207,10 @@ class mVAE(BaseModelVAE):
 
         kl = self.calc_kl(qz_x)
         ll = self.calc_ll(x, px_zs)
-        
+
         if self.current_epoch > self.warmup -1:
             total = (self.beta*kl - ll)/(self.n_views+1)
         else:
-            total = (self.beta_vals[self.current_epoch]*kl - ll)/(self.n_views+1)
-
+            total = (self.beta_vals[self.current_epoch]*kl - ll)/(self.n_views+1)      
         losses = {"loss": total, "kl": kl, "ll": ll}
         return losses

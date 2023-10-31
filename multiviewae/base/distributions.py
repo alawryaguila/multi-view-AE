@@ -44,7 +44,7 @@ class Default_dist():
     def sparse_kl_divergence(self):
         raise NotImplementedError
 
-    def _sample(self):
+    def _sample(self, training=False):
         return self.x
 
 
@@ -196,7 +196,7 @@ class Bernoulli():
     def sparse_kl_divergence(self):
         raise NotImplementedError
 
-    def _sample(self):
+    def _sample(self, training=False):
         return torch.sigmoid(self.x)
 
 class Laplace(Laplace):
