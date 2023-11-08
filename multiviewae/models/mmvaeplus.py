@@ -142,6 +142,9 @@ class mmVAEPlus(BaseModelVAE):
         for i in range(self.n_views):
             w_x = qw_xs[i]._sample() #private sample
             u_x = qu_xs[i]._sample() #shared sample
+            shape_ = list(w_x.shape)
+            shape_[0] = u_x.shape[0]
+            w_x = w_x.expand(shape_)
             z_x = torch.cat((u_x, w_x), dim=-1)
             z_x = Default_dist(x=z_x)
             zss.append(z_x)
