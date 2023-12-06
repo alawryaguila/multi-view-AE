@@ -72,7 +72,7 @@ class VAE_barlow(BaseModelVAE):
         """  
         px_zs = []
         for i in range(self.n_views):
-            px_z = self.decoders[i](qz_xs[i]._sample(training=self._training))
+            px_z = self.decoders[i](qz_xs[i]._sample(training=self._training, return_mean=self.return_mean))
             px_zs.append(px_z)
         return [px_zs]
 
@@ -130,7 +130,7 @@ class VAE_barlow(BaseModelVAE):
         """
         smps = []
         for i, qz_x in enumerate(qz_xs):
-            smp = qz_x._sample(training=self._training)
+            smp = qz_x._sample(training=self._training, return_mean=self.return_mean)
             smp_norm = self.bns[i](smp)
             smps.append(smp_norm)
 

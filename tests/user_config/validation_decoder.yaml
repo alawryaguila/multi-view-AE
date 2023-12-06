@@ -9,4 +9,4 @@ decoder:
   non_linear: False
 
   dec_dist:
-    _target_: multiviewae.base.distributions.Bernoulli
+    _target_: multiviewae.base.distributions.ApproxBernoulli

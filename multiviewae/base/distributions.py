@@ -1,5 +1,5 @@
 import torch
-from torch.distributions import Normal, kl_divergence, Laplace
+from torch.distributions import Normal, kl_divergence, Laplace, Bernoulli
 from torch.distributions.multivariate_normal import MultivariateNormal
 from torch.distributions.utils import broadcast_all
 from torch.nn.functional import binary_cross_entropy
@@ -10,7 +10,7 @@ def compute_log_alpha(mu, logvar):
     # clamp because dropout rate p in 0-99%, where p = alpha/(alpha+1)
     return (logvar - 2 * torch.log(torch.abs(mu) + 1e-8)).clamp(min=-8, max=8)
 
-class Default_dist():
+class Default():
     """Artificial distribution designed for data with unspecified distribution.
     Used so that log_likelihood and _sample methods can be called by model class.
     Args:
@@ -30,7 +30,7 @@ class Default_dist():
             x (torch.Tensor): data reconstruction.
 
         Returns:
-            torch.Tensor: Mean squared error.
+            torch.Tensor: Negative mean squared error.
         """
         logits, x = broadcast_all(self.x, x)
         return - (logits - x)**2
@@ -44,10 +44,45 @@ class Default_dist():
     def sparse_kl_divergence(self):
         raise NotImplementedError
 
-    def _sample(self, training=False):
+    def _sample(self, training=False, return_mean=True):
         return self.x
 
+class Categorical():    
+    """Artificial distribution designed for categorical data.
+    Used so that log_likelihood and _sample methods can be called by model class.
+    Args:
+        x (list): List of input data.
+    """
+    def __init__(
+        self,
+        **kwargs,
+    ):
+        self.x = kwargs['x']
 
+    def log_likelihood(self, x, eps=1e-6):
+        """calculates the k-class cross entropy between input data and reconstruction. 
+        Args:
+            x (torch.Tensor): data reconstruction.
+
+        Returns:
+            torch.Tensor: Negative k-class cross entropy.
+        """
+        log_input = F.log_softmax(self.x + eps, dim=-1)
+        ce = x * log_input
+        return ce
+    
+    def rsample(self):
+        raise NotImplementedError
+
+    def kl_divergence(self):
+        raise NotImplementedError
+
+    def sparse_kl_divergence(self):
+        raise NotImplementedError
+
+    def _sample(self, training=False, return_mean=True):
+        return self.x
+          
 class Normal(Normal):
     """Univariate normal distribution. Inherits from torch.distributions.Normal.
 
@@ -102,11 +137,13 @@ class Normal(Normal):
     def log_likelihood(self, x):
         return self.log_prob(x)
 
-    def _sample(self, *kwargs, training=False):
+    def _sample(self, *kwargs, training=False, return_mean=True):
         if training:
             return self.rsample(*kwargs)
-        return self.loc
 
+        if return_mean:
+                return self.loc
+        return self.sample()
 
 class MultivariateNormal(MultivariateNormal):
     """Multivariate normal distribution with diagonal covariance matrix. Inherits from torch.distributions.multivariate_normal.MultivariateNormal.
@@ -162,13 +199,41 @@ class MultivariateNormal(MultivariateNormal):
         ll = self.log_prob(x)
         return torch.unsqueeze(ll,-1)
 
-    def _sample(self, *kwargs, training=False):
+    def _sample(self, *kwargs, training=False, return_mean=True):
         if training:
             return self.rsample(*kwargs)
-        return self.loc
+        if return_mean:
+                return self.loc
+        return self.sample()
 
+class Bernoulli(Bernoulli):
+    """Bernoulli distribution. Inherits from torch.distributions.Bernoulli.
+    Args:
+        x (list): List of input data.
+    """
+    def __init__(
+        self,
+        **kwargs,
+    ):
+        x = kwargs['x']
+        super().__init__(logits=x)
 
-class Bernoulli():
+    def log_likelihood(self, target):   
+        return self.log_prob(target)
+
+    def rsample(self):
+        raise NotImplementedError
+
+    def kl_divergence(self):
+        raise NotImplementedError
+
+    def sparse_kl_divergence(self):
+        raise NotImplementedError
+
+    def _sample(self, training=False, return_mean=True):
+        return self.sample()
+    
+class ApproxBernoulli():
     """Artificial distribution designed for (approximately) Bernoulli distributed data. 
     The data isn't restricted to bernoulli distribution, this class is designed as a wrapper for the log_likelihood() method which is required for the multiview models.
 
@@ -196,7 +261,7 @@ class Bernoulli():
     def sparse_kl_divergence(self):
         raise NotImplementedError
 
-    def _sample(self, training=False):
+    def _sample(self, training=False, return_mean=True):
         return torch.sigmoid(self.x)
 
 class Laplace(Laplace):
@@ -238,15 +303,12 @@ class Laplace(Laplace):
         raise NotImplementedError
         
     def log_likelihood(self, x):
-        if x.device != self.loc.device or x.device != self.scale.device:
-            print("x.device: ", x.device)
-            print("self.loc.device: ", self.loc.device)
-            print("self.scale.device: ", self.scale.device)
-    
         return self.log_prob(x)
 
-    def _sample(self, *kwargs, training=False):
+    def _sample(self, *kwargs, training=False, return_mean=True):
         if training:
             return self.rsample(*kwargs)
-        return self.loc
 
+        if return_mean:
+                return self.loc
+        return self.sample()

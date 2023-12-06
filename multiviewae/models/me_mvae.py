@@ -3,6 +3,7 @@ import hydra
 from ..base.constants import MODEL_MEMVAE
 from ..base.base_model import BaseModelVAE
 from ..base.representations import ProductOfExperts, MeanRepresentation
+import numpy as np
 
 class me_mVAE(BaseModelVAE):
     r"""
@@ -20,6 +21,8 @@ class me_mVAE(BaseModelVAE):
             - model.use_prior (bool): Whether to use a prior expert when combining encoding distributions.
             - model.sparse (bool): Whether to enforce sparsity of the encoding distribution.
             - model.threshold (float): Dropout threshold applied to the latent dimensions. Default is 0.
+            - model.weight_kld (bool): Whether to weight the KL term by the number of views.
+            - model.weight_ll (bool): Whether to weight the log-likelihood term by the number of views.
             - encoder.default._target_ (multiviewae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
             - encoder.default.enc_dist._target_ (multiviewae.base.distributions.Normal, multiviewae.base.distributions.MultivariateNormal): Encoding distribution.
             - decoder.default._target_ (multiviewae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
@@ -51,9 +54,15 @@ class me_mVAE(BaseModelVAE):
             self.join_z = ProductOfExperts()
         elif self.join_type == "Mean":
             self.join_z = MeanRepresentation()
+
         if self.warmup is not None:
             self.beta_vals = torch.linspace(0, self.beta, self.warmup)
-
+        
+        if self.weight_ll:
+            self.ll_weighting = 1/self.n_views
+        else:
+            self.ll_weighting = 1
+        
     def encode(self, x):
         r"""Forward pass through encoder networks.
 
@@ -138,7 +147,7 @@ class me_mVAE(BaseModelVAE):
         """      
         px_zs = []
         for i in range(self.n_views):
-            px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
+            px_z = self.decoders[i](qz_x[0]._sample(training=self._training, return_mean=self.return_mean))
             px_zs.append(px_z)
         return [px_zs]
 
@@ -154,7 +163,7 @@ class me_mVAE(BaseModelVAE):
         """  
         px_zs = []
         for i in subset:
-            px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
+            px_z = self.decoders[i](qz_x[0]._sample(training=self._training, return_mean=self.return_mean))
             px_zs.append(px_z)
         return [px_zs]
     
@@ -170,7 +179,7 @@ class me_mVAE(BaseModelVAE):
         """  
         px_zs = []
         for i in range(self.n_views):
-            px_z = self.decoders[i](qz_xs[i]._sample(training=self._training))
+            px_z = self.decoders[i](qz_xs[i]._sample(training=self._training, return_mean=self.return_mean))
             px_zs.append(px_z)
         return [px_zs]
 
@@ -198,14 +207,19 @@ class me_mVAE(BaseModelVAE):
         Returns:
             (torch.Tensor): KL-divergence loss.
         """
+        if self.weight_kld:
+            kld_weighting = 1/len(qz_xs)
+        else:
+            kld_weighting = 1
+
         kl = 0
         for i in range(len(qz_xs)):
             if self.sparse:
                 kl += qz_xs[i].sparse_kl_divergence().mean(0).sum()
             else:
                 kl += qz_xs[i].kl_divergence(self.prior).mean(0).sum()
-        return kl
-
+        return kl*kld_weighting
+    
     def calc_ll(self, x, px_zs):
         r"""Calculate log-likelihood loss.
 
@@ -219,7 +233,7 @@ class me_mVAE(BaseModelVAE):
         ll = 0
         for i in range(self.n_views):
             ll += px_zs[0][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view
-        return ll
+        return ll*self.ll_weighting
 
     def loss_function(self, x, fwd_rtn):
         r"""Calculate multi ELBO Multimodal VAE loss.
@@ -242,10 +256,43 @@ class me_mVAE(BaseModelVAE):
         ll_separate = self.calc_ll(x, px_zss)
 
         if self.current_epoch > self.warmup - 1:
-            total = (self.beta*kl  - ll )/self.n_views + self.beta*kl_separate - ll_separate
+            total = self.beta*(kl + kl_separate) - ll_separate - ll
         else:
-            total = (self.beta_vals[self.current_epoch]*kl  - ll )/self.n_views + self.beta_vals[self.current_epoch]*kl_separate - ll_separate
-        
+            total = self.beta_vals[self.current_epoch]*(kl + kl_separate) - ll_separate - ll
+
         losses = {"loss": total, "kl": kl, "ll": ll, "ll_separate": ll_separate, "kl_separate": kl_separate}
 
         return losses
+
+    def calc_nll(self, x, K=1000, batch_size_K=100):
+        r"""Calculate negative log-likelihood used to evaluate model performance.
+
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            nll (torch.Tensor): Negative log-likelihood.
+        """
+        self._training = False
+        ll = 0
+        qz_x = self.encode(x)
+        zs = qz_x[0].rsample(torch.Size([K]))
+        start_idx = 0
+        stop_idx = min(start_idx + batch_size_K, K)
+        lnpxs = []
+        while start_idx < stop_idx:
+            zs_ = zs[start_idx:stop_idx]
+            lpx_zs = 0
+            for j in range(self.n_views):
+                px_z = self.decoders[j](zs_)
+                lpx_zs += px_z.log_likelihood(x[j]).sum(dim=-1)
+
+            lpz = self.prior.log_likelihood(zs_).sum(dim=-1)
+            lqz_xy = qz_x[0].log_likelihood(zs_).sum(dim=-1)
+            ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xy, dim=0)
+            lnpxs.append(ln_px)
+            start_idx += batch_size_K
+            stop_idx = min(stop_idx + batch_size_K, K)
+        lnpxs = torch.stack(lnpxs)
+        ll += (torch.logsumexp(lnpxs, dim=0) - np.log(K)).mean()
+        return -ll

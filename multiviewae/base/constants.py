@@ -1,8 +1,7 @@
 # constants file
 MODEL_AE        = "AE"
-MODEL_AAE       = "AAE"
-MODEL_JOINTAAE  = "jointAAE"
-MODEL_WAAE      = "wAAE"
+MODEL_MAAE       = "mAAE"
+MODEL_MWAE      = "mWAE"
 MODEL_MCVAE     = "mcVAE"
 MODEL_MVAE      = "mVAE"
 MODEL_JMVAE     = "JMVAE"
@@ -18,11 +17,11 @@ MODEL_AEBARLOW  = "AE_barlow"
 MODEL_DMVAE = "DMVAE"
 MODEL_WEIGHTEDDMVAE = "weighted_DMVAE"
 MODEL_MMVAEPLUS = "mmVAEPlus"
+
 MODELS = [
             MODEL_AE,
-            MODEL_AAE,
-            MODEL_JOINTAAE,
-            MODEL_WAAE,
+            MODEL_MAAE,
+            MODEL_MWAE,
             MODEL_MCVAE,
             MODEL_JMVAE,
             MODEL_MVAE,
@@ -37,13 +36,12 @@ MODELS = [
             MODEL_AEBARLOW, 
             MODEL_DMVAE, 
             MODEL_WEIGHTEDDMVAE, 
-            MODEL_MMVAEPLUS
+            MODEL_MMVAEPLUS,
         ]
 
 ADVERSARIAL_MODELS = [
-            MODEL_AAE,
-            MODEL_JOINTAAE,
-            MODEL_WAAE,
+            MODEL_MAAE,
+            MODEL_MWAE,
         ]
 
 VARIATIONAL_MODELS = [

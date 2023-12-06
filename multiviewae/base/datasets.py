@@ -36,7 +36,8 @@ class MVDataset(Dataset):
         ]
 
         if labels is not None:
-            self.labels = torch.from_numpy(self.labels).long()
+            self.labels = torch.from_numpy(self.labels)
+     
 
     def __getitem__(self, index):
 

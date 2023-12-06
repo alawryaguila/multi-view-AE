@@ -44,7 +44,11 @@ class mmJSD(BaseModelVAE):
                         input_dim=input_dim,
                         z_dim=z_dim)
 
-
+        if self.weight_ll:
+            self.ll_weighting = 1/self.n_views
+        else:
+            self.ll_weighting = 1
+            
     def encode(self, x):
         r"""Forward pass through encoder network. If self.private=True, the first two dimensions of each latent are used for the modality-specific part and the remaining dimensions for the joint content.
 
@@ -106,6 +110,15 @@ class mmJSD(BaseModelVAE):
 
             if self._training:
                 return [[qc_x], qcs_xs, qs_xs, qscs_xs]
+            
+            qscs_xs = []
+            for i in range(self.n_views):       
+                mu_sc = torch.cat((mu_s[i], poe_mu_c), 1)
+                logvar_sc = torch.cat((logvar_s[i], poe_logvar_c), 1)
+                qsc_x = hydra.utils.instantiate( 
+                eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_sc, logvar=logvar_sc
+                )
+                qscs_xs.append(qsc_x)            
             return qscs_xs   
 
         mu = []
@@ -120,6 +133,18 @@ class mmJSD(BaseModelVAE):
             )
             qzs_xs.append(qz_x)
 
+        #add prior expert
+        mu_ = self.prior.mean
+        mu_ = mu_.expand(mu[0].shape).to(mu[0].device)           
+        logvar_ = torch.log(self.prior.variance).to(mu[0].device)     
+        logvar_ = logvar_.expand(logvar[0].shape)
+        qz_x = hydra.utils.instantiate(
+            eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_, logvar=logvar_
+            )
+        mu.append(mu_)
+        logvar.append(logvar_)
+        qzs_xs.append(qz_x)
+
         mu = torch.stack(mu)
         logvar = torch.stack(logvar)
 
@@ -128,14 +153,15 @@ class mmJSD(BaseModelVAE):
         qz_xs =  hydra.utils.instantiate(
                 self.cfg.encoder.default.enc_dist, loc=moe_mu, logvar=moe_logvar
             )
-        if self._training:
-            poe_mu, poe_logvar = alphaProductOfExperts()(mu, logvar)
-            qz_x = hydra.utils.instantiate( 
+        
+        poe_mu, poe_logvar = alphaProductOfExperts()(mu, logvar)
+        qz_x = hydra.utils.instantiate( 
                 self.cfg.encoder.default.enc_dist, loc=poe_mu, logvar=poe_logvar
             )
+        if self._training:
             return [[qz_xs], qzs_xs, [qz_x]]
 
-        return [qz_xs]
+        return [qz_x]
     
     def encode_subset(self, x, subset):
         r""" Forward pass through encoder networks for a subset of modalities.
@@ -144,7 +170,7 @@ class mmJSD(BaseModelVAE):
             subset (list): list of modalities to encode.
 
         Returns:
-            (list): list containing the MoE joint encoding distribution. 
+            (list): list containing the PoE joint encoding distribution. 
         """
         assert (self.private==False), \
         "Subset feature only works for private=False (for now)." 
@@ -159,17 +185,24 @@ class mmJSD(BaseModelVAE):
                     eval(f"self.cfg.encoder.enc{i}.enc_dist"), loc=mu_, logvar=logvar_
             )
             qzs_xs.append(qz_x)
+        if len(subset) > 1:
+            mu_ = self.prior.mean
+            mu_ = mu_.expand(mu[0].shape).to(mu[0].device)           
+            logvar_ = torch.log(self.prior.variance).to(mu[0].device)     
+            logvar_ = logvar_.expand(logvar[0].shape)
+            mu.append(mu_)
+            logvar.append(logvar_)
 
         mu = torch.stack(mu)
         logvar = torch.stack(logvar)
 
-        moe_mu, moe_logvar = MixtureOfExperts()(mu, logvar)
+        poe_mu, poe_logvar = alphaProductOfExperts()(mu, logvar)
 
-        qz_xs =  hydra.utils.instantiate(
-                self.cfg.encoder.default.enc_dist, loc=moe_mu, logvar=moe_logvar
+        qz_x =  hydra.utils.instantiate(
+                self.cfg.encoder.default.enc_dist, loc=poe_mu, logvar=poe_logvar
             )
 
-        return [qz_xs]
+        return [qz_x]
     
     def decode(self, qz_x):
         r"""Forward pass of latent dimensions through decoder networks.
@@ -183,9 +216,9 @@ class mmJSD(BaseModelVAE):
         px_zs = []
         for i in range(self.n_views):
             if self.private:
-                px_z = self.decoders[i](qz_x[i]._sample(training=self._training))
+                px_z = self.decoders[i](qz_x[i]._sample(training=self._training, return_mean=self.return_mean))
             else:
-                px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
+                px_z = self.decoders[i](qz_x[0]._sample(training=self._training, return_mean=self.return_mean))
             px_zs.append(px_z)
         return [px_zs]
 
@@ -203,7 +236,7 @@ class mmJSD(BaseModelVAE):
         "Subset feature only works for private=False (for now)." 
         px_zs = []
         for i in subset:
-            px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
+            px_z = self.decoders[i](qz_x[0]._sample(training=self._training, return_mean=self.return_mean))
             px_zs.append(px_z)
         return [px_zs]
     
@@ -238,7 +271,7 @@ class mmJSD(BaseModelVAE):
         kl = 0
         for i in range(len(qz_xs)):
             kl += qz_xs[i].kl_divergence(self.prior).sum(1, keepdims=True).mean(0)
-        return self.beta*kl
+        return self.beta*kl/self.n_views
 
     def calc_ll(self, x, px_zs):
         r"""Calculate log-likelihood loss.
@@ -252,9 +285,9 @@ class mmJSD(BaseModelVAE):
         """
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[0][i].log_likelihood(x[i]).mean(0).sum()#first index is latent, second index is view 
+            ll += px_zs[0][i].log_likelihood(x[i]).mean(0).sum()*self.ll_weighting #first index is latent, second index is view 
         return ll
-
+    
     def calc_jsd(self, qcs_xs, qc_x):
         r"""Calculate Jensen-Shannon Divergence loss.
 
@@ -268,7 +301,7 @@ class mmJSD(BaseModelVAE):
         jsd = 0
         for i in range(self.n_views):
             jsd += qcs_xs[i].kl_divergence(qc_x[0]).sum(1, keepdims=True).mean(0)
-        return self.alpha*jsd
+        return self.alpha*jsd/(self.n_views+1)
 
     def loss_function(self, x, fwd_rtn):
         r"""Calculate mmJSD loss.

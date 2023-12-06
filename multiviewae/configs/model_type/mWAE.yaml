@@ -1,7 +1,7 @@
 # @package _global_
 
 # default parameters for wAAE model
-model_name: "wAAE"
+model_name: "mWAE"
 
 discriminator:
   _target_: multiviewae.architectures.mlp.Discriminator

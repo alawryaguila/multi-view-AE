@@ -1,6 +1,6 @@
 import torch
 import hydra
-
+import numpy as np
 from ..base.constants import MODEL_JMVAE
 from ..base.base_model import BaseModelVAE
 
@@ -10,7 +10,7 @@ class JMVAE(BaseModelVAE):
 
     Args:
         cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
-            
+            - alpha (float): Weighting of KL-divergence loss from individual encoders.
             - encoder.default._target_ (multiviewae.architectures.mlp.VariationalEncoder): Type of Encoder to use.
             - encoder.default.enc_dist._target_ (multiviewae.base.distributions.Normal, multiviewae.base.distributions.MultivariateNormal): Encoding distribution.
             - decoder.default._target_ (multiviewae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
@@ -73,7 +73,7 @@ class JMVAE(BaseModelVAE):
         Returns:
             (list): Single element list containing joint encoding distribution, qz_xy.
         """
-        mu, logvar = self.encoders[0](torch.cat((x[0], x[1]),dim=1))
+        mu, logvar = self.encoders[0](torch.cat((x[0], x[1]),dim=1)) #TODO: current implementation only works for 2D data for both modalities
         qz_xy = hydra.utils.instantiate(  
             self.cfg.encoder.default.enc_dist, loc=mu, logvar=logvar
         )
@@ -111,7 +111,7 @@ class JMVAE(BaseModelVAE):
         """       
         px_zs = []
         for i in range(self.n_views):
-            px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
+            px_z = self.decoders[i](qz_x[0]._sample(training=self._training, return_mean=self.return_mean))
             px_zs.append(px_z)
         return [px_zs]
 
@@ -147,7 +147,7 @@ class JMVAE(BaseModelVAE):
         kl_qz_x = qz_xy[0].kl_divergence(qz_x).mean(0).sum()
         kl_qz_y = qz_xy[0].kl_divergence(qz_y).mean(0).sum()
 
-        return kl_prior + kl_qz_x + kl_qz_y
+        return kl_prior + self.alpha*(kl_qz_x + kl_qz_y)
 
     def calc_ll(self, x, px_zs):
         r"""Calculate log-likelihood loss.
@@ -183,7 +183,48 @@ class JMVAE(BaseModelVAE):
         kls = self.calc_kl(qz_xy, qz_x, qz_y)
         ll = self.calc_ll(x, [px_z, py_z])
 
-        total = kls - ll
+        if self.current_epoch > self.warmup - 1:
+            annealing_factor = 1
+        else:
+            annealing_factor = self.current_epoch/self.warmup
+
+        total = annealing_factor*kls - ll
 
         losses = {"loss": total, "kls": kls, "ll": ll}
         return losses
+
+    def calc_nll(self, x, K=1000, batch_size_K=100):
+        r"""Calculate negative log-likelihood used to evaluate model performance.
+
+        Args:
+            x (list): list of input data of type torch.Tensor.
+
+        Returns:
+            nll (torch.Tensor): Negative log-likelihood.
+        """
+        mu, logvar = self.encoders[0](torch.cat((x[0], x[1]),dim=1)) #TODO: current implementation only works for 2D data for both modalities
+        qz_xy = hydra.utils.instantiate(  
+            self.cfg.encoder.default.enc_dist, loc=mu, logvar=logvar
+        )
+        # And sample from the posterior
+        zs = qz_xy.rsample([K])  # shape K x n_data x latent_dim
+        ll = 0
+        start_idx = 0
+        stop_idx = min(start_idx + batch_size_K, K)
+        lnpxs = []
+        while start_idx < stop_idx:
+            zs_ = zs[start_idx:stop_idx]
+            lpx_zs = 0
+            for j in range(self.n_views):
+                px_z = self.decoders[j](zs_)
+                lpx_zs += px_z.log_likelihood(x[j]).sum(dim=-1)
+
+            lpz = self.prior.log_likelihood(zs_).sum(dim=-1)
+            lqz_xy = qz_xy.log_likelihood(zs_).sum(dim=-1)
+            ln_px = torch.logsumexp(lpx_zs + lpz - lqz_xy, dim=0)
+            lnpxs.append(ln_px)
+            start_idx += batch_size_K
+            stop_idx = min(stop_idx + batch_size_K, K)
+        lnpxs = torch.stack(lnpxs)
+        ll += (torch.logsumexp(lnpxs, dim=0) - np.log(K)).mean()
+        return -ll

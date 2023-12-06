@@ -14,6 +14,7 @@ class weighted_DMVAE(BaseModelVAE):
             
             - model._lambda (list, optional): Log likelihood weighting term for each modality.
             - model.s_dim (int): Number of private latent dimensions.
+            - model.beta (int, float): KL divergence weighting term.
             - encoder.default._target_ (multiviewae.architectures.mlp.VariationalEncoder): Type of encoder class to use.
             - encoder.default.enc_dist._target_ (multiviewae.base.distributions.Normal, multiviewae.base.distributions.MultivariateNormal): Encoding distribution.
             - decoder.default._target_ (multiviewae.architectures.mlp.VariationalDecoder): Type of decoder class to use.
@@ -134,7 +135,7 @@ class weighted_DMVAE(BaseModelVAE):
         """  
         px_zs = []
         for i in range(self.n_views):
-            px_z = self.decoders[i](qz_x[i]._sample(training=self._training))
+            px_z = self.decoders[i](qz_x[i]._sample(training=self._training, return_mean=self.return_mean))
             px_zs.append(px_z)
         return [px_zs]
 
@@ -151,7 +152,7 @@ class weighted_DMVAE(BaseModelVAE):
         px_zs = []
         for i in range(self.n_views):
             px_z = [
-                self.decoders[i](qz_xs[j][i]._sample(training=self._training)) #TODO: check this is right
+                self.decoders[i](qz_xs[j][i]._sample(training=self._training, return_mean=self.return_mean)) #TODO: check this is right
                 for j in range(self.n_views)
             ]
             px_zs.append(px_z)
@@ -189,7 +190,7 @@ class weighted_DMVAE(BaseModelVAE):
             kl += qs_xs[i].kl_divergence(self.prior).mean(0).sum()
             kl += qz_x[0].kl_divergence(self.prior).mean(0).sum()
 
-        return kl
+        return kl*self.beta
     
     def calc_kl_separate_latent(self, qcs_xs, qs_xs):
         r"""Calculate KL-divergence loss for the second terms in Equation 3.
@@ -206,7 +207,7 @@ class weighted_DMVAE(BaseModelVAE):
             for j in range(self.n_views):
                 kl += qcs_xs[j].kl_divergence(self.prior).mean(0).sum() 
                 kl += qs_xs[i].kl_divergence(self.prior).mean(0).sum()
-        return kl 
+        return kl*self.beta
     
     def calc_ll_joint(self, x, px_zs):
         r"""Calculate log-likelihood loss from the joint encoding distribution for each modality. 

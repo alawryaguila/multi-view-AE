@@ -4,10 +4,12 @@ import hydra
 
 from ..base.constants import MODEL_MMVAEPLUS
 from ..base.base_model import BaseModelVAE
-from ..base.distributions import Default_dist
+from ..base.distributions import Default
 import numpy as np
 #set numpy seed
 np.random.seed(0)
+
+#TODO: check if private priors are used at all here??
 
 class mmVAEPlus(BaseModelVAE):
     r"""
@@ -93,7 +95,7 @@ class mmVAEPlus(BaseModelVAE):
             u_x = qu_xs[i]._sample() #shared sample
             w_x = qw_xs[i]._sample() #private sample
             z_x = torch.cat((u_x, w_x), dim=-1)
-            z_x = Default_dist(x=z_x)
+            z_x = Default(x=z_x)
 
             zss.append(z_x)
         return zss
@@ -146,7 +148,7 @@ class mmVAEPlus(BaseModelVAE):
             shape_[0] = u_x.shape[0]
             w_x = w_x.expand(shape_)
             z_x = torch.cat((u_x, w_x), dim=-1)
-            z_x = Default_dist(x=z_x)
+            z_x = Default(x=z_x)
             zss.append(z_x)
         return zss
     
@@ -186,7 +188,7 @@ class mmVAEPlus(BaseModelVAE):
             for i in range(self.n_views):
                 px_zs_inner = []
                 for j in range(self.n_views): 
-                    z_x = zss[i]._sample()
+                    z_x = zss[i]._sample(training=self._training, return_mean=self.return_mean)
                     if i != j:
                         u_x = z_x[:,:self.u_dim]
                         prior = hydra.utils.instantiate(self.cfg.prior, loc=self.mean_priors_shared[:,self.u_dim:], logvar=self.logvar_priors_shared[:,self.u_dim:])
@@ -214,7 +216,7 @@ class mmVAEPlus(BaseModelVAE):
         px_zs = []
         for i, zs in enumerate(zss):
             if i in subset:
-                px_z = self.decoders[i](zs._sample(training=self._training))
+                px_z = self.decoders[i](zs._sample(training=self._training, return_mean=self.return_mean))
                 px_zs.append(px_z)
         return [px_zs]
 

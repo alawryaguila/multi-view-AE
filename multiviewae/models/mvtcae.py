@@ -134,7 +134,7 @@ class mvtCAE(BaseModelVAE):
         """  
         px_zs = []
         for i in range(self.n_views):
-            px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
+            px_z = self.decoders[i](qz_x[0]._sample(training=self._training, return_mean=self.return_mean))
             px_zs.append(px_z)
         return [px_zs]
 
@@ -143,7 +143,7 @@ class mvtCAE(BaseModelVAE):
         """
         px_zs = []
         for i in subset:
-            px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
+            px_z = self.decoders[i](qz_x[0]._sample(training=self._training, return_mean=self.return_mean))
             px_zs.append(px_z)
         return [px_zs]
     

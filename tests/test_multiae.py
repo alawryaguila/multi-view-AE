@@ -120,8 +120,8 @@ def test_userconfig():
     test_3 = np.random.rand(50, 5)
 
     tests = {
-       #     "./user_config/dvcca.yaml" : [MODEL_DVCCA], #test private DVCCA
-       #     "./user_config/mmjsd.yaml" : [MODEL_MMJSD], #test mmJSD without private latents
+            "./user_config/dvcca.yaml" : [MODEL_DVCCA], #test private DVCCA
+            "./user_config/mmjsd.yaml" : [MODEL_MMJSD], #test mmJSD without private latents
             "./user_config/laplace.yaml": VARIATIONAL_MODELS, #tests using laplace for decoding distribution
             "./user_config/sparse.yaml" : SPARSE_MODELS, #test sparse models
             "./user_config/multivariatenormal.yaml": VARIATIONAL_MODELS, #tests using multivariate normal for decoding distribution
@@ -475,7 +475,8 @@ def test_conditionalVAE():
 
     tests = {
             "" : [[10, 12], MODELS],         
-            "./user_config/condae.yaml" : [[10, 12], VARIATIONAL_MODELS],  
+           "./user_config/condae.yaml" : [[10, 12], VARIATIONAL_MODELS],  
+            "./user_config/condae_onehot.yaml" : [[10, 12], VARIATIONAL_MODELS],  
             }
 
     module = importlib.import_module("multiviewae")
@@ -491,6 +492,11 @@ def test_conditionalVAE():
                 test_data.append(np.random.rand(test_n, *d))
         train_y = np.random.randint(num_cat, size=train_n)
         test_y = np.random.randint(num_cat, size=test_n )
+        if cfg == "./user_config/condae_onehot.yaml":
+            train_y = np.eye(num_cat)[train_y]
+            test_y = np.eye(num_cat)[test_y]
+            train_y = train_y.astype(int)
+            test_y = test_y.astype(int)
 
         for m in models:
             class_ = getattr(module, m)
@@ -526,6 +532,56 @@ def test_conditionalVAE():
             if os.path.exists(outdir):
                 shutil.rmtree(outdir)
 
+def test_weightings():
+    """
+    Tests the ability to weight the loss function.
+    """
+    train_n = 200
+    test_n = 50
+
+    module = importlib.import_module("multiviewae")
+
+    tests = {
+            "./user_config/kld_weighting.yaml" : [[10, 10], [MODEL_MEMVAE]],  
+            "./user_config/ll_weighting.yaml" : [[10, 10], [MODEL_MEMVAE, MODEL_MMJSD, MODEL_MOPOEVAE, MODEL_MVAE]],
+            "./user_config/prior_params.yaml" : [[10, 10], [MODEL_MEMVAE, MODEL_MVAE]],
+            }
+    np.random.seed(0)
+    module = importlib.import_module("multiviewae")
+    for cfg, [dim, models] in tests.items():
+        train_data = []
+        test_data = []
+        for d in dim:
+            if isinstance(d, int):
+                train_data.append(np.random.rand(train_n, d))
+                test_data.append(np.random.rand(test_n, d))
+            else:
+                train_data.append(np.random.rand(train_n, *d))
+                test_data.append(np.random.rand(test_n, *d))
+
+        for m in models:
+            class_ = getattr(module, m)
+            if len(cfg) != 0:
+                model1 = class_(cfg=abspath(join(dirname( __file__ ), cfg)), input_dim=dim)
+            else:
+                model1 = class_(input_dim=dim)
+
+            model1.fit(*train_data)
+
+            print("RESULTS: ", m)
+            latent = model1.predict_latents(*test_data)
+            print_results("latent", latent)
+            recon = model1.predict_reconstruction(*test_data)
+            print_results("recon", recon)
+
+            latent = model1.predict_latents(*test_data, batch_size=10)
+            print_results("latent", latent)
+            recon = model1.predict_reconstruction(*test_data, batch_size=5)
+            print_results("recon", recon)
+
+            outdir = model1.cfg.out_dir
+            if os.path.exists(outdir):
+                shutil.rmtree(outdir)
 if __name__ == "__main__":
     test_models()
     test_userconfig()
@@ -536,3 +592,4 @@ if __name__ == "__main__":
     test_index_dataloader()
     test_fitconfig()
     test_conditionalVAE()
+    test_weightings()

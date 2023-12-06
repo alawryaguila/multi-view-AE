@@ -16,7 +16,6 @@ hydra:
 
 model:
   save_model: False #whether to save the model
-
   seed_everything: True
   seed: 42
 
@@ -27,6 +26,8 @@ model:
   #sparsity of the encoding distribution.
   sparse: False  #NOTE: setting sparse to True enforces a uniform prior over the latents
   threshold: 0
+
+  return_mean: True #whether to return the mean of the encoding distribution at test time
 
 datamodule:
   _target_: multiviewae.base.dataloaders.MultiviewDataModule
@@ -45,7 +46,7 @@ encoder:  # uses default mlp for all inputs
       non_linear: False
 
       enc_dist:
-        _target_: multiviewae.base.distributions.Default_dist
+        _target_: multiviewae.base.distributions.Default
 
 
 decoder: # uses default mlp for all inputs
@@ -57,7 +58,7 @@ decoder: # uses default mlp for all inputs
       non_linear: False
 
       dec_dist:
-        _target_: multiviewae.base.distributions.Default_dist
+        _target_: multiviewae.base.distributions.Default
 
 prior:
   _target_: multiviewae.base.distributions.Normal

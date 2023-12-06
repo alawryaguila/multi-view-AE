@@ -77,7 +77,7 @@ The encoder function parameters. The default encoder function is a MLP encoder n
               non_linear: False
 
               enc_dist:
-                _target_: multiviewae.base.distributions.Default_dist
+                _target_: multiviewae.base.distributions.Default
 
 The ``encoder._target_`` parameter specifies the encoder function class of which the in-built options include: ``multiviewae.architectures.mlp.Encoder`` and ``multiviewae.architectures.mlp.VariationalEncoder``.
 
@@ -96,7 +96,7 @@ The user can specify separate parameters for the encoder network of each view. F
               non_linear: False
 
               enc_dist:
-                _target_: multiviewae.base.distributions.Default_dist
+                _target_: multiviewae.base.distributions.Default
           enc1:
               _target_: multiviewae.architectures.mlp.Encoder
 
@@ -105,7 +105,7 @@ The user can specify separate parameters for the encoder network of each view. F
               non_linear: True
 
               enc_dist:
-                _target_: multiviewae.base.distributions.Default_dist
+                _target_: multiviewae.base.distributions.Default
 
 where ``enc0`` and ``enc1`` provide the parameters for view 0 encoder and view 1 encoder respectively. If no view specific parameters are provided, the default network parameters are used.
 
@@ -171,7 +171,7 @@ Alternatively, the user can specify a CNN architecture by setting the ``encoder.
               non_linear: False
 
               enc_dist:
-                _target_: multiviewae.base.distributions.Default_dist
+                _target_: multiviewae.base.distributions.Default
 
 In-built options include: ``multiviewae.architectures.cnn.Encoder`` and ``multiviewae.architectures.cnn.VariationalEncoder``. As with the MLP architectures, the user can chose to set view specific parameters.
 Each layer can be ``torch.nn`` ``Conv2d`` layers or any suitable 2D pooling or padding layers.
@@ -194,11 +194,11 @@ The decoder function parameters. The default decoder function is a MLP decoder n
               non_linear: False
 
               dec_dist:
-                _target_: multiviewae.base.distributions.Default_dist
+                _target_: multiviewae.base.distributions.Default
  
 The ``decoder._target_`` parameter specifies the encoder function class of which the in-built options include: ``multiviewae.architectures.mlp.Decoder`` and ``multiviewae.models.layers.VariationalDecoder``.
 
-The ``decoder.dec_dist._target_`` parameter specifies the decoding distribution class of which the in-built options include: ``multiviewae.base.distributions.Default_dist``, ``multiviewae.base.distributions.Normal``, ``multiviewae.base.distributions.MultivariateNormal``, ``multiviewae.base.distributions.Laplace`` and ``multiviewae.base.distributions.Bernoulli``. The ``multiviewae.base.distributions.Default_dist`` class is used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
+The ``decoder.dec_dist._target_`` parameter specifies the decoding distribution class of which the in-built options include: ``multiviewae.base.distributions.Default``, ``multiviewae.base.distributions.Normal``, ``multiviewae.base.distributions.MultivariateNormal``, ``multiviewae.base.distributions.Laplace`` and ``multiviewae.base.distributions.Bernoulli``. The ``multiviewae.base.distributions.Default`` class is used for the vanilla autoencoder and adversarial autoencoder implementations where no distribution is specified.
 
 The user can specify separate parameters for the encoder network of each view. For example:
 
@@ -213,7 +213,7 @@ The user can specify separate parameters for the encoder network of each view. F
               non_linear: False
 
               dec_dist:
-                _target_: multiviewae.base.distributions.Default_dist
+                _target_: multiviewae.base.distributions.Default
           dec1:
               _target_: multiviewae.architectures.mlp.Decoder
 
@@ -222,7 +222,7 @@ The user can specify separate parameters for the encoder network of each view. F
               non_linear: True
 
               dec_dist:
-                _target_: multiviewae.base.distributions.Default_dist
+                _target_: multiviewae.base.distributions.Default
 
 where ``dec0`` and ``dec1`` provide the parameters for view 0 decoder and view 1 decoder respectively. If no view specific parameters are provided, the default network parameters are used.
 
@@ -287,7 +287,7 @@ Alternatively, the user can specify a CNN architecture by setting the ``encoder.
               non_linear: False
 
               dec_dist:
-                _target_: multiviewae.base.distributions.Default_dist
+                _target_: multiviewae.base.distributions.Default
 
 **NOTE:** The user is responsible for ensuring that the CNN encoder and decoder network architectures are compatible and create an output tensor of the correct dimensionality.
 

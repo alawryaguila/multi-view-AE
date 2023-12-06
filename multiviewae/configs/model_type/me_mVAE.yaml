@@ -6,10 +6,12 @@ model_name: "me_mVAE"
 model:
   beta: 1
   join_type: "PoE"  
-  warmup: 10 
+  warmup: 0
   sparse: False
-  use_prior: True
-   
+  use_prior: False
+  weight_kld: False
+  weight_ll: False
+  
 encoder:
   default:
     _target_: multiviewae.architectures.mlp.VariationalEncoder

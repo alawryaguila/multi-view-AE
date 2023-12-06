@@ -5,7 +5,6 @@ model_name: "mcVAE"
 
 model:
   beta: 1
-
   sparse: False
   threshold: 0
 

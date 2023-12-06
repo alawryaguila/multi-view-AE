@@ -109,7 +109,6 @@ class BaseModelAE(ABC, pl.LightningModule):
         if cfg is not None:
             new_cfg = omegaconf.OmegaConf.load(cfg)
             self.__initcfg(self.cfg, new_cfg, at_fit=True)
-        
         data = list(data)
 
         if not self.is_index_ds:
@@ -155,10 +154,10 @@ class BaseModelAE(ABC, pl.LightningModule):
         py_trainer = hydra.utils.instantiate(
             self.cfg.trainer, callbacks=callbacks, logger=logger,
         )
-
         datamodule = hydra.utils.instantiate(
            self.cfg.datamodule, data=data, n_views=self.n_views, labels=labels, _convert_="all", _recursive_=False
         )
+
         py_trainer.fit(self, datamodule)
         
 
@@ -290,6 +289,9 @@ class BaseModelAE(ABC, pl.LightningModule):
                 for i in range(len(self.private_encoders)):
                     if isinstance(self.private_encoders[i], ConditionalVariationalEncoder):
                         self.private_encoders[i].set_labels(labels)
+        if hasattr(self, "conditional"): 
+            if self.conditional: 
+                self.set_labels(labels)
 
     ################################            private methods
     def __initcfg(self, old_cfg, new_cfg, at_fit=False, is_print=False):        
@@ -317,9 +319,10 @@ class BaseModelAE(ABC, pl.LightningModule):
 
         if not at_fit or ("prior" in new_cfg.keys()):
             self._setprior()
-
-        self.create_folder(self.cfg.out_dir)
-        self.save_config()
+        
+        if at_fit:
+            self.create_folder(self.cfg.out_dir)
+            self.save_config()
 
     def __updateconfig(self, orig, update):
         OmegaConf.set_struct(orig, True)
@@ -526,7 +529,53 @@ class BaseModelAE(ABC, pl.LightningModule):
                     z_ = z
         return z_
 
+    def predict_nll(self, *data, labels=None, batch_size=None):
+        if not hasattr(self, "calc_nll"):
+            raise NotImplementedError("predict_nll not implemented for this model")
+        if any([isinstance(enc, ConditionalVariationalEncoder) for enc in self.encoders]) and labels is None: 
+            raise InputError("no labels given for Conditional VAE")
 
+        if any([isinstance(dec, ConditionalVariationalDecoder) for dec in self.decoders]) and labels is None: 
+            raise InputError("no labels given for Conditional VAE")
+        
+        self._training = False
+        for i in range(len(self.encoders)):
+            self.encoders[i].training = False
+        for i in range(len(self.decoders)):
+            self.decoders[i].training = False
+
+        data = list(data)
+        if not self.is_index_ds:
+            if not (len(data) == self.n_views):
+                raise InputError("number of modalities must be equal to number of views")
+
+            for i in range(self.n_views):
+                data_dim = data[i].shape[1:]
+                if len(data_dim) == 1:
+                    data_dim = data_dim[0]
+                if not (data_dim == self.input_dim[i]):
+                    raise InputError("modality's shape must be equal to corresponding input_dim's shape")
+
+        dataset = hydra.utils.instantiate(self.cfg.datamodule.dataset, data=data, labels=labels, n_views=self.n_views)
+        if batch_size is None:
+            if self.is_index_ds:
+                batch_size = len(data[0])
+            else:
+                batch_size = data[0].shape[0]
+
+        generator = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+
+        with torch.no_grad():
+            ll = 0
+            for batch_idx, local_batch in enumerate(generator):
+                local_batchx, local_batchy, _ = self._unpack_batch(local_batch)
+                self._set_batch_labels(local_batchy)
+
+                local_batchx = [
+                    local_batchx_.to(self.device) for local_batchx_ in local_batchx
+                ]
+                ll += self.calc_nll(local_batchx)
+        return ll/(batch_idx+1)
 ################################################################################
 class BaseModelVAE(BaseModelAE):
     """Base class for variational autoencoder models. Inherits from BaseModelAE.

@@ -1,0 +1,5 @@
+# @package _global_
+
+model:
+  warmup: 0
+  use_prior: True

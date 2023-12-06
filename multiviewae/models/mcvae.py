@@ -72,7 +72,7 @@ class mcVAE(BaseModelVAE):
         px_zs = []
         for qz_x in qz_xs:
             px_z = [
-                self.decoders[i](qz_x._sample(training=self._training))
+                self.decoders[i](qz_x._sample(training=self._training, return_mean=self.return_mean))
                 for i in range(self.n_views)
             ]
             px_zs.append(px_z)

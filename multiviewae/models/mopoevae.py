@@ -4,7 +4,7 @@ from ..base.constants import MODEL_MOPOEVAE
 from ..base.base_model import BaseModelVAE
 from itertools import combinations
 from ..base.representations import ProductOfExperts, MixtureOfExperts
-
+import numpy as np
 class MoPoEVAE(BaseModelVAE):
     r"""
     Mixture-of-Product-of-Experts Variational Autoencoder.
@@ -41,6 +41,11 @@ class MoPoEVAE(BaseModelVAE):
                         z_dim=z_dim)
         self.subsets = self.set_subsets()
 
+        if self.weight_ll:
+            self.ll_weighting = 1/self.n_views
+        else:
+            self.ll_weighting = 1
+        
     def encode(self, x):
         r"""Forward pass through encoder networks.
 
@@ -67,6 +72,16 @@ class MoPoEVAE(BaseModelVAE):
             for subset in self.subsets:
                 mu_s = mu[subset]
                 logvar_s = logvar[subset]
+                if len(subset) == self.n_views:
+                    mu_ = self.prior.mean
+                    mu_ = mu_.expand(mu[0].shape).to(mu[0].device)           
+                    logvar_ = torch.log(self.prior.variance).to(mu[0].device)     
+                    logvar_ = logvar_.expand(logvar[0].shape)
+                    mu_ = mu_.unsqueeze(0)
+                    logvar_ = logvar_.unsqueeze(0)
+                    mu_s = torch.cat([mu_s, mu_], dim=0)
+                    logvar_s = torch.cat([logvar_s, logvar_], dim=0)
+
                 mu_s, logvar_s = ProductOfExperts()(mu_s, logvar_s)    
                 mu_out.append(mu_s)
                 logvar_out.append(logvar_s)
@@ -84,22 +99,29 @@ class MoPoEVAE(BaseModelVAE):
                 )
             return [qz_xs, qz_x]
         else:
-            for subset in self.subsets:
-                mu_s = mu[subset]
-                logvar_s = logvar[subset]
-                mu_s, logvar_s = ProductOfExperts()(mu_s, logvar_s)    
+            for i in range(self.n_views):
+                mu_s = mu[i]
+                logvar_s = logvar[i] 
                 mu_out.append(mu_s)
                 logvar_out.append(logvar_s)
+              
+            mu_ = self.prior.mean
+            mu_ = mu_.expand(mu[0].shape).to(mu[0].device)           
+            logvar_ = torch.log(self.prior.variance).to(mu[0].device)     
+            logvar_ = logvar_.expand(logvar[0].shape)
+            mu_out.append(mu_)
+            logvar_out.append(logvar_)
 
             mu_out = torch.stack(mu_out)
             logvar_out = torch.stack(logvar_out)
 
-            moe_mu, moe_logvar = MixtureOfExperts()(mu_out, logvar_out)
+            mu, logvar = ProductOfExperts()(mu_out, logvar_out)
  
             qz_x = hydra.utils.instantiate( 
-                self.cfg.encoder.default.enc_dist, loc=moe_mu, logvar=moe_logvar
+                self.cfg.encoder.default.enc_dist, loc=mu, logvar=logvar
                 )
             return [qz_x]
+        
     def encode_subset(self, x, subset):
         r""" Forward pass through encoder networks for a subset of modalities.
         Args:
@@ -116,26 +138,21 @@ class MoPoEVAE(BaseModelVAE):
             mu_, logvar_ = self.encoders[i](x[i])
             mu.append(mu_) 
             logvar.append(logvar_) 
+    
+        if len(subset) == self.n_views:
+            mu_ = self.prior.mean
+            mu_ = mu_.expand(mu[0].shape).to(mu[0].device)           
+            logvar_ = torch.log(self.prior.variance).to(mu[0].device)     
+            logvar_ = logvar_.expand(logvar[0].shape)
+            mu.append(mu_)
+            logvar.append(logvar_)
+
         mu = torch.stack(mu)
         logvar = torch.stack(logvar)
 
-        mu_out = []
-        logvar_out = []
-        subsets = self.set_subsets(n_views=len(subset))
-        for _subset in subsets:
-            mu_s = mu[_subset]
-            logvar_s = logvar[_subset]
-            mu_s, logvar_s = ProductOfExperts()(mu_s, logvar_s)    
-            mu_out.append(mu_s)
-            logvar_out.append(logvar_s)
-
-        mu_out = torch.stack(mu_out)
-        logvar_out = torch.stack(logvar_out)
-
-        moe_mu, moe_logvar = MixtureOfExperts()(mu_out, logvar_out)
-
+        mu, logvar = ProductOfExperts()(mu, logvar)
         qz_x = hydra.utils.instantiate( 
-            self.cfg.encoder.default.enc_dist, loc=moe_mu, logvar=moe_logvar
+            self.cfg.encoder.default.enc_dist, loc=mu, logvar=logvar
             )
         return [qz_x]
     
@@ -143,7 +160,7 @@ class MoPoEVAE(BaseModelVAE):
         px_zs = []
         for i in range(self.n_views):
             if i in subset:
-                px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
+                px_z = self.decoders[i](qz_x[0]._sample(training=self._training, return_mean=self.return_mean))
                 px_zs.append(px_z)
         return [px_zs]    
     
@@ -159,7 +176,7 @@ class MoPoEVAE(BaseModelVAE):
         """    
         px_zs = []
         for i in range(self.n_views):
-            px_z = self.decoders[i](qz_x[0]._sample(training=self._training))
+            px_z = self.decoders[i](qz_x[0]._sample(training=self._training, return_mean=self.return_mean))
             px_zs.append(px_z)
         return [px_zs]
 
@@ -239,5 +256,5 @@ class MoPoEVAE(BaseModelVAE):
         """
         ll = 0
         for i in range(self.n_views):
-            ll += px_zs[0][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view
+            ll += px_zs[0][i].log_likelihood(x[i]).mean(0).sum()*self.ll_weighting #first index is latent, second index is view
         return ll

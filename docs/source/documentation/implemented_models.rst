@@ -10,13 +10,11 @@ Below is a table with the models contained within this repository and links to t
 +--------------+---------------------------------------------------------------------------------------------+------------------+
 | AE           | Multi-view Autoencoder                                                                      |   >=1            |
 +--------------+---------------------------------------------------------------------------------------------+------------------+
-| AAE          | Multi-view Adversarial Autoencoder with separate latent representations                     |    >=1           |
+| mAAE          | Multi-view Adversarial Autoencoder                                                         |    >=1           |
 +--------------+---------------------------------------------------------------------------------------------+------------------+
 | DVCCA        | Deep Variational CCA [3]                                                                    |    2             |
 +--------------+---------------------------------------------------------------------------------------------+------------------+
-| jointAAE     | Multi-view Adversarial Autoencoder with joint latent representation                         |   >=1            |
-+--------------+---------------------------------------------------------------------------------------------+------------------+
-| wAAE         | Multi-view Adversarial Autoencoder with joint latent representation and wasserstein loss    |    >=1           |
+| mWAE         | Multi-view Adversarial Autoencoder with a wasserstein loss                                  |    >=1           |
 +--------------+---------------------------------------------------------------------------------------------+------------------+
 | mmVAE        | Variational mixture-of-experts autoencoder (MMVAE) [4]                                      |   >=1            |
 +--------------+---------------------------------------------------------------------------------------------+------------------+

@@ -17,7 +17,7 @@ encoder:
     hidden_layer_dim: [20, 15]
     non_linear: False
     num_cat: 3
-    one_hot: True #whether to one-hot-encoder labels
+    one_hot: False #whether to one-hot-encoder labels
     
     enc_dist:
       _target_: multiviewae.base.distributions.Normal
@@ -30,7 +30,7 @@ decoder:
     non_linear: False
     init_logvar: -3
     num_cat: 3
-    one_hot: True #whether to one-hot-encoder labels
+    one_hot: False #whether to one-hot-encoder labels
     
     dec_dist:
       _target_: multiviewae.base.distributions.Normal

@@ -1,26 +1,24 @@
 import torch
-from ..base.constants import MODEL_WAAE
+
+from ..base.constants import MODEL_MAAE, EPS
 from ..base.base_model import BaseModelAAE
 
-class wAAE(BaseModelAAE):
-    r"""
-    Multi-view Adversarial Autoencoder model with wasserstein loss.
-
-    Wasserstein autoencoders: https://arxiv.org/abs/1711.01558
+class mAAE(BaseModelAAE):
+    r"""Multi-view Adversarial Autoencoder model with a separate latent representation for each view.
 
     Args:
-        cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:      
-
+        cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
+            
+            - eps (float): Value added for numerical stability.
             - discriminator._target_ (multiviewae.architectures.mlp.Discriminator): Discriminator network class.
             - discriminator.hidden_layer_dim (list): Number of nodes per hidden layer.
             - discriminator.bias (bool): Whether to include a bias term in hidden layers.
             - discriminator.non_linear (bool): Whether to include a ReLU() function between layers.
             - discriminator.dropout_threshold (float): Dropout threshold of layers.
-            
+        
         input_dim (list): Dimensionality of the input data.
         z_dim (int): Number of latent dimensions.
     """
-
     def __init__(
         self,
         cfg = None,
@@ -28,12 +26,10 @@ class wAAE(BaseModelAAE):
         z_dim = None
     ):
 
-        super().__init__(model_name=MODEL_WAAE,
+        super().__init__(model_name=MODEL_MAAE,
                 cfg=cfg,
                 input_dim=input_dim,
                 z_dim=z_dim)
-
-        self.is_wasserstein = True
 
     def encode(self, x):
         r"""Forward pass through encoder networks.
@@ -42,46 +38,46 @@ class wAAE(BaseModelAAE):
             x (list): list of input data of type torch.Tensor.
 
         Returns:
-            z (list): Single element list of joint latent dimensions of type torch.Tensor.
+            z (list): list of latent dimensions for each view of type torch.Tensor.
         """
         z = []
         for i in range(self.n_views):
             z_ = self.encoders[i](x[i])
             z.append(z_)
-
-        z = torch.stack(z)
-        mean_z = torch.mean(z, axis=0)
-        return [mean_z]
+        return z
 
     def decode(self, z):
-        r"""Forward pass through decoder networks. The joint latent dimensions are passed through all of the decoders.
+        r"""Forward pass through decoder networks. Each latent is passed through all of the decoders.
 
         Args:
-            z (list): Single element list of joint latent dimensions of type torch.Tensor.
+            z (list): list of latent dimensions for each view of type torch.Tensor.
 
         Returns:
             px_zs (list): list of decoding distributions.
         """
         px_zs = []
         for i in range(self.n_views):
-            px_z = self.decoders[i](z[0])
+            px_z = [self.decoders[j](z[i]) for j in range(self.n_views)]
             px_zs.append(px_z)
-        return [px_zs]
+        return px_zs
 
     def disc(self, z):
         r"""Forward pass of "real" samples from gaussian prior and "fake" samples from encoders through the discriminator network.
 
         Args:
-            z (list): Single element list of joint latent dimensions of type torch.Tensor.
+            z (list): list of latent dimensions for each view of type torch.Tensor.
 
         Returns:
             d_real (torch.Tensor): Discriminator network output for "real" samples.
-            d_fake (torch.Tensor): Discriminator network output for "fake" samples.
+            d_fake (list): list of discriminator network output for "fake" samples.
         """
         sh = z[0].shape
         z_real = self.prior.sample(sample_shape=sh)
         d_real = self.discriminator(z_real)
-        d_fake = self.discriminator(z[0])
+        d_fake = []
+        for i in range(self.n_views):
+            d = self.discriminator(z[i])
+            d_fake.append(d)
         return d_real, d_fake
 
     def forward_recon(self, x):
@@ -142,8 +138,9 @@ class wAAE(BaseModelAAE):
         px_zs = fwd_rtn["px_zs"]
         ll = 0
         for i in range(self.n_views):
-            ll += - px_zs[0][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view 
-        return ll / self.n_views
+            for j in range(self.n_views):
+                ll += - px_zs[j][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view
+        return ll / self.n_views / self.n_views
 
     def generator_loss(self, fwd_rtn):
         r"""Calculate the generator loss.
@@ -155,8 +152,10 @@ class wAAE(BaseModelAAE):
             gen_loss (torch.Tensor): Generator loss.
         """
         d_fake = fwd_rtn["d_fake"]
-        gen_loss = -torch.mean(d_fake.sum(dim=-1))
-        return gen_loss
+        gen_loss = 0
+        for i in range(self.n_views):
+            gen_loss += torch.mean(1 - torch.log(d_fake[i] + EPS))
+        return gen_loss/self.n_views
 
     def discriminator_loss(self, fwd_rtn):
         r"""Calculate the discriminator loss.
@@ -170,5 +169,9 @@ class wAAE(BaseModelAAE):
         d_real = fwd_rtn["d_real"]
         d_fake = fwd_rtn["d_fake"]
 
-        disc_loss = -torch.mean(d_real.sum(dim=-1)) + torch.mean(d_fake.sum(dim=-1))
-        return disc_loss
+        disc_loss = -torch.mean(torch.log(d_real + EPS))
+        for i in range(self.n_views):
+            disc_loss += -torch.mean(1 - torch.log(d_fake[i] + EPS))
+        return disc_loss / (self.n_views + 1)
+
+

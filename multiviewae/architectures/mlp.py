@@ -162,6 +162,7 @@ class ConditionalVariationalEncoder(Encoder):
         log_alpha (float): Log of the dropout parameter.
         enc_dist (multiviewae.base.distributions.Normal, multiviewae.base.distributions.MultivariateNormal): Encoder distribution.
         num_cat (int): Number of categories of the labels.
+        one_hot (bool): Whether to one-hot encode the labels.
         multiple_latents (bool, optional): Whether the model using a separate linear layers for shared and private latent spaces.
         u_dim (int, optional): Dimensionality of the shared latent space.
         w_dim (int, optional): Dimensionality of the private latent space.
@@ -177,6 +178,7 @@ class ConditionalVariationalEncoder(Encoder):
         log_alpha,
         enc_dist,
         num_cat,
+        one_hot,
         multiple_latents=False, 
         u_dim=None,
         w_dim=None
@@ -192,6 +194,7 @@ class ConditionalVariationalEncoder(Encoder):
         self.sparse = sparse
         self.non_linear = non_linear
         self.log_alpha = log_alpha
+        self.one_hot = one_hot
         self.multiple_latents = multiple_latents
         self.u_dim = u_dim
         self.w_dim = w_dim
@@ -239,9 +242,13 @@ class ConditionalVariationalEncoder(Encoder):
         self.labels = labels 
 
     def forward(self, x):
-        c = F.one_hot(self.labels, self.num_cat)
-        x_cond = torch.hstack((x, c))    
+        if self.one_hot:
+            c = F.one_hot(self.labels.long(), self.num_cat)
+        else:
+            c = self.labels
 
+        x_cond = torch.hstack((x, c))   
+        
         h1 = x_cond
         for it_layer, layer in enumerate(self.encoder_layers):
             h1 = layer(h1)
@@ -379,6 +386,7 @@ class ConditionalVariationalDecoder(Decoder):
         init_logvar (int, float): Initial value for log variance of decoder.
         dec_dist (multiviewae.base.distributions.Normal, multiviewae.base.distributions.MultivariateNormal): Decoder distribution.
         num_cat (int): Number of categories of the labels.
+        one_hot (bool): Whether to one-hot encode the labels.
     """
     def __init__(
         self,
@@ -389,7 +397,8 @@ class ConditionalVariationalDecoder(Decoder):
         non_linear,
         init_logvar,
         dec_dist, 
-        num_cat
+        num_cat,
+        one_hot
     ):
         super().__init__(input_dim=input_dim,
                 z_dim=z_dim,
@@ -401,6 +410,7 @@ class ConditionalVariationalDecoder(Decoder):
         self.non_linear = non_linear
         self.init_logvar = init_logvar
         self.dec_dist = dec_dist
+        self.one_hot = one_hot
 
         self.layer_sizes = [z_dim + num_cat] + self.hidden_layer_dim + [input_dim]
         lin_layers = [
@@ -427,7 +437,11 @@ class ConditionalVariationalDecoder(Decoder):
         self.labels = labels 
 
     def forward(self, z):
-        c = F.one_hot(self.labels, self.num_cat)
+        if self.one_hot:
+            c = F.one_hot(self.labels.long(), self.num_cat)
+        else:
+            c = self.labels
+  
         if (len(z.size()) == 3 and len(c.size()) == 2): # NOTE: for mmvae which uses rsample() instead of sample()
             z_cond = torch.cat((z, c.repeat(z.size()[0],1,1)), dim=2)
         else:

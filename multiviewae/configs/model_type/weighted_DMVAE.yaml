@@ -6,6 +6,7 @@ model_name: "DMVAE"
 model:
   private: True
   s_dim: 3
+  beta: 1
   
 encoder:
   default:

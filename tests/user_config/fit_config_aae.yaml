@@ -1,3 +1,5 @@
+# @package _global_
+
 model:
   seed: 100
   
@@ -10,7 +12,7 @@ encoder:
       non_linear: False
 
       enc_dist:
-        _target_: multiviewae.base.distributions.Default_dist
+        _target_: multiviewae.base.distributions.Default
 
   enc0:
       _target_: multiviewae.architectures.mlp.Encoder
@@ -20,7 +22,7 @@ encoder:
       non_linear: False
 
       enc_dist:
-        _target_: multiviewae.base.distributions.Default_dist
+        _target_: multiviewae.base.distributions.Default
 
 decoder:  
   default:
@@ -31,4 +33,4 @@ decoder:
       non_linear: False
 
       enc_dist:
-        _target_: multiviewae.base.distributions.Default_dist
+        _target_: multiviewae.base.distributions.Default

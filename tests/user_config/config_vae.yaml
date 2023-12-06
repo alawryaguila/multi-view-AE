@@ -1,3 +1,5 @@
+# @package _global_
+
 encoder:  # uses default mlp for all inputs
   default:
       _target_: multiviewae.architectures.mlp.VariationalEncoder

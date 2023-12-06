@@ -1,7 +1,7 @@
 # @package _global_
 
 # default parameters for AAE model
-model_name: "AAE"
+model_name: "mAAE"
 
 
 discriminator:

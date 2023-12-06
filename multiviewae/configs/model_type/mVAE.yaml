@@ -10,6 +10,7 @@ model:
   threshold: 0.2
   warmup: 10
   use_prior: True
+  weight_ll: False
 
 encoder:
   default:

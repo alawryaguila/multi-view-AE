@@ -176,9 +176,9 @@ class DVCCA(BaseModelVAE):
         px_zs = []
         for i in range(self.n_views):
             if self.private:
-                x_out = self.decoders[i](qz_x[i]._sample(training=self._training))
+                x_out = self.decoders[i](qz_x[i]._sample(training=self._training, return_mean=self.return_mean))
             else:
-                x_out = self.decoders[i](qz_x[0]._sample(training=self._training))
+                x_out = self.decoders[i](qz_x[0]._sample(training=self._training, return_mean=self.return_mean))
             px_zs.append(x_out)
         return [px_zs] 
 

@@ -1,24 +1,26 @@
 import torch
-
-from ..base.constants import MODEL_AAE, EPS
+from ..base.constants import MODEL_MWAE
 from ..base.base_model import BaseModelAAE
 
-class AAE(BaseModelAAE):
-    r"""Multi-view Adversarial Autoencoder model with a separate latent representation for each view.
+class mWAE(BaseModelAAE):
+    r"""
+    Multi-view Adversarial Autoencoder model with wasserstein loss.
+
+    Wasserstein autoencoders: https://arxiv.org/abs/1711.01558
 
     Args:
-        cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:
-            
-            - eps (float): Value added for numerical stability.
+        cfg (str): Path to configuration file. Model specific parameters in addition to default parameters:      
+
             - discriminator._target_ (multiviewae.architectures.mlp.Discriminator): Discriminator network class.
             - discriminator.hidden_layer_dim (list): Number of nodes per hidden layer.
             - discriminator.bias (bool): Whether to include a bias term in hidden layers.
             - discriminator.non_linear (bool): Whether to include a ReLU() function between layers.
             - discriminator.dropout_threshold (float): Dropout threshold of layers.
-        
+            
         input_dim (list): Dimensionality of the input data.
         z_dim (int): Number of latent dimensions.
     """
+
     def __init__(
         self,
         cfg = None,
@@ -26,10 +28,12 @@ class AAE(BaseModelAAE):
         z_dim = None
     ):
 
-        super().__init__(model_name=MODEL_AAE,
+        super().__init__(model_name=MODEL_MWAE,
                 cfg=cfg,
                 input_dim=input_dim,
                 z_dim=z_dim)
+
+        self.is_wasserstein = True
 
     def encode(self, x):
         r"""Forward pass through encoder networks.
@@ -45,7 +49,7 @@ class AAE(BaseModelAAE):
             z_ = self.encoders[i](x[i])
             z.append(z_)
         return z
-
+    
     def decode(self, z):
         r"""Forward pass through decoder networks. Each latent is passed through all of the decoders.
 
@@ -154,8 +158,9 @@ class AAE(BaseModelAAE):
         d_fake = fwd_rtn["d_fake"]
         gen_loss = 0
         for i in range(self.n_views):
-            gen_loss += torch.mean(1 - torch.log(d_fake[i] + EPS))
+            gen_loss += -torch.mean(d_fake[i].sum(dim=-1))
         return gen_loss/self.n_views
+     
 
     def discriminator_loss(self, fwd_rtn):
         r"""Calculate the discriminator loss.
@@ -169,9 +174,10 @@ class AAE(BaseModelAAE):
         d_real = fwd_rtn["d_real"]
         d_fake = fwd_rtn["d_fake"]
 
-        disc_loss = -torch.mean(torch.log(d_real + EPS))
+        disc_loss = -torch.mean(d_real.sum(dim=-1)) 
         for i in range(self.n_views):
-            disc_loss += -torch.mean(1 - torch.log(d_fake[i] + EPS))
+            disc_loss += -torch.mean(d_fake[i].sum(dim=-1))
+
         return disc_loss / (self.n_views + 1)
 
-
+    

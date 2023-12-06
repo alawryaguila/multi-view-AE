@@ -1,3 +1,5 @@
+# @package _global_
+
 encoder:  # uses default mlp for all inputs
   default:
       _target_: multiviewae.architectures.mlp.Encoder
@@ -7,7 +9,7 @@ encoder:  # uses default mlp for all inputs
       non_linear: False
 
       enc_dist:
-        _target_: multiviewae.base.distributions.Default_dist
+        _target_: multiviewae.base.distributions.Default
 
   enc0:
       _target_: multiviewae.architectures.mlp.Encoder
@@ -17,4 +19,4 @@ encoder:  # uses default mlp for all inputs
       non_linear: False
 
       enc_dist:
-        _target_: multiviewae.base.distributions.Default_dist
+        _target_: multiviewae.base.distributions.Default

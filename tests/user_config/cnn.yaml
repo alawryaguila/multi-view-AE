@@ -54,7 +54,7 @@ encoder:
       non_linear: False
 
       enc_dist:
-        _target_: multiviewae.base.distributions.Default_dist
+        _target_: multiviewae.base.distributions.Default
 
 decoder:
   default:
@@ -110,4 +110,4 @@ decoder:
       non_linear: False
 
       dec_dist:
-        _target_: multiviewae.base.distributions.Default_dist
+        _target_: multiviewae.base.distributions.Default

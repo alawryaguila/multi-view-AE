@@ -20,10 +20,12 @@ SUPPORTED_DISCRIMINATORS = [
         ]
 
 SUPPORTED_DISTRIBUTIONS = [
-            "distributions.Default_dist",
+            "distributions.Default",
+            "distributions.Categorical",
             "distributions.Normal",
             "distributions.MultivariateNormal",
             "distributions.Bernoulli",
+            "distributions.ApproxBernoulli",
             "distributions.Laplace"
         ]
 

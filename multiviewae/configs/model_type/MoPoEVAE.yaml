@@ -5,6 +5,7 @@ model_name: "MoPoEVAE"
 
 model:
   beta: 1
+  weight_ll: False
 
 encoder:
   default:

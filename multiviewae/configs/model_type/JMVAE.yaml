@@ -3,6 +3,10 @@
 # default parameters for JMVAE model
 model_name: "JMVAE"
 
+model:
+  alpha: 1
+  warmup: 0
+  
 encoder:
   default:
     _target_: multiviewae.architectures.mlp.VariationalEncoder
