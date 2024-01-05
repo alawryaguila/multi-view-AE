@@ -1,0 +1,44 @@
+# @package _global_
+
+model:
+  z_dim: 512 
+  beta: 2.5 
+  alpha: 2.5
+  learning_rate: 0.001
+  seed_everything: True
+  seed: 42
+  private: False
+  return_mean: False #whether to return the mean of the encoding distribution at test time
+  
+datamodule:
+  _target_: MMNISTdataloader.MMNISTDataModule
+  batch_size: null
+  is_validate: False
+  dataset:
+    _target_: MMNISTdataloader.MVDataset
+    data_dir: 'path/to/training/data'
+    is_path_ds: True
+    views: [0, 1, 2, 3, 4]
+
+encoder:
+  default: 
+      _target_: autoencoder_functions.cnn.VariationalEncoder
+
+      enc_dist:
+        _target_: multiviewae.base.distributions.Normal
+
+
+decoder:
+  default: 
+      _target_: autoencoder_functions.cnn.Decoder
+
+      dec_dist:
+        _target_: multiviewae.base.distributions.Laplace
+
+trainer:
+  _target_: pytorch_lightning.Trainer
+  accelerator: 'gpu'
+  gpus: 1
+  max_epochs: 10
+  deterministic: True
+  log_every_n_steps: 2

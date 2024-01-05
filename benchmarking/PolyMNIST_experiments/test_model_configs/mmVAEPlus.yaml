@@ -1,0 +1,54 @@
+# @package _global_
+
+model:
+  u_dim: 32
+  w_dim: 32
+  z_dim: 64
+  beta: 1
+  learning_rate: 0.001
+  K: 1
+  seed_everything: True
+  seed: 42
+  learn_private_prior: True
+  learn_shared_prior: False
+  return_mean: False 
+
+datamodule:
+  _target_: MMNISTdataloader.MMNISTDataModule
+  batch_size: null
+  is_validate: False
+  dataset:
+    _target_: MMNISTdataloader.MVDataset
+    data_dir: '/path/to/training/data'
+    is_path_ds: True
+    views: [0, 1, 2, 3, 4]
+
+encoder:
+  default: 
+      _target_: autoencoder_functions_mmVAEPlus.cnn.VariationalEncoder
+      u_dim: ${model.u_dim}
+      w_dim: ${model.w_dim}
+      enc_dist:
+        _target_: multiviewae.base.distributions.Laplace
+        with_softmax: True
+
+
+decoder:
+  default: 
+      _target_: autoencoder_functions_mmVAEPlus.cnn.Decoder
+
+      dec_dist:
+        _target_: multiviewae.base.distributions.Laplace
+
+prior:
+  _target_: multiviewae.base.distributions.Laplace
+  with_softmax: True
+
+
+trainer:
+  _target_: pytorch_lightning.Trainer
+  accelerator: 'gpu'
+  gpus: 1
+  max_epochs: 10
+  deterministic: True
+  log_every_n_steps: 2

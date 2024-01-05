@@ -1,0 +1,53 @@
+# @package _global_
+
+model:
+  z_dim: 64
+  learning_rate: 0.001
+  seed_everything: True
+  seed: 42
+  warmup: 200
+  use_prior: True
+  weight_kld: False
+  use_likelihood_rescaling: True
+  rescale_factors: [1, 50]
+
+datamodule:
+  _target_: bMNISTdataloader.MultiviewDataModule
+  batch_size: null
+  is_validate: False
+  dataset:
+    _target_: bMNISTdataloader.bMNISTDataset
+    is_path_ds: False
+  
+
+encoder:
+  enc0:
+    _target_: autoencoder_functions_bMNIST_Image.mlp.VariationalEncoder
+
+    enc_dist:
+      _target_: multiviewae.base.distributions.Normal
+  enc1:
+    _target_: autoencoder_functions_bMNIST_Text.mlp.VariationalEncoder
+
+    enc_dist:
+      _target_: multiviewae.base.distributions.Normal
+
+decoder:
+  dec0:
+      _target_: autoencoder_functions_bMNIST_Image.mlp.Decoder
+
+      dec_dist:
+        _target_: multiviewae.base.distributions.Bernoulli
+  dec1:
+      _target_: autoencoder_functions_bMNIST_Text.mlp.Decoder
+
+      dec_dist:
+        _target_: multiviewae.base.distributions.Categorical
+
+trainer:
+  _target_: pytorch_lightning.Trainer
+  accelerator: 'gpu'
+  gpus: 1
+  max_epochs: 10
+  deterministic: False
+  log_every_n_steps: 2
