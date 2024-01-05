@@ -1,3 +1,8 @@
+<div align="center">
+<img src="https://github.com/alawryaguila/multi-view-AE/blob/master/docs/figures/logo.png" width="500px">
+
+# Multi-modal representation learning using autoencoders
+
 ![Build Status](https://github.com/alawryaguila/multi-view-ae/actions/workflows/ci.yml/badge.svg)
 [![Documentation Status](https://readthedocs.org/projects/multi-view-ae/badge/?version=latest)](https://multi-view-ae.readthedocs.io/en/latest/?badge=latest)
 [![Python Version](https://img.shields.io/badge/python-3.7%20%7C%203.8%20%7C%203.9%20%7C%203.10%20-blue)](https://github.com/alawryaguila/multi-view-ae)
@@ -5,14 +10,17 @@
 [![version](https://img.shields.io/pypi/v/multiviewae)](https://pypi.org/project/multiviewae/)
 [![codecov](https://codecov.io/gh/alawryaguila/multi-view-AE/graph/badge.svg?token=NKO935MXFG)](https://codecov.io/gh/alawryaguila/multi-view-AE)
 [![downloads](https://img.shields.io/pypi/dm/multiviewae)](https://pypi.org/project/multiviewae/)
-# Multi-view-AE: Multi-modal representation learning using autoencoders
-<p align="center">
-  <img src="https://github.com/alawryaguila/multi-view-AE/blob/master/docs/figures/logo.png" width="600px"></center>
-</p>
+
+</div>
 
 `multi-view-AE` is a collection of multi-modal autoencoder models for learning joint representations from multiple modalities of data. The package is structured such that all models have `fit`, `predict_latents` and `predict_reconstruction` methods. All models are built in Pytorch and Pytorch-Lightning. 
 
 For more information on implemented models and how to use the package, please see the [documentation](https://multi-view-ae.readthedocs.io/en/latest/).
+
+## Library schematic
+<p align="center">
+  <img src="https://github.com/alawryaguila/multi-view-AE/blob/master/docs/figures/schematic_diagram.png" width="800px"></center>
+</p>
 
 ## Models Implemented
 
@@ -22,10 +30,9 @@ Below is a table with the models contained within this repository and links to t
 |:------------:|:-------------------------------------------------------------------------------------------:|:----------------:|:-----------:|
 | mcVAE        | Multi-Channel Variational Autoencoder (mcVAE)                                               | >=1              |[link](http://proceedings.mlr.press/v97/antelmi19a.html)|
 | AE           | Multi-view Autoencoder                                                                      |   >=1            |               |
-| AAE          | Multi-view Adversarial Autoencoder with separate latent representations                     |    >=1           |               |
+| mAAE         | Multi-view Adversarial Autoencoder                                                          |    >=1           |               |
 | DVCCA        | Deep Variational CCA                                                                        |    2             |[link](https://arxiv.org/abs/1610.03454)|
-| jointAAE     | Multi-view Adversarial Autoencoder with joint latent representation                         |   >=1            |               |
-| wAAE         | Multi-view Adversarial Autoencoder with joint latent representation and wasserstein loss    |    >=1           |               |
+| mWAE         | Multi-view Adversarial Autoencoder with a wasserstein loss                                  |    >=1           |               |
 | mmVAE        | Variational mixture-of-experts autoencoder (MMVAE)                                          |   >=1            |[link](https://arxiv.org/abs/1911.03393)|
 | mVAE         | Multimodal Variational Autoencoder (MVAE)                                                   |    >=1           |[link](https://arxiv.org/abs/1802.05335)|
 | me_mVAE      | Multimodal Variational Autoencoder (MVAE) with separate ELBO terms for each view            |    >=1           |[link](https://arxiv.org/abs/1802.05335)|
