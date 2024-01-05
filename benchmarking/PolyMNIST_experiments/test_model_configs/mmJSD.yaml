@@ -42,3 +42,7 @@ trainer:
   max_epochs: 10
   deterministic: True
   log_every_n_steps: 2
+
+optimizer:
+  _target_: torch.optim.Adam
+  amsgrad: True

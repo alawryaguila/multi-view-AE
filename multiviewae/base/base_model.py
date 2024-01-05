@@ -229,8 +229,7 @@ class BaseModelAE(ABC, pl.LightningModule):
         torch.save(self, join(self.cfg.out_dir, "model.pkl"))
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, self.parameters()),
-                       lr=self.learning_rate, amsgrad=True)
+        optimizer = hydra.utils.instantiate(self.cfg.optimizer, filter(lambda p: p.requires_grad, self.parameters()), lr=self.learning_rate)
         return optimizer
 
     ################################            protected methods, can be overwritten by child
@@ -759,7 +758,7 @@ class BaseModelAAE(BaseModelAE):
         #Encoder optimizers
         [
             optimizers.append(
-                torch.optim.Adam(
+                hydra.utils.instantiate(self.cfg.optimizer,
                     list(self.encoders[i].parameters()), lr=self.learning_rate
                 )
             )
@@ -768,7 +767,7 @@ class BaseModelAAE(BaseModelAE):
         #Decoder optimizers
         [
             optimizers.append(
-                torch.optim.Adam(
+                hydra.utils.instantiate(self.cfg.optimizer,
                     list(self.decoders[i].parameters()), lr=self.learning_rate
                 )
             )
@@ -777,7 +776,7 @@ class BaseModelAAE(BaseModelAE):
         #Generator optimizers
         [
             optimizers.append(
-                torch.optim.Adam(
+                hydra.utils.instantiate(self.cfg.optimizer,
                     list(self.encoders[i].parameters()), lr=self.learning_rate
                 )
             )
@@ -785,7 +784,7 @@ class BaseModelAAE(BaseModelAE):
         ]
         #Discriminator optimizers
         optimizers.append(
-            torch.optim.Adam(
+            hydra.utils.instantiate(self.cfg.optimizer,
                 list(self.discriminator.parameters()), lr=self.learning_rate
             )
         )

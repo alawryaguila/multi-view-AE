@@ -11,10 +11,11 @@ class ProductOfExperts(nn.Module):
     """
     def forward(self, mu, logvar):
         var = torch.exp(logvar) + EPS
-        T = 1. / (var + EPS)
+        # precision of i-th Gaussian expert at point x
+        T = 1.0 / var
         pd_mu = torch.sum(mu * T, dim=0) / torch.sum(T, dim=0)
-        pd_var = 1. / torch.sum(T, dim=0)
-        pd_logvar = torch.log(pd_var + EPS)
+        pd_var = 1.0 / torch.sum(T, dim=0)
+        pd_logvar = torch.log(pd_var)
         return pd_mu, pd_logvar
     
 class alphaProductOfExperts(nn.Module):
@@ -30,9 +31,6 @@ class alphaProductOfExperts(nn.Module):
         if weights is None:
             num_components = mu.shape[0]
             weights = (1/num_components) * torch.ones(mu.shape).to(mu.device)
-        neg_logvar = logvar*-1
-        pd_logvar = -torch.logsumexp(neg_logvar, dim=0) 
-        pd_mu = torch.sum(torch.exp(neg_logvar) * mu, dim=0) * torch.exp(pd_logvar)
 
         var = torch.exp(logvar) + EPS
         T = 1. / (var + EPS)

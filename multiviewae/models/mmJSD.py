@@ -306,7 +306,7 @@ class mmJSD(BaseModelVAE):
     def loss_function(self, x, fwd_rtn):
         r"""Calculate mmJSD loss.
         
-        Args:
+        Args:                                                                                                                           
             x (list): list of input data of type torch.Tensor.
             fwd_rtn (dict): dictionary containing encoding and decoding distributions.
 

@@ -97,7 +97,7 @@ class Normal(Normal):
         self.loc = kwargs['loc']
         if 'logvar' in kwargs:
             self.logvar = kwargs['logvar']
-            self.scale = kwargs['logvar'].mul(0.5).exp_()+EPS
+            self.scale = kwargs['logvar'].mul(0.5).exp_()
 
         elif 'scale' in kwargs:
             self.scale = kwargs['scale']
@@ -143,7 +143,7 @@ class Normal(Normal):
 
         if return_mean:
                 return self.loc
-        return self.sample()
+        return self.rsample()
 
 class MultivariateNormal(MultivariateNormal):
     """Multivariate normal distribution with diagonal covariance matrix. Inherits from torch.distributions.multivariate_normal.MultivariateNormal.
@@ -204,7 +204,7 @@ class MultivariateNormal(MultivariateNormal):
             return self.rsample(*kwargs)
         if return_mean:
                 return self.loc
-        return self.sample()
+        return self.rsample()
 
 class Bernoulli(Bernoulli):
     """Bernoulli distribution. Inherits from torch.distributions.Bernoulli.
@@ -311,4 +311,4 @@ class Laplace(Laplace):
 
         if return_mean:
                 return self.loc
-        return self.sample()
+        return self.rsample()

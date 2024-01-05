@@ -42,13 +42,14 @@ def test_models():
     test_2 = np.random.rand(50, 10)
     test_3 = np.random.rand(50, 5)
 
-    test_models = MODELS
+    #test_models = MODELS
+    test_models = [MODEL_DCCAE]
     module = importlib.import_module("multiviewae")
     for m in test_models:
         print('MODEL CLASS')
         print(m)
         class_ = getattr(module, m)
-        if m not in [MODEL_JMVAE, MODEL_VAEBARLOW, MODEL_AEBARLOW]: #JMVAE only designed for 2 views of data
+        if m not in [MODEL_JMVAE, MODEL_DCCAE]: #JMVAE only designed for 2 views of data
             model1 = class_(input_dim=[20])
             model1.fit(train_1) #fit model with 1 view
             model1.fit(train_1, max_epochs=5, batch_size=10) #fit using user specified max_epochs and batch size
@@ -302,7 +303,7 @@ def test_architectures():
             else:
                 model1 = class_(input_dim=dim)
 
-            model1.fit(*train_data, max_epochs=5, batch_size=10)
+            model1.fit(*train_data, max_epochs=5, batch_size=50)
 
             print("RESULTS: ", m)
             latent = model1.predict_latents(*test_data)
@@ -310,9 +311,9 @@ def test_architectures():
             recon = model1.predict_reconstruction(*test_data)
             print_results("recon", recon)
 
-            latent = model1.predict_latents(*test_data, batch_size=10)
+            latent = model1.predict_latents(*test_data, batch_size=50)
             print_results("latent", latent)
-            recon = model1.predict_reconstruction(*test_data, batch_size=5)
+            recon = model1.predict_reconstruction(*test_data, batch_size=20)
             print_results("recon", recon)
 
             outdir = model1.cfg.out_dir

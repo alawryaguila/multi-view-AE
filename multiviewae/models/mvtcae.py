@@ -89,7 +89,7 @@ class mvtCAE(BaseModelVAE):
             logvar = torch.stack(logvar)
             mu, logvar = ProductOfExperts()(mu, logvar)
             qz_x = hydra.utils.instantiate( 
-                self.cfg.encoder.default.enc_dist, loc=mu, scale=logvar.exp().pow(0.5)
+                self.cfg.encoder.default.enc_dist, loc=mu, logvar=logvar
             )
             qz_x = [qz_x]
             return qz_x
@@ -119,8 +119,7 @@ class mvtCAE(BaseModelVAE):
         qz_x = hydra.utils.instantiate( 
             self.cfg.encoder.default.enc_dist, loc=mu, logvar=logvar
         )
-        qz_x = [qz_x]
-        return qz_x
+        return [qz_x]
     
     def decode(self, qz_x):
         r"""Forward pass of joint latent dimensions through decoder networks.

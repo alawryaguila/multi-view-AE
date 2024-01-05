@@ -1,0 +1,10 @@
+# @package _global_
+
+# default parameters for DCCAE model
+model_name: "DCCAE"
+
+model:
+  _lambda: 1
+  
+optimizer:
+  _target_: torch.optim.LBFGS

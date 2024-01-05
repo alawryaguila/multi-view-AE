@@ -78,7 +78,7 @@ class AE(BaseModelAE):
         recon = 0
         for i in range(self.n_views):
             for j in range(self.n_views):
-                recon += x_recon[j][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view
+                recon += - x_recon[j][i].log_likelihood(x[i]).mean(0).sum() #first index is latent, second index is view
         recon = recon / self.n_views / self.n_views
         losses = {"loss": recon}
         return losses
