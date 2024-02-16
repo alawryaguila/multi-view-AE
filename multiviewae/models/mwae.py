@@ -176,7 +176,7 @@ class mWAE(BaseModelAAE):
 
         disc_loss = -torch.mean(d_real.sum(dim=-1)) 
         for i in range(self.n_views):
-            disc_loss += -torch.mean(d_fake[i].sum(dim=-1))
+            disc_loss += torch.mean(d_fake[i].sum(dim=-1))  
 
         return disc_loss / (self.n_views + 1)
 
